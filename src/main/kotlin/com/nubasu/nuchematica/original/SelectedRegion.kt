@@ -1,7 +1,5 @@
 package com.nubasu.nuchematica.original
 
-import com.nubasu.nuchematica.original.Vector3
-import net.minecraft.world.entity.Entity
 import kotlin.math.abs
 
 public class SelectedRegion(public var pos1: Vector3 = Vector3.ZERO, public var pos2: Vector3 = Vector3.ZERO) {
