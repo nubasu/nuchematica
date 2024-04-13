@@ -104,9 +104,20 @@ public class Nuchematica {
                 Command.SINGLE_SUCCESS
             }
 
+        val blocksBuilder = Commands.literal("blocks")
+            .executes {
+                LOGGER.info("blocks")
+                val blocks = SelectedRegionManager.getSelectedRegionBlocks()
+                blocks.forEach {
+                    LOGGER.info(it.block.name.toString())
+                }
+                Command.SINGLE_SUCCESS
+            }
+
         event.dispatcher.register(testBuilder)
         event.dispatcher.register(pos1Builder)
         event.dispatcher.register(pos2Builder)
+        event.dispatcher.register(blocksBuilder)
     }
 
     @SubscribeEvent
