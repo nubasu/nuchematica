@@ -17,4 +17,4 @@ public data class SpongeSchematicFormatV1 (
     val palette: PaletteObject?,
     val blockData: List<CompoundTag>,
     val tileEntities: TileEntityObject?
-)
+): SchematicFormat

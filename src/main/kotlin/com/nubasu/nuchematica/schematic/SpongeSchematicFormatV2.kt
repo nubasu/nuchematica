@@ -24,4 +24,4 @@ public data class SpongeSchematicFormatV2(
     val biomePaletteMax: IntTag?,
     val biomePalette: PaletteObject?,
     val biomeData: ByteArrayTag?
-)
+): SchematicFormat

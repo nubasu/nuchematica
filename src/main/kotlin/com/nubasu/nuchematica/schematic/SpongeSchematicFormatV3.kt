@@ -16,4 +16,4 @@ public data class SpongeSchematicFormatV3 (
     val blocks: BlockContainer?,
     val biomes: BiomeContainer?,
     val entities: EntityObject?
-)
+): SchematicFormat
