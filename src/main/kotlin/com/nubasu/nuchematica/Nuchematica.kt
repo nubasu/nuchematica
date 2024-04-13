@@ -7,6 +7,7 @@ import com.nubasu.nuchematica.original.Vector3
 import com.nubasu.nuchematica.original.command.TestCommand
 import com.nubasu.nuchematica.original.gui.MainGui
 import com.nubasu.nuchematica.original.keysetting.KeyManager
+import com.nubasu.nuchematica.original.renderer.SelectedRegionManager
 import net.minecraft.client.Minecraft
 import net.minecraft.commands.Commands
 import net.minecraft.world.item.BlockItem
@@ -92,7 +93,7 @@ public class Nuchematica {
             .executes {
                 LOGGER.info("p1")
                 val p1 = Minecraft.getInstance().player!!.position()
-                testCommand.registerPos1(Vector3(p1.x, p1.y, p1.z))
+                SelectedRegionManager.setFirstPosition(p1)
                 Command.SINGLE_SUCCESS
             }
 
@@ -100,7 +101,7 @@ public class Nuchematica {
             .executes {
                 LOGGER.info("p2")
                 val p2 = Minecraft.getInstance().player!!.position()
-                testCommand.registerPos2(Vector3(p2.x, p2.y, p2.z))
+                SelectedRegionManager.setSecondPosition(p2)
                 Command.SINGLE_SUCCESS
             }
 
