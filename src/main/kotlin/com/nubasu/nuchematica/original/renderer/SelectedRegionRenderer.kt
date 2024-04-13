@@ -23,7 +23,7 @@ public class SelectedRegionRenderer(private val selectRegion: SelectedRegion) {
     public var pos2: Vector3 = Vector3.ONE
 
     // call only in RenderLevelStageEvent
-    public fun renderLine(poseStack: PoseStack, projectionMatrix: Matrix4f, camera: Camera) {
+    public fun renderSelectedRegion(poseStack: PoseStack, projectionMatrix: Matrix4f, camera: Camera) {
         val view = camera.position
 
         val tesselator = Tesselator.getInstance()

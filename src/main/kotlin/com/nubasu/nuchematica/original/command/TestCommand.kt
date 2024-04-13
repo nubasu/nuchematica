@@ -21,7 +21,7 @@ public class TestCommand {
 
     public fun renderLine() {
         if (isRendering) {
-            render.renderLine(poseStack, projectionMatrix, mc.gameRenderer.mainCamera)
+            render.renderSelectedRegion(poseStack, projectionMatrix, mc.gameRenderer.mainCamera)
         }
     }
 
