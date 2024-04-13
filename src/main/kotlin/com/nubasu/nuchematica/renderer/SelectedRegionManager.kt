@@ -2,9 +2,14 @@ package com.nubasu.nuchematica.renderer
 
 import com.nubasu.nuchematica.common.SelectedRegion
 import com.nubasu.nuchematica.common.Vector3
+import net.minecraft.client.Minecraft
+import net.minecraft.core.BlockPos
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
 
 public object SelectedRegionManager {
+    private val mc = Minecraft.getInstance()
     public var selectedRegion: SelectedRegion = SelectedRegion(Vector3.ONE, Vector3.ONE)
     public fun setFirstPosition(position: Vec3): SelectedRegion {
         selectedRegion = SelectedRegion(position.toVector3(), selectedRegion.pos2)
@@ -17,6 +22,31 @@ public object SelectedRegionManager {
     }
 
     public fun save() {
+    }
+
+    public fun getSelectedRegionBlocks(): List<BlockState> {
+        val maximumPoint = selectedRegion.maximumPoint
+        val minimumPoint = selectedRegion.minimumPoint
+
+        val blocks: ArrayList<BlockState> = arrayListOf()
+
+        for (x in minimumPoint.x until maximumPoint.x) {
+            for (y in minimumPoint.y until maximumPoint.y) {
+                for (z in minimumPoint.z until maximumPoint.z) {
+                    blocks.add(getBlock(Vector3(x, y, z)))
+                }
+            }
+        }
+        return blocks
+    }
+
+    private fun getBlock(pos: Vector3): BlockState {
+        val blockPos = BlockPos(pos.x, pos.y, pos.z)
+        return if (mc.level!!.isLoaded(blockPos)) {
+            mc.level!!.getBlockState(blockPos)
+        } else {
+            Blocks.AIR.defaultBlockState()
+        }
     }
 
     private fun Vec3.toVector3(): Vector3 {
