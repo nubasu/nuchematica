@@ -1,9 +1,9 @@
-package com.nubasu.nuchematica.original.keysetting
+package com.nubasu.nuchematica.keysetting
 
 import com.mojang.blaze3d.platform.InputConstants
 import com.nubasu.nuchematica.Nuchematica
-import com.nubasu.nuchematica.original.gui.screen.SettingScreen
-import com.nubasu.nuchematica.original.renderer.SelectedRegionManager
+import com.nubasu.nuchematica.gui.screen.SettingScreen
+import com.nubasu.nuchematica.renderer.SelectedRegionManager
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component

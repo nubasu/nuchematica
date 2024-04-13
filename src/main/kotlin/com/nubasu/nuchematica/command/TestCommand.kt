@@ -1,8 +1,8 @@
-package com.nubasu.nuchematica.original.command
+package com.nubasu.nuchematica.command
 
 import com.mojang.blaze3d.vertex.PoseStack
-import com.nubasu.nuchematica.original.SelectedRegion
-import com.nubasu.nuchematica.original.renderer.SelectedRegionRenderer
+import com.nubasu.nuchematica.common.SelectedRegion
+import com.nubasu.nuchematica.renderer.SelectedRegionRenderer
 import net.minecraft.client.Minecraft
 import org.joml.Matrix4f
 

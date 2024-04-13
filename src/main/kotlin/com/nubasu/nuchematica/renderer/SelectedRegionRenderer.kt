@@ -1,8 +1,8 @@
-package com.nubasu.nuchematica.original.renderer
+package com.nubasu.nuchematica.renderer
 
 import com.mojang.blaze3d.platform.GlStateManager
 import com.mojang.blaze3d.vertex.*
-import com.nubasu.nuchematica.original.SelectedRegion
+import com.nubasu.nuchematica.common.SelectedRegion
 import net.minecraft.client.Camera
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GameRenderer

@@ -1,4 +1,4 @@
-package com.nubasu.nuchematica.original
+package com.nubasu.nuchematica.common
 
 import kotlin.math.max
 import kotlin.math.min

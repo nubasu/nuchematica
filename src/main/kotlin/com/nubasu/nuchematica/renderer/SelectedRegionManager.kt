@@ -1,7 +1,7 @@
-package com.nubasu.nuchematica.original.renderer
+package com.nubasu.nuchematica.renderer
 
-import com.nubasu.nuchematica.original.SelectedRegion
-import com.nubasu.nuchematica.original.Vector3
+import com.nubasu.nuchematica.common.SelectedRegion
+import com.nubasu.nuchematica.common.Vector3
 import net.minecraft.world.phys.Vec3
 
 public object SelectedRegionManager {
@@ -12,7 +12,7 @@ public object SelectedRegionManager {
     }
 
     public fun setSecondPosition(position: Vec3): SelectedRegion {
-        selectedRegion= SelectedRegion(selectedRegion.pos1, position.toVector3())
+        selectedRegion = SelectedRegion(selectedRegion.pos1, position.toVector3())
         return selectedRegion
     }
 

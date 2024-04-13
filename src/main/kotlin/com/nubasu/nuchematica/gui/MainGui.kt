@@ -1,4 +1,4 @@
-package com.nubasu.nuchematica.original.gui
+package com.nubasu.nuchematica.gui
 
 import com.mojang.blaze3d.systems.RenderSystem
 import com.nubasu.nuchematica.Nuchematica

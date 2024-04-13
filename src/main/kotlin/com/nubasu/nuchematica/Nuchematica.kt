@@ -3,10 +3,10 @@ package com.nubasu.nuchematica
 import com.mojang.blaze3d.vertex.*
 import com.mojang.brigadier.Command
 import com.mojang.logging.LogUtils
-import com.nubasu.nuchematica.original.command.TestCommand
-import com.nubasu.nuchematica.original.gui.MainGui
-import com.nubasu.nuchematica.original.keysetting.KeyManager
-import com.nubasu.nuchematica.original.renderer.SelectedRegionManager
+import com.nubasu.nuchematica.command.TestCommand
+import com.nubasu.nuchematica.gui.MainGui
+import com.nubasu.nuchematica.keysetting.KeyManager
+import com.nubasu.nuchematica.renderer.SelectedRegionManager
 import net.minecraft.client.Minecraft
 import net.minecraft.commands.Commands
 import net.minecraft.world.item.BlockItem
