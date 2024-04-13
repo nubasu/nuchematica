@@ -12,7 +12,7 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import org.joml.Matrix4f
 
-public class RenderSelectedRegion(private val selectRegion: SelectedRegion) {
+public class SelectedRegionRenderer(private val selectRegion: SelectedRegion) {
     public fun render(block: Block) {
         val rendermanger: GlStateManager = GlStateManager()
         val dispatcher: BlockRenderDispatcher = Minecraft.getInstance().blockRenderer

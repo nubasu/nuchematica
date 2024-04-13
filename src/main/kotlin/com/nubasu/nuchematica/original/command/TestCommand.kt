@@ -3,13 +3,13 @@ package com.nubasu.nuchematica.original.command
 import com.mojang.blaze3d.vertex.PoseStack
 import com.nubasu.nuchematica.original.SelectedRegion
 import com.nubasu.nuchematica.original.Vector3
-import com.nubasu.nuchematica.original.renderer.RenderSelectedRegion
+import com.nubasu.nuchematica.original.renderer.SelectedRegionRenderer
 import net.minecraft.client.Minecraft
 import org.joml.Matrix4f
 
 public class TestCommand {
     private val mc: Minecraft = Minecraft.getInstance()
-    private val render = RenderSelectedRegion(SelectedRegion())
+    private val render = SelectedRegionRenderer(SelectedRegion())
     public var projectionMatrix = Matrix4f().identity()
     public var poseStack = PoseStack()
 
