@@ -97,9 +97,6 @@ repositories {
     maven("https://maven.enginehub.org/repo/")
 }
 dependencies {
-    implementation("com.sk89q.worldedit:worldedit-core:7.2.9")
-//    implementation(fg.deobf("com.sk89q.worldedit:worldedit-core:7.2.9"))
-
     minecraft("net.minecraftforge:forge:1.19.4-45.1.0")
 
     api("org.jetbrains.kotlin:kotlin-reflect:${kotlin.coreLibrariesVersion}")
