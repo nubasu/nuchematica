@@ -3,7 +3,6 @@ package com.nubasu.nuchematica
 import com.mojang.blaze3d.vertex.*
 import com.mojang.brigadier.Command
 import com.mojang.logging.LogUtils
-import com.nubasu.nuchematica.original.Vector3
 import com.nubasu.nuchematica.original.command.TestCommand
 import com.nubasu.nuchematica.original.gui.MainGui
 import com.nubasu.nuchematica.original.keysetting.KeyManager
@@ -112,10 +111,7 @@ public class Nuchematica {
 
     @SubscribeEvent
     public fun onWorldRenderLast(event: RenderLevelStageEvent) {
-        testCommand.poseStack = event.poseStack
-        testCommand.projectionMatrix = event.projectionMatrix
-
-        testCommand.renderLine()
+        testCommand.renderLine(SelectedRegionManager.selectedRegion, event.poseStack, event.projectionMatrix)
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
