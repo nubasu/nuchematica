@@ -7,12 +7,12 @@ import net.minecraft.world.phys.Vec3
 public object SelectedRegionManager {
     public var selectedRegion: SelectedRegion = SelectedRegion(Vector3.ONE, Vector3.ONE)
     public fun setFirstPosition(position: Vec3): SelectedRegion {
-        selectedRegion.pos1 = position.toVector3()
+        selectedRegion = SelectedRegion(position.toVector3(), selectedRegion.pos2)
         return selectedRegion
     }
 
     public fun setSecondPosition(position: Vec3): SelectedRegion {
-        selectedRegion.pos2 = position.toVector3()
+        selectedRegion= SelectedRegion(selectedRegion.pos1, position.toVector3())
         return selectedRegion
     }
 
