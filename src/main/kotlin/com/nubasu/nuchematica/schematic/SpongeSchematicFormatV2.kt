@@ -7,14 +7,15 @@ import com.nubasu.nuchematica.schematic.`object`.PaletteObject
 import com.nubasu.nuchematica.tag.ByteArrayTag
 import com.nubasu.nuchematica.tag.IntArrayTag
 import com.nubasu.nuchematica.tag.IntTag
+import com.nubasu.nuchematica.tag.ShortTag
 
 public data class SpongeSchematicFormatV2(
     val version: IntTag,
     val dataVersion: IntTag,
     val metadata: MetadataObject?,
-    val width: IntTag,
-    val height: IntTag,
-    val length: IntTag,
+    val width: ShortTag,
+    val height: ShortTag,
+    val length: ShortTag,
     val offset: IntArrayTag?,
     val paletteMax: IntTag?,
     val palette: PaletteObject?,
