@@ -7,6 +7,7 @@ import com.nubasu.nuchematica.command.TestCommand
 import com.nubasu.nuchematica.gui.MainGui
 import com.nubasu.nuchematica.keysetting.KeyManager
 import com.nubasu.nuchematica.renderer.SelectedRegionManager
+import com.nubasu.nuchematica.utils.ChatSender
 import net.minecraft.client.Minecraft
 import net.minecraft.commands.Commands
 import net.minecraft.world.item.BlockItem
@@ -109,7 +110,11 @@ public class Nuchematica {
                 LOGGER.info("blocks")
                 val blocks = SelectedRegionManager.getSelectedRegionBlocks()
                 blocks.forEach {
-                    LOGGER.info(it.block.name.toString())
+                    ChatSender.send(it.block.name.toString())
+
+                    it.blockHolder.tagKeys.forEach {
+                        ChatSender.send(it.toString())
+                    }
                 }
                 Command.SINGLE_SUCCESS
             }

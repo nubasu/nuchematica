@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants
 import com.nubasu.nuchematica.Nuchematica
 import com.nubasu.nuchematica.gui.screen.SettingScreen
 import com.nubasu.nuchematica.renderer.SelectedRegionManager
+import com.nubasu.nuchematica.utils.ChatSender
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component
@@ -62,16 +63,12 @@ public class KeyManager {
         }
         if (pos1Key.consumeClick()) {
             val pos = Minecraft.getInstance().player?.position()!!
-            Minecraft.getInstance().player?.sendSystemMessage(
-                Component.literal("pos1: ${pos.x.toInt()}, ${pos.y.toInt()}, ${pos.z.toInt()}")
-            )
+            ChatSender.send("pos1: ${pos.x.toInt()}, ${pos.y.toInt()}, ${pos.z.toInt()}")
             SelectedRegionManager.setFirstPosition(pos)
         }
         if (pos2Key.consumeClick()) {
             val pos = Minecraft.getInstance().player?.position()!!
-            Minecraft.getInstance().player?.sendSystemMessage(
-                Component.literal("pos2: ${pos.x.toInt()}, ${pos.y.toInt()}, ${pos.z.toInt()}")
-            )
+            ChatSender.send("pos1: ${pos.x.toInt()}, ${pos.y.toInt()}, ${pos.z.toInt()}")
             SelectedRegionManager.setSecondPosition(pos)
         }
         if (saveKey.consumeClick()) {
