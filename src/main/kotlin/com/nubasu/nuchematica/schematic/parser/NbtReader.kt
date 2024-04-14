@@ -75,10 +75,7 @@ public class NbtReader(private val input: DataInputStream) {
         val content: MutableMap<String, Tag> = mutableMapOf()
         while (tagId != 0) {
             println("tag id: $tagId")
-            val nameLength = input.readShort()
-            val bytes = ByteArray(nameLength.toInt())
-            input.readFully(bytes)
-            val tagName = String(bytes, TagDefinition.CHARSET)
+            val tagName = readTagName()
             println("tag name: $tagName")
 
             val tag = parseTag(tagId)
@@ -111,6 +108,13 @@ public class NbtReader(private val input: DataInputStream) {
             longArray.add(input.readLong())
         }
         return LongArrayTag(longArray.toLongArray())
+    }
+
+    public fun readTagName(): String {
+        val nameLength = input.readShort()
+        val bytes = ByteArray(nameLength.toInt())
+        input.readFully(bytes)
+        return String(bytes, TagDefinition.CHARSET)
     }
 
     private fun parseTag(tagId: Int): Tag {
