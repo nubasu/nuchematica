@@ -1,4 +1,4 @@
-import com.nubasu.nuchematica.schematic.parser.NbtReader
+import com.nubasu.nuchematica.io.NbtReader
 import net.minecraft.util.FastBufferedInputStream
 import org.junit.jupiter.api.Test
 import java.io.DataInputStream

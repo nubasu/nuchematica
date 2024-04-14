@@ -1,5 +1,5 @@
-import com.nubasu.nuchematica.schematic.parser.NbtReader
-import com.nubasu.nuchematica.schematic.parser.NbtWriter
+import com.nubasu.nuchematica.io.NbtReader
+import com.nubasu.nuchematica.io.NbtWriter
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream
 import it.unimi.dsi.fastutil.io.FastBufferedOutputStream
 import org.junit.jupiter.api.AfterEach

@@ -1,4 +1,4 @@
-package com.nubasu.nuchematica.schematic.parser
+package com.nubasu.nuchematica.io
 
 import com.nubasu.nuchematica.tag.*
 import java.io.Closeable
