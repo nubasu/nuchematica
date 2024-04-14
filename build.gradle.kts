@@ -16,6 +16,7 @@ val forgeVersion: String by project
 val kotlinVersion: String by project
 val coroutinesVersion: String by project
 val serializationVersion: String by project
+val mockkVersion: String by project
 
 val group = "com.nubasu.nuchematica"
 val version = "1.0-SNAPSHOT"
@@ -108,6 +109,11 @@ dependencies {
     api("org.jetbrains.kotlinx:kotlinx-serialization-core:${serializationVersion}")
     api("org.jetbrains.kotlinx:kotlinx-serialization-json:${serializationVersion}")
 
+    testImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
+    testImplementation("io.mockk:mockk:${mockkVersion}")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")
+
 }
 
 tasks {
@@ -128,6 +134,10 @@ tasks {
 
     withType<KotlinCompile> {
         kotlinOptions.freeCompilerArgs = listOf("-Xexplicit-api=warning", "-Xjvm-default=all")
+    }
+
+    test {
+        useJUnitPlatform()
     }
 }
 
