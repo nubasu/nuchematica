@@ -3,16 +3,20 @@ package com.nubasu.nuchematica.keysetting
 import com.mojang.blaze3d.platform.InputConstants
 import com.nubasu.nuchematica.Nuchematica
 import com.nubasu.nuchematica.gui.screen.SettingScreen
+import com.nubasu.nuchematica.io.NbtReader
+import com.nubasu.nuchematica.io.WorldEditSchematicReader
 import com.nubasu.nuchematica.renderer.SelectedRegionManager
 import com.nubasu.nuchematica.utils.ChatSender
+import it.unimi.dsi.fastutil.io.FastBufferedInputStream
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
-import net.minecraft.network.chat.Component
 import net.minecraftforge.client.event.InputEvent
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent
 import net.minecraftforge.client.settings.KeyConflictContext
 import net.minecraftforge.eventbus.api.SubscribeEvent
 import net.minecraftforge.fml.common.Mod
+import java.io.DataInputStream
+import java.io.FileInputStream
 
 @Mod.EventBusSubscriber(modid = Nuchematica.MODID)
 public class KeyManager {
@@ -44,7 +48,7 @@ public class KeyManager {
         "key.nuchematica.save",
         KeyConflictContext.IN_GAME,
         InputConstants.Type.KEYSYM,
-        'n'.code,
+        'N'.code,
         "key.nuchematica.category"
     )
 
@@ -67,12 +71,17 @@ public class KeyManager {
             SelectedRegionManager.setFirstPosition(pos)
         }
         if (pos2Key.consumeClick()) {
+            ChatSender.send(Minecraft.getInstance().gameDirectory.absolutePath)
             val pos = Minecraft.getInstance().player?.position()!!
             ChatSender.send("pos1: ${pos.x.toInt()}, ${pos.y.toInt()}, ${pos.z.toInt()}")
             SelectedRegionManager.setSecondPosition(pos)
         }
         if (saveKey.consumeClick()) {
-            SelectedRegionManager.save()
+            val shemDir = Minecraft.getInstance().gameDirectory.absolutePath + "/schematics"
+            val inputStream = DataInputStream(FastBufferedInputStream(FileInputStream("$shemDir/nature_town.schematic")))
+            val compoundTag = NbtReader(inputStream).readCompoundTag()
+            val clipboard = WorldEditSchematicReader.read(compoundTag)
+            SelectedRegionManager.place(clipboard)
         }
     }
 }

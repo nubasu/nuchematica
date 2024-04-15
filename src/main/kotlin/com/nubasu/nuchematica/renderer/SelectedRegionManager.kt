@@ -2,11 +2,14 @@ package com.nubasu.nuchematica.renderer
 
 import com.nubasu.nuchematica.common.SelectedRegion
 import com.nubasu.nuchematica.common.Vector3
+import com.nubasu.nuchematica.schematic.Clipboard
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
+import net.minecraftforge.server.ServerLifecycleHooks
 
 public object SelectedRegionManager {
     private val mc = Minecraft.getInstance()
@@ -38,6 +41,14 @@ public object SelectedRegionManager {
             }
         }
         return blocks
+    }
+
+    public fun place(clipboard: Clipboard) {
+        for (i in 0 until clipboard.position.size) {
+            val block = clipboard.block[i]
+            val position = clipboard.position[i]
+            ServerLifecycleHooks.getCurrentServer().getLevel(Level.OVERWORLD)!!.setBlockAndUpdate(position, block)
+        }
     }
 
     private fun getBlock(pos: Vector3): BlockState {
