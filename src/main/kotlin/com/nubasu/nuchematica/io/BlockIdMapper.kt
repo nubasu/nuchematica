@@ -8,7 +8,7 @@ public data class BlockAndDataId(val blockId: Int, val dataId: Int)
 
 public object BlockIdMapper {
     public fun getBlockIdFromLegacy(blockId: Int, dataId: Int): String {
-        return mapper[BlockAndDataId(blockId, dataId)] ?: throw NullPointerException()
+        return mapper[BlockAndDataId(blockId, dataId)] ?: throw NullPointerException("not found $blockId, $dataId")
     }
 
     private val mapper: HashMap<BlockAndDataId, String> = hashMapOf(
@@ -808,18 +808,18 @@ public object BlockIdMapper {
         BlockAndDataId(126, 11) to "minecraft:jungle_slab[type=top]",
         BlockAndDataId(126, 12) to "minecraft:acacia_slab[type=top]",
         BlockAndDataId(126, 13) to "minecraft:dark_oak_slab[type=top]",
-        BlockAndDataId(127, 0) to "minecraft:cocoa[facing=south,age=0]",
-        BlockAndDataId(127, 1) to "minecraft:cocoa[facing=west,age=0]",
-        BlockAndDataId(127, 2) to "minecraft:cocoa[facing=north,age=0]",
-        BlockAndDataId(127, 3) to "minecraft:cocoa[facing=east,age=0]",
-        BlockAndDataId(127, 4) to "minecraft:cocoa[facing=south,age=1]",
-        BlockAndDataId(127, 5) to "minecraft:cocoa[facing=west,age=1]",
-        BlockAndDataId(127, 6) to "minecraft:cocoa[facing=north,age=1]",
-        BlockAndDataId(127, 7) to "minecraft:cocoa[facing=east,age=1]",
-        BlockAndDataId(127, 8) to "minecraft:cocoa[facing=south,age=2]",
-        BlockAndDataId(127, 9) to "minecraft:cocoa[facing=west,age=2]",
-        BlockAndDataId(127, 10) to "minecraft:cocoa[facing=north,age=2]",
-        BlockAndDataId(127, 11) to "minecraft:cocoa[facing=east,age=2]",
+        BlockAndDataId(127, 0) to  "minecraft:cocoa", // minecraft:cocoa[facing=south,age=0]",
+        BlockAndDataId(127, 1) to  "minecraft:cocoa", // minecraft:cocoa[facing=west,age=0]",
+        BlockAndDataId(127, 2) to  "minecraft:cocoa", // minecraft:cocoa[facing=north,age=0]",
+        BlockAndDataId(127, 3) to  "minecraft:cocoa", // minecraft:cocoa[facing=east,age=0]",
+        BlockAndDataId(127, 4) to  "minecraft:cocoa", // minecraft:cocoa[facing=south,age=1]",
+        BlockAndDataId(127, 5) to  "minecraft:cocoa", // minecraft:cocoa[facing=west,age=1]",
+        BlockAndDataId(127, 6) to  "minecraft:cocoa", // minecraft:cocoa[facing=north,age=1]",
+        BlockAndDataId(127, 7) to  "minecraft:cocoa", // minecraft:cocoa[facing=east,age=1]",
+        BlockAndDataId(127, 8) to  "minecraft:cocoa", // minecraft:cocoa[facing=south,age=2]",
+        BlockAndDataId(127, 9) to  "minecraft:cocoa", // minecraft:cocoa[facing=west,age=2]",
+        BlockAndDataId(127, 10) to "minecraft:cocoa", // minecraft:cocoa[facing=north,age=2]",
+        BlockAndDataId(127, 11) to "minecraft:cocoa", // minecraft:cocoa[facing=east,age=2]",
         BlockAndDataId(128, 0) to "minecraft:sandstone_stairs[half=bottom,shape=straight,facing=east]",
         BlockAndDataId(128, 1) to "minecraft:sandstone_stairs[half=bottom,shape=straight,facing=west]",
         BlockAndDataId(128, 2) to "minecraft:sandstone_stairs[half=bottom,shape=straight,facing=south]",
