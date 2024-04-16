@@ -5,5 +5,5 @@ import com.nubasu.nuchematica.tag.ByteArrayTag
 
 public data class BiomeContainer(
     val palette: PaletteObject,
-    val data: ByteArrayTag
+    val data: ByteArray
 )

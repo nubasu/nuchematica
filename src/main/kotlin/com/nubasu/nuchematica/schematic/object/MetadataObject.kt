@@ -4,8 +4,8 @@ import com.nubasu.nuchematica.tag.LongTag
 import com.nubasu.nuchematica.tag.StringTag
 
 public data class MetadataObject(
-    val name: StringTag?,
-    val author: StringTag?,
-    val date: LongTag?,
-    val requiredMods: List<StringTag>
+    val name: String,
+    val author: String?,
+    val date: Long?,
+    val requiredMods: List<String>
 )
