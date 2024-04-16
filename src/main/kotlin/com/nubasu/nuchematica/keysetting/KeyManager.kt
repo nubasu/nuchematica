@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants
 import com.nubasu.nuchematica.Nuchematica
 import com.nubasu.nuchematica.gui.screen.SettingScreen
 import com.nubasu.nuchematica.io.NbtReader
+import com.nubasu.nuchematica.io.SpongeSchematicV3Reader
 import com.nubasu.nuchematica.io.WorldEditSchematicReader
 import com.nubasu.nuchematica.renderer.SelectedRegionManager
 import com.nubasu.nuchematica.utils.ChatSender
@@ -17,6 +18,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent
 import net.minecraftforge.fml.common.Mod
 import java.io.DataInputStream
 import java.io.FileInputStream
+import java.util.zip.GZIPInputStream
 
 @Mod.EventBusSubscriber(modid = Nuchematica.MODID)
 public class KeyManager {
@@ -78,9 +80,9 @@ public class KeyManager {
         }
         if (saveKey.consumeClick()) {
             val shemDir = Minecraft.getInstance().gameDirectory.absolutePath + "/schematics"
-            val inputStream = DataInputStream(FastBufferedInputStream(FileInputStream("$shemDir/nature_town.schematic")))
+            val inputStream = DataInputStream(FastBufferedInputStream(GZIPInputStream(FileInputStream("$shemDir/test_V3.schem"))))
             val compoundTag = NbtReader(inputStream).readCompoundTag()
-            val clipboard = WorldEditSchematicReader.read(compoundTag)
+            val clipboard = SpongeSchematicV3Reader.read(compoundTag)
             SelectedRegionManager.place(clipboard)
         }
     }

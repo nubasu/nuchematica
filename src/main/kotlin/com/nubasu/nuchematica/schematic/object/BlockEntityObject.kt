@@ -5,7 +5,7 @@ import com.nubasu.nuchematica.tag.IntArrayTag
 import com.nubasu.nuchematica.tag.StringTag
 
 public data class BlockEntityObject(
-    val pos:IntArrayTag,
-    val id: StringTag,
+    val pos:IntArray,
+    val id: String,
     val data: CompoundTag?
 )
