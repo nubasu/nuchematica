@@ -98,7 +98,7 @@ public class NbtReader(private val input: DataInputStream): Closeable {
 
     public fun readTagName(): String {
         val nameLength = input.readShort()
-        val bytes = ByteArray(nameLength.toInt())
+        val bytes = ByteArray(nameLength.toInt() and 0xff)
         input.readFully(bytes)
         return String(bytes, TagDefinition.CHARSET)
     }

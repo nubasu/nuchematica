@@ -10,11 +10,11 @@ import net.minecraftforge.registries.ForgeRegistries
 import java.io.IOException
 
 public object WorldEditSchematicReader: SchematicReader {
-    public fun read(compoundTag: CompoundTag): Clipboard {
-        if (!compoundTag.value.containsKey("Schematic")) {
+    public override fun read(tag: CompoundTag): Clipboard {
+        if (!tag.value.containsKey("Schematic")) {
             throw IOException("does not exist Tag \"Schematic\"")
         }
-        val root = compoundTag.value["Schematic"] as CompoundTag
+        val root = tag.value["Schematic"] as CompoundTag
         val materials = root.getString("Materials")
         if (materials != "Alpha") {
             throw Exception("unsupported format $materials")
