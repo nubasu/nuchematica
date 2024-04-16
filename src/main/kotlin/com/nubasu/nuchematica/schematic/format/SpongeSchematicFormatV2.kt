@@ -11,19 +11,19 @@ import com.nubasu.nuchematica.tag.IntTag
 import com.nubasu.nuchematica.tag.ShortTag
 
 public data class SpongeSchematicFormatV2(
-    val version: IntTag,
-    val dataVersion: IntTag,
+    val version: Int,
+    val dataVersion: Int,
     val metadata: MetadataObject?,
-    val width: ShortTag,
-    val height: ShortTag,
-    val length: ShortTag,
-    val offset: IntArrayTag?,
-    val paletteMax: IntTag?,
+    val width: Short,
+    val height: Short,
+    val length: Short,
+    val offset: IntArray?,
+    val paletteMax: Int?,
     val palette: PaletteObject?,
-    val blockData: ByteArrayTag,
+    val blockData: ByteArray,
     val blockEntities: List<BlockEntityObject>?,
     val entities: List<EntityObject>?,
-    val biomePaletteMax: IntTag?,
+    val biomePaletteMax: Int?,
     val biomePalette: PaletteObject?,
-    val biomeData: ByteArrayTag?
+    val biomeData: ByteArray?
 ): SchematicFormat
