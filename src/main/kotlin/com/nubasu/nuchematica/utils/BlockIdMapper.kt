@@ -1,8 +1,4 @@
-package com.nubasu.nuchematica.io
-
-import net.minecraft.core.Direction
-import net.minecraft.core.FrontAndTop
-import net.minecraft.world.level.block.state.properties.*
+package com.nubasu.nuchematica.utils
 
 public data class BlockAndDataId(val blockId: Int, val dataId: Int)
 

@@ -1,7 +1,7 @@
 package com.nubasu.nuchematica.schematic.reader
 
-import com.nubasu.nuchematica.io.BlockIdMapper
-import com.nubasu.nuchematica.io.PropertyMapper
+import com.nubasu.nuchematica.utils.BlockIdMapper
+import com.nubasu.nuchematica.utils.PropertyMapper
 import com.nubasu.nuchematica.schematic.Clipboard
 import com.nubasu.nuchematica.schematic.format.WorldEditSchematicFormat
 import com.nubasu.nuchematica.tag.CompoundTag
