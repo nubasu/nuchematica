@@ -1,8 +1,8 @@
 package com.nubasu.nuchematica.schematic.format
 
 import com.nubasu.nuchematica.schematic.SchematicFormat
-import com.nubasu.nuchematica.schematic.`object`.PaletteObject
-import com.nubasu.nuchematica.schematic.`object`.TileEntityObject
+import com.nubasu.nuchematica.schematic.schemaobject.PaletteObject
+import com.nubasu.nuchematica.schematic.schemaobject.TileEntityObject
 import com.nubasu.nuchematica.tag.CompoundTag
 import com.nubasu.nuchematica.tag.IntArrayTag
 import com.nubasu.nuchematica.tag.IntTag

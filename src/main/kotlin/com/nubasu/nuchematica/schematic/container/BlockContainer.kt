@@ -1,8 +1,7 @@
 package com.nubasu.nuchematica.schematic.container
 
-import com.nubasu.nuchematica.schematic.`object`.BlockEntityObject
-import com.nubasu.nuchematica.schematic.`object`.PaletteObject
-import com.nubasu.nuchematica.tag.ByteArrayTag
+import com.nubasu.nuchematica.schematic.schemaobject.BlockEntityObject
+import com.nubasu.nuchematica.schematic.schemaobject.PaletteObject
 
 public data class BlockContainer(
     val palette: PaletteObject,

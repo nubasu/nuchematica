@@ -1,14 +1,10 @@
 package com.nubasu.nuchematica.schematic.format
 
 import com.nubasu.nuchematica.schematic.SchematicFormat
-import com.nubasu.nuchematica.schematic.`object`.BlockEntityObject
-import com.nubasu.nuchematica.schematic.`object`.EntityObject
-import com.nubasu.nuchematica.schematic.`object`.MetadataObject
-import com.nubasu.nuchematica.schematic.`object`.PaletteObject
-import com.nubasu.nuchematica.tag.ByteArrayTag
-import com.nubasu.nuchematica.tag.IntArrayTag
-import com.nubasu.nuchematica.tag.IntTag
-import com.nubasu.nuchematica.tag.ShortTag
+import com.nubasu.nuchematica.schematic.schemaobject.BlockEntityObject
+import com.nubasu.nuchematica.schematic.schemaobject.EntityObject
+import com.nubasu.nuchematica.schematic.schemaobject.MetadataObject
+import com.nubasu.nuchematica.schematic.schemaobject.PaletteObject
 
 public data class SpongeSchematicFormatV2(
     val version: Int,

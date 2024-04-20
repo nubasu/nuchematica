@@ -1,4 +1,4 @@
-package com.nubasu.nuchematica.schematic.`object`
+package com.nubasu.nuchematica.schematic.schemaobject
 
 public data class TileEntityObject(
     val contentVersion: Int,

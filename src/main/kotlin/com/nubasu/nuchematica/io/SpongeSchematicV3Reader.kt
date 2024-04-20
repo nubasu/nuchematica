@@ -4,10 +4,10 @@ import com.nubasu.nuchematica.schematic.Clipboard
 import com.nubasu.nuchematica.schematic.container.BiomeContainer
 import com.nubasu.nuchematica.schematic.container.BlockContainer
 import com.nubasu.nuchematica.schematic.format.SpongeSchematicFormatV3
-import com.nubasu.nuchematica.schematic.`object`.BlockEntityObject
-import com.nubasu.nuchematica.schematic.`object`.EntityObject
-import com.nubasu.nuchematica.schematic.`object`.MetadataObject
-import com.nubasu.nuchematica.schematic.`object`.PaletteObject
+import com.nubasu.nuchematica.schematic.schemaobject.BlockEntityObject
+import com.nubasu.nuchematica.schematic.schemaobject.EntityObject
+import com.nubasu.nuchematica.schematic.schemaobject.MetadataObject
+import com.nubasu.nuchematica.schematic.schemaobject.PaletteObject
 import com.nubasu.nuchematica.tag.CompoundTag
 import com.nubasu.nuchematica.tag.DoubleTag
 import com.nubasu.nuchematica.tag.StringTag
