@@ -98,7 +98,7 @@ public object SpongeSchematicV1Reader: SchematicReader {
             name = tag.getString("Name"),
             author = tag.getString("Author"),
             date = tag.getLong("Date"),
-            requiredMods = tag.getList("RequairedMods", StringTag::class.java).map { it.value },
+            requiredMods = tag.getList("RequiredMods", StringTag::class.java).map { it.value },
         )
     }
 
