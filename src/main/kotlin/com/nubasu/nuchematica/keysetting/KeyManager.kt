@@ -79,9 +79,9 @@ public class KeyManager {
         }
         if (saveKey.consumeClick()) {
             val shemDir = Minecraft.getInstance().gameDirectory.absolutePath + "/schematics"
-            val inputStream = DataInputStream(FastBufferedInputStream(GZIPInputStream(FileInputStream("$shemDir/test_V2.schem"))))
+            val inputStream = DataInputStream(FastBufferedInputStream(GZIPInputStream(FileInputStream("$shemDir/v3_sign.schem"))))
             val compoundTag = NbtReader(inputStream).readCompoundTag()
-            val clipboard = SpongeSchematicV2Reader.read(compoundTag)
+            val clipboard = SpongeSchematicV3Reader.read(compoundTag)
             SelectedRegionManager.place(clipboard)
         }
     }
