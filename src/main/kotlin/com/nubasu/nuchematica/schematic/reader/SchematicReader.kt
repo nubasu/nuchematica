@@ -1,4 +1,4 @@
-package com.nubasu.nuchematica.io
+package com.nubasu.nuchematica.schematic.reader
 
 import com.nubasu.nuchematica.schematic.Clipboard
 import com.nubasu.nuchematica.tag.CompoundTag

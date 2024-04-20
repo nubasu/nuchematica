@@ -10,12 +10,7 @@ import com.nubasu.nuchematica.renderer.SelectedRegionManager
 import com.nubasu.nuchematica.utils.ChatSender
 import net.minecraft.client.Minecraft
 import net.minecraft.commands.Commands
-import net.minecraft.world.item.BlockItem
-import net.minecraft.world.item.Item
-import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.block.state.BlockBehaviour
-import net.minecraft.world.level.material.Material
 import net.minecraftforge.api.distmarker.Dist
 import net.minecraftforge.client.event.RenderLevelStageEvent
 import net.minecraftforge.common.MinecraftForge
@@ -28,7 +23,6 @@ import net.minecraftforge.fml.common.Mod.EventBusSubscriber
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext
-import net.minecraftforge.registries.DeferredRegister
 import net.minecraftforge.registries.ForgeRegistries
 
 
@@ -46,11 +40,6 @@ public class Nuchematica {
                 event
             )
         }
-
-        // Register the Deferred Register to the mod event bus so blocks get registered
-        BLOCKS.register(modEventBus)
-        // Register the Deferred Register to the mod event bus so items get registered
-        ITEMS.register(modEventBus)
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this)
@@ -145,33 +134,7 @@ public class Nuchematica {
         // Define mod id in a common place for everything to reference
         public const val MODID: String = "nuchematica"
 
-        // Directly reference a slf4j logger
         private val LOGGER = LogUtils.getLogger()
-
-        // Create a Deferred Register to hold Blocks which will all be registered under the "examplemod" namespace
-        private val BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MODID)
-
-        // Create a Deferred Register to hold Items which will all be registered under the "examplemod" namespace
-        private  val ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID)
-
-        // Creates a new Block with the id "examplemod:example_block", combining the namespace and path
-        private val EXAMPLE_BLOCK = BLOCKS.register(
-            "example_block"
-        ) {
-            Block(
-                BlockBehaviour.Properties.of(Material.STONE)
-            )
-        }
-
-        // Creates a new BlockItem with the id "examplemod:example_block", combining the namespace and path
-        private val EXAMPLE_BLOCK_ITEM = ITEMS.register<Item>(
-            "example_block"
-        ) {
-            BlockItem(
-                EXAMPLE_BLOCK.get(),
-                Item.Properties()
-            )
-        }
     }
 }
 

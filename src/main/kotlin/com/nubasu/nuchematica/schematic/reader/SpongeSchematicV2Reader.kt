@@ -1,17 +1,21 @@
-package com.nubasu.nuchematica.io
+package com.nubasu.nuchematica.schematic.reader
 
+import com.nubasu.nuchematica.utils.PropertyMapper
 import com.nubasu.nuchematica.schematic.Clipboard
-import com.nubasu.nuchematica.schematic.format.SpongeSchematicFormatV1
-import com.nubasu.nuchematica.schematic.schemaobject.*
+import com.nubasu.nuchematica.schematic.format.SpongeSchematicFormatV2
+import com.nubasu.nuchematica.schematic.schemaobject.BlockEntityObject
+import com.nubasu.nuchematica.schematic.schemaobject.EntityObject
+import com.nubasu.nuchematica.schematic.schemaobject.MetadataObject
+import com.nubasu.nuchematica.schematic.schemaobject.PaletteObject
 import com.nubasu.nuchematica.tag.CompoundTag
-import com.nubasu.nuchematica.tag.IntTag
+import com.nubasu.nuchematica.tag.DoubleTag
 import com.nubasu.nuchematica.tag.StringTag
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.ResourceLocation
 import net.minecraftforge.registries.ForgeRegistries
 import java.io.IOException
 
-public object SpongeSchematicV1Reader: SchematicReader {
+public object SpongeSchematicV2Reader: SchematicReader {
 
     override fun read(tag: CompoundTag): Clipboard {
         if (!tag.value.containsKey("Schematic")) {
@@ -19,9 +23,10 @@ public object SpongeSchematicV1Reader: SchematicReader {
         }
         val root = tag.value["Schematic"] as CompoundTag
 
-        val format = SpongeSchematicFormatV1(
+        val format = SpongeSchematicFormatV2(
             version = root.getInt("Version"),
-            metadata = getMetadata(root.value["MetaData"] as CompoundTag?),
+            dataVersion = root.getInt("DataVersion"),
+            metadata = getMetadata(root.value["Metadata"] as CompoundTag?),
             width = root.getShort("Width"),
             height = root.getShort("Height"),
             length = root.getShort("Length"),
@@ -29,11 +34,15 @@ public object SpongeSchematicV1Reader: SchematicReader {
             paletteMax = root.getInt("PaletteMax"),
             palette = getPalette(root),
             blockData = root.getByteArray("BlockData"),
-            tileEntities = getTileEntities(tag.getList("TileEntities", CompoundTag::class.java))
+            blockEntities = getBlockEntities(tag.getList("BlockEntities", CompoundTag::class.java)),
+            entities = getEntities(tag.getList("Entities", CompoundTag::class.java)),
+            biomePaletteMax = root.getInt("BiomePaletteMax"),
+            biomePalette = getBiomePalette(root),
+            biomeData = root.getByteArray("BimomeData"),
         )
 
-        if (format.version != 1) {
-            throw Exception("unsupported format V1")
+        if (format.version != 2) {
+            throw Exception("unsupported format V2")
         }
 
         val clipboard = Clipboard()
@@ -97,7 +106,7 @@ public object SpongeSchematicV1Reader: SchematicReader {
             name = tag.getString("Name"),
             author = tag.getString("Author"),
             date = tag.getLong("Date"),
-            requiredMods = tag.getList("RequairedMods", StringTag::class.java).map { it.value },
+            requiredMods = tag.getList("RequiredMods", StringTag::class.java).map { it.value },
         )
     }
 
@@ -109,16 +118,38 @@ public object SpongeSchematicV1Reader: SchematicReader {
         }
     }
 
-    private fun getTileEntities(tag: List<CompoundTag>?): List<TileEntityObject>? {
+    private fun getBiomePalette(tag: CompoundTag): PaletteObject? {
+        return tag.value["BiomePalette"]?.let {
+            PaletteObject(
+                palette = (it as CompoundTag).value.map { tag -> tag.value.value as Int to tag.key }.toMap()
+            )
+        }
+    }
+
+    private fun getEntities(tag: List<CompoundTag>?): List<EntityObject>? {
         if (tag == null) {
             return null
         }
         return tag.map {
-            TileEntityObject(
-                contentVersion = it.getInt("ContentVersion"),
-                pos = it.getList("Pos", IntTag::class.java).map { v -> v.value }.toIntArray(),
-                id = it.getString("Id")
+            EntityObject(
+                pos = it.getList("Pos", DoubleTag::class.java).map { v -> v.value },
+                id = it.getString("Id"),
+                data = it.value["Extra"] as CompoundTag?
             )
+        }
+    }
+
+
+    private fun getBlockEntities(tag: List<CompoundTag>?): List<BlockEntityObject>? {
+        if (tag == null) {
+            return null
+        }
+        return tag.map {
+                BlockEntityObject(
+                    pos = it.getIntArray("Pos"),
+                    id = it.getString("Id"),
+                    data = it.value["Extra"] as CompoundTag?
+                )
         }
     }
 }

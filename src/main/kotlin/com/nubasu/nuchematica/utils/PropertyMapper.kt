@@ -1,4 +1,4 @@
-package com.nubasu.nuchematica.io
+package com.nubasu.nuchematica.utils
 
 import net.minecraft.core.Direction
 import net.minecraft.core.Direction.Axis
@@ -10,7 +10,6 @@ public object PropertyMapper {
 
     public fun mapping(blockState: BlockState, property: String, value: String): BlockState {
         val id = blockState.block.name.toString()
-
 
         val newState = when (property) {
             "level" -> {

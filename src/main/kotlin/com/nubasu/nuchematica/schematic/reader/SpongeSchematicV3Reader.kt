@@ -1,5 +1,6 @@
-package com.nubasu.nuchematica.io
+package com.nubasu.nuchematica.schematic.reader
 
+import com.nubasu.nuchematica.utils.PropertyMapper
 import com.nubasu.nuchematica.schematic.Clipboard
 import com.nubasu.nuchematica.schematic.container.BiomeContainer
 import com.nubasu.nuchematica.schematic.container.BlockContainer
@@ -104,7 +105,7 @@ public object SpongeSchematicV3Reader: SchematicReader {
             name = tag.getString("Name"),
             author = tag.getString("Author"),
             date = tag.getLong("Date"),
-            requiredMods = tag.getList("RequairedMods", StringTag::class.java).map { it.value },
+            requiredMods = tag.getList("RequiredMods", StringTag::class.java).map { it.value },
         )
     }
 
