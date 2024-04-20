@@ -25,7 +25,7 @@ public object SpongeSchematicV2Reader: SchematicReader {
         val format = SpongeSchematicFormatV2(
             version = root.getInt("Version"),
             dataVersion = root.getInt("DataVersion"),
-            metadata = getMetadata(root.value["Metadata"] as CompoundTag),
+            metadata = getMetadata(root.value["Metadata"] as CompoundTag?),
             width = root.getShort("Width"),
             height = root.getShort("Height"),
             length = root.getShort("Length"),
@@ -97,7 +97,10 @@ public object SpongeSchematicV2Reader: SchematicReader {
         return clipboard
     }
 
-    private fun getMetadata(tag: CompoundTag): MetadataObject {
+    private fun getMetadata(tag: CompoundTag?): MetadataObject? {
+        if (tag == null) {
+            return null
+        }
         return MetadataObject(
             name = tag.getString("Name"),
             author = tag.getString("Author"),
