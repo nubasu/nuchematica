@@ -4,9 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants
 import com.nubasu.nuchematica.Nuchematica
 import com.nubasu.nuchematica.gui.screen.SettingScreen
 import com.nubasu.nuchematica.io.NbtReader
-import com.nubasu.nuchematica.io.SpongeSchematicV2Reader
-import com.nubasu.nuchematica.io.SpongeSchematicV3Reader
-import com.nubasu.nuchematica.io.WorldEditSchematicReader
+import com.nubasu.nuchematica.schematic.reader.SpongeSchematicV2Reader
 import com.nubasu.nuchematica.renderer.SelectedRegionManager
 import com.nubasu.nuchematica.utils.ChatSender
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream
