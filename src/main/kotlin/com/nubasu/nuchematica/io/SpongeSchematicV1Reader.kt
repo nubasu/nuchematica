@@ -1,20 +1,17 @@
 package com.nubasu.nuchematica.io
 
 import com.nubasu.nuchematica.schematic.Clipboard
-import com.nubasu.nuchematica.schematic.format.SpongeSchematicFormatV2
-import com.nubasu.nuchematica.schematic.schemaobject.BlockEntityObject
-import com.nubasu.nuchematica.schematic.schemaobject.EntityObject
-import com.nubasu.nuchematica.schematic.schemaobject.MetadataObject
-import com.nubasu.nuchematica.schematic.schemaobject.PaletteObject
+import com.nubasu.nuchematica.schematic.format.SpongeSchematicFormatV1
+import com.nubasu.nuchematica.schematic.schemaobject.*
 import com.nubasu.nuchematica.tag.CompoundTag
-import com.nubasu.nuchematica.tag.DoubleTag
+import com.nubasu.nuchematica.tag.IntTag
 import com.nubasu.nuchematica.tag.StringTag
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.ResourceLocation
 import net.minecraftforge.registries.ForgeRegistries
 import java.io.IOException
 
-public object SpongeSchematicV2Reader: SchematicReader {
+public object SpongeSchematicV1Reader: SchematicReader {
 
     override fun read(tag: CompoundTag): Clipboard {
         if (!tag.value.containsKey("Schematic")) {
@@ -22,10 +19,9 @@ public object SpongeSchematicV2Reader: SchematicReader {
         }
         val root = tag.value["Schematic"] as CompoundTag
 
-        val format = SpongeSchematicFormatV2(
+        val format = SpongeSchematicFormatV1(
             version = root.getInt("Version"),
-            dataVersion = root.getInt("DataVersion"),
-            metadata = getMetadata(root.value["Metadata"] as CompoundTag?),
+            metadata = getMetadata(root.value["MetaData"] as CompoundTag?),
             width = root.getShort("Width"),
             height = root.getShort("Height"),
             length = root.getShort("Length"),
@@ -33,15 +29,11 @@ public object SpongeSchematicV2Reader: SchematicReader {
             paletteMax = root.getInt("PaletteMax"),
             palette = getPalette(root),
             blockData = root.getByteArray("BlockData"),
-            blockEntities = getBlockEntities(tag.getList("BlockEntities", CompoundTag::class.java)),
-            entities = getEntities(tag.getList("Entities", CompoundTag::class.java)),
-            biomePaletteMax = root.getInt("BiomePaletteMax"),
-            biomePalette = getBiomePalette(root),
-            biomeData = root.getByteArray("BimomeData"),
+            tileEntities = getTileEntities(tag.getList("TileEntities", CompoundTag::class.java))
         )
 
-        if (format.version != 2) {
-            throw Exception("unsupported format V2")
+        if (format.version != 1) {
+            throw Exception("unsupported format V1")
         }
 
         val clipboard = Clipboard()
@@ -117,38 +109,16 @@ public object SpongeSchematicV2Reader: SchematicReader {
         }
     }
 
-    private fun getBiomePalette(tag: CompoundTag): PaletteObject? {
-        return tag.value["BiomePalette"]?.let {
-            PaletteObject(
-                palette = (it as CompoundTag).value.map { tag -> tag.value.value as Int to tag.key }.toMap()
-            )
-        }
-    }
-
-    private fun getEntities(tag: List<CompoundTag>?): List<EntityObject>? {
+    private fun getTileEntities(tag: List<CompoundTag>?): List<TileEntityObject>? {
         if (tag == null) {
             return null
         }
         return tag.map {
-            EntityObject(
-                pos = it.getList("Pos", DoubleTag::class.java).map { v -> v.value },
-                id = it.getString("Id"),
-                data = it.value["Extra"] as CompoundTag?
+            TileEntityObject(
+                contentVersion = it.getInt("ContentVersion"),
+                pos = it.getList("Pos", IntTag::class.java).map { v -> v.value }.toIntArray(),
+                id = it.getString("Id")
             )
-        }
-    }
-
-
-    private fun getBlockEntities(tag: List<CompoundTag>?): List<BlockEntityObject>? {
-        if (tag == null) {
-            return null
-        }
-        return tag.map {
-                BlockEntityObject(
-                    pos = it.getIntArray("Pos"),
-                    id = it.getString("Id"),
-                    data = it.value["Extra"] as CompoundTag?
-                )
         }
     }
 }
