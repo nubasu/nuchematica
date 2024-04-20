@@ -1,9 +1,7 @@
 package com.nubasu.nuchematica.io
 
 import com.nubasu.nuchematica.schematic.Clipboard
-import com.nubasu.nuchematica.schematic.container.BiomeContainer
-import com.nubasu.nuchematica.schematic.container.BlockContainer
-import com.nubasu.nuchematica.schematic.format.SpongeSchematicFormatV3
+import com.nubasu.nuchematica.schematic.format.SpongeSchematicFormatV2
 import com.nubasu.nuchematica.schematic.schemaobject.BlockEntityObject
 import com.nubasu.nuchematica.schematic.schemaobject.EntityObject
 import com.nubasu.nuchematica.schematic.schemaobject.MetadataObject
@@ -16,16 +14,15 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraftforge.registries.ForgeRegistries
 import java.io.IOException
 
-public object SpongeSchematicV3Reader: SchematicReader {
-    override fun read(tag: CompoundTag): Clipboard {
-        val head = tag.value[""] as CompoundTag
+public object SpongeSchematicV2Reader: SchematicReader {
 
-        if (!head.value.containsKey("Schematic")) {
+    override fun read(tag: CompoundTag): Clipboard {
+        if (!tag.value.containsKey("Schematic")) {
             throw IOException("does not exist Tag \"Schematic\"")
         }
-        val root = head.value["Schematic"] as CompoundTag
+        val root = tag.value["Schematic"] as CompoundTag
 
-        val format = SpongeSchematicFormatV3(
+        val format = SpongeSchematicFormatV2(
             version = root.getInt("Version"),
             dataVersion = root.getInt("DataVersion"),
             metadata = getMetadata(root.value["Metadata"] as CompoundTag),
@@ -33,13 +30,18 @@ public object SpongeSchematicV3Reader: SchematicReader {
             height = root.getShort("Height"),
             length = root.getShort("Length"),
             offset = root.getIntArray("Offset"),
-            blocks = getBlocks(root.value["Blocks"] as CompoundTag?),
-            biomes = getBiomes(root.value["Biomes"] as CompoundTag?),
-            entities = getEntities(root.value["Entities"] as CompoundTag?),
+            paletteMax = root.getInt("PaletteMax"),
+            palette = getPalette(root),
+            blockData = root.getByteArray("BlockData"),
+            blockEntities = getBlockEntities(tag.getList("BlockEntities", CompoundTag::class.java)),
+            entities = getEntities(tag.getList("Entities", CompoundTag::class.java)),
+            biomePaletteMax = root.getInt("BiomePaletteMax"),
+            biomePalette = getBiomePalette(root),
+            biomeData = root.getByteArray("BimomeData"),
         )
 
-        if (format.version != 3) {
-            throw Exception("unsupported format V3")
+        if (format.version != 2) {
+            throw Exception("unsupported format V2")
         }
 
         val clipboard = Clipboard()
@@ -48,9 +50,9 @@ public object SpongeSchematicV3Reader: SchematicReader {
             for (y in 0 until format.height) {
                 for (z in 0 until format.length) {
                     val index = (y * format.length + z) * format.width + x
-                    val palette = format.blocks!!.palette.palette
+                    val palette = format.palette!!.palette
 
-                    val blockMapperId = format.blocks.data[index].toInt() and 0xff
+                    val blockMapperId = format.blockData[index].toInt() and 0xff
                     if (blockMapperId == 0) {
                         continue
                     }
@@ -104,32 +106,6 @@ public object SpongeSchematicV3Reader: SchematicReader {
         )
     }
 
-    private fun getBlocks(tag: CompoundTag?): BlockContainer? {
-        if (tag == null) {
-            return null
-        }
-
-        return getPalette(tag)?.let {
-            BlockContainer(
-                palette = it,
-                data = tag.getByteArray("Data"),
-                blockEntities = (tag.getList("BlockEntities", CompoundTag::class.java)).map { getBlockEntities(it) }
-            )
-        }
-    }
-
-    private fun getBiomes(tag: CompoundTag?): BiomeContainer? {
-        if (tag == null) {
-            return null
-        }
-        return getPalette(tag)?.let {
-            BiomeContainer(
-                palette = it,
-                data = tag.getByteArray("Data")
-            )
-        }
-    }
-
     private fun getPalette(tag: CompoundTag): PaletteObject? {
         return tag.value["Palette"]?.let {
             PaletteObject(
@@ -138,24 +114,38 @@ public object SpongeSchematicV3Reader: SchematicReader {
         }
     }
 
-    private fun getEntities(tag: CompoundTag?): EntityObject? {
+    private fun getBiomePalette(tag: CompoundTag): PaletteObject? {
+        return tag.value["BiomePalette"]?.let {
+            PaletteObject(
+                palette = (it as CompoundTag).value.map { tag -> tag.value.value as Int to tag.key }.toMap()
+            )
+        }
+    }
+
+    private fun getEntities(tag: List<CompoundTag>?): List<EntityObject>? {
         if (tag == null) {
             return null
         }
-        return EntityObject(
-            pos = tag.getList("Pos", DoubleTag::class.java).map { it.value },
-            id = tag.getString("Id"),
-            data = tag.value["Data"] as CompoundTag?
-        )
+        return tag.map {
+            EntityObject(
+                pos = it.getList("Pos", DoubleTag::class.java).map { v -> v.value },
+                id = it.getString("Id"),
+                data = it.value["Extra"] as CompoundTag?
+            )
+        }
     }
 
 
-    private fun getBlockEntities(tag: CompoundTag): BlockEntityObject {
-        return BlockEntityObject(
-            pos = tag.getIntArray("Pos"),
-            id = tag.getString("Id"),
-            data = tag.value["Data"] as CompoundTag?
-        )
+    private fun getBlockEntities(tag: List<CompoundTag>?): List<BlockEntityObject>? {
+        if (tag == null) {
+            return null
+        }
+        return tag.map {
+                BlockEntityObject(
+                    pos = it.getIntArray("Pos"),
+                    id = it.getString("Id"),
+                    data = it.value["Extra"] as CompoundTag?
+                )
+        }
     }
-
 }

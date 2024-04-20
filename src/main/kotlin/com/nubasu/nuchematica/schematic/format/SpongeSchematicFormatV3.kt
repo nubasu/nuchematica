@@ -3,8 +3,8 @@ package com.nubasu.nuchematica.schematic.format
 import com.nubasu.nuchematica.schematic.SchematicFormat
 import com.nubasu.nuchematica.schematic.container.BiomeContainer
 import com.nubasu.nuchematica.schematic.container.BlockContainer
-import com.nubasu.nuchematica.schematic.`object`.EntityObject
-import com.nubasu.nuchematica.schematic.`object`.MetadataObject
+import com.nubasu.nuchematica.schematic.schemaobject.EntityObject
+import com.nubasu.nuchematica.schematic.schemaobject.MetadataObject
 
 public data class SpongeSchematicFormatV3 (
     val version: Int,
