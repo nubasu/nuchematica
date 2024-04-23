@@ -13,6 +13,8 @@ import net.minecraft.commands.Commands
 import net.minecraft.world.level.block.Blocks
 import net.minecraftforge.api.distmarker.Dist
 import net.minecraftforge.client.event.RenderLevelStageEvent
+import net.minecraftforge.client.event.RenderLevelStageEvent.RegisterStageEvent
+import net.minecraftforge.client.event.RenderLevelStageEvent.Stage
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.event.CreativeModeTabEvent.BuildContents
 import net.minecraftforge.event.RegisterCommandsEvent
@@ -115,8 +117,19 @@ public class Nuchematica {
     }
 
     @SubscribeEvent
+    public fun renderBlockPreview(event: RegisterStageEvent) {
+        println(event.toString())
+    }
+
+    @SubscribeEvent
     public fun onWorldRenderLast(event: RenderLevelStageEvent) {
+//        event.levelRenderer.chunkRenderDispatcher.
         testCommand.renderLine(SelectedRegionManager.selectedRegion, event.poseStack, event.projectionMatrix)
+
+        if (event.stage == Stage.AFTER_TRIPWIRE_BLOCKS) {
+            testCommand.renderBlock(Blocks.OAK_PLANKS.defaultBlockState(), event.poseStack)
+        }
+
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent

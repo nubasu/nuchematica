@@ -6,6 +6,7 @@ import com.nubasu.nuchematica.gui.screen.SettingScreen
 import com.nubasu.nuchematica.io.NbtReader
 import com.nubasu.nuchematica.schematic.reader.SpongeSchematicV2Reader
 import com.nubasu.nuchematica.renderer.SelectedRegionManager
+import com.nubasu.nuchematica.schematic.reader.SpongeSchematicV3Reader
 import com.nubasu.nuchematica.utils.ChatSender
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream
 import net.minecraft.client.KeyMapping
