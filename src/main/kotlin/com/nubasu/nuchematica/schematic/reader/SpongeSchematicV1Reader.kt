@@ -9,6 +9,8 @@ import com.nubasu.nuchematica.tag.IntTag
 import com.nubasu.nuchematica.tag.StringTag
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraftforge.registries.ForgeRegistries
 import java.io.IOException
 
@@ -84,6 +86,14 @@ public object SpongeSchematicV1Reader: SchematicReader {
                     }
                     clipboard.block.add(blockState)
                     clipboard.position.add(BlockPos(x, y, z))
+
+                    val type = ForgeRegistries.BLOCK_ENTITY_TYPES.getValue(ResourceLocation(blockId))
+                    if (type != null) {
+                        val blockEntity = type.create(BlockPos(x, y, z), blockState)
+                        clipboard.tileEntity.add(blockEntity)
+                    } else {
+                        clipboard.tileEntity.add(null)
+                    }
                 }
             }
         }
