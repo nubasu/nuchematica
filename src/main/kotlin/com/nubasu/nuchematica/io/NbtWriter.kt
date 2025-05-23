@@ -6,19 +6,8 @@ import java.io.DataOutputStream
 import java.io.IOException
 
 public class NbtWriter(private val output: DataOutputStream): Closeable {
-
     public fun writeNbt(name: String, tag: Tag) {
         writeTagName(name, tag)
-        writeTagPayload(tag)
-    }
-
-    private fun writeTagName(name: String, tag: Tag) {
-        val tagId = TagDefinition.getTagId(tag::class.java)
-        val nameByte = name.toByteArray(TagDefinition.CHARSET)
-        val length = nameByte.size
-        output.writeByte(tagId)
-        output.writeShort(length)
-        output.write(nameByte)
         writeTagPayload(tag)
     }
 
@@ -39,6 +28,16 @@ public class NbtWriter(private val output: DataOutputStream): Closeable {
             TagDefinition.TAG_LONG_ARRAY.id -> writeLongArrayTagPayload(tag as LongArrayTag)
             else -> throw IOException("Invalid tag id: $id.")
         }
+    }
+
+    private fun writeTagName(name: String, tag: Tag) {
+        val tagId = TagDefinition.getTagId(tag::class.java)
+        val nameByte = name.toByteArray(TagDefinition.CHARSET)
+        val length = nameByte.size
+        output.writeByte(tagId)
+        output.writeShort(length)
+        output.write(nameByte)
+        writeTagPayload(tag)
     }
 
     private fun writeEndTagPayload(tag: EndTag) {

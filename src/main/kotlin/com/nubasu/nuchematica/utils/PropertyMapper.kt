@@ -3,6 +3,9 @@ package com.nubasu.nuchematica.utils
 import net.minecraft.core.Direction
 import net.minecraft.core.Direction.Axis
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.DropperBlock
+import net.minecraft.world.level.block.PoweredRailBlock
+import net.minecraft.world.level.block.RailBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.*
 
@@ -198,30 +201,34 @@ public object PropertyMapper {
                 }
             }
             "shape" -> {
-                when (value) {
-                    "north_south" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.NORTH_SOUTH)
-                    "east_west" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.EAST_WEST)
-                    "north_east" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.NORTH_EAST)
-                    "north_west" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.NORTH_WEST)
-                    "south_east" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.SOUTH_EAST)
-                    "south_west" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.SOUTH_WEST)
-                    "ascending_east" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.ASCENDING_EAST)
-                    "ascending_west" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.ASCENDING_WEST)
-                    "ascending_south" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.ASCENDING_SOUTH)
-                    "ascending_north" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.ASCENDING_NORTH)
-                    "straight" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.STRAIGHT)
-                    "outer_right" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.OUTER_RIGHT)
-                    "outer_left" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.OUTER_LEFT)
-                    "inner_left" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.INNER_RIGHT)
-                    "inner_right" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.INNER_LEFT)
-                    else -> blockState
+                if (id !in railList) { // TODO: fix here
+                    when (value) {
+                        "north_south" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.NORTH_SOUTH)
+                        "east_west" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.EAST_WEST)
+                        "north_east" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.NORTH_EAST)
+                        "north_west" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.NORTH_WEST)
+                        "south_east" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.SOUTH_EAST)
+                        "south_west" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.SOUTH_WEST)
+                        "ascending_east" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.ASCENDING_EAST)
+                        "ascending_west" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.ASCENDING_WEST)
+                        "ascending_south" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.ASCENDING_SOUTH)
+                        "ascending_north" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.ASCENDING_NORTH)
+                        "straight" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.STRAIGHT)
+                        "outer_right" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.OUTER_RIGHT)
+                        "outer_left" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.OUTER_LEFT)
+                        "inner_left" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.INNER_RIGHT)
+                        "inner_right" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.INNER_LEFT)
+                        else -> blockState
+                    }
+                } else {
+                    blockState
                 }
             }
             "attached" -> blockState.setValue(BlockStateProperties.ATTACHED, toBoolean(value))
             "has_bottle_1" -> blockState.setValue(BlockStateProperties.HAS_BOTTLE_1, toBoolean(value))
             "facing" -> {
                 when (id) {
-                    in pistonList -> {
+                    in pistonList, in dispenserList-> {
                         when (value) {
                             "north" -> blockState.setValue(BlockStateProperties.FACING, Direction.NORTH)
                             "south" -> blockState.setValue(BlockStateProperties.FACING, Direction.SOUTH)
@@ -233,14 +240,24 @@ public object PropertyMapper {
                         }
                     }
                     else -> {
-                        when (value) {
-                            "north" -> blockState.setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.NORTH)
-                            "south" -> blockState.setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.SOUTH)
-                            "west" -> blockState.setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.WEST)
-                            "east" -> blockState.setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.EAST)
-                            "up" -> blockState.setValue(BlockStateProperties.FACING_HOPPER, Direction.UP)
-                            "down" -> blockState.setValue(BlockStateProperties.FACING_HOPPER, Direction.DOWN)
-                            else -> blockState
+                        if (id == Blocks.HOPPER.name.toString()) {
+                            when (value) {
+                                "north" -> blockState.setValue(BlockStateProperties.FACING_HOPPER, Direction.NORTH)
+                                "south" -> blockState.setValue(BlockStateProperties.FACING_HOPPER, Direction.SOUTH)
+                                "west" -> blockState.setValue(BlockStateProperties.FACING_HOPPER, Direction.WEST)
+                                "east" -> blockState.setValue(BlockStateProperties.FACING_HOPPER, Direction.EAST)
+                                "up" -> blockState.setValue(BlockStateProperties.FACING_HOPPER, Direction.UP)
+                                "down" -> blockState.setValue(BlockStateProperties.FACING_HOPPER, Direction.DOWN)
+                                else -> blockState
+                            }
+                        } else {
+                            when (value) {
+                                "north" -> blockState.setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.NORTH)
+                                "south" -> blockState.setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.SOUTH)
+                                "west" -> blockState.setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.WEST)
+                                "east" -> blockState.setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.EAST)
+                                else -> blockState
+                            }
                         }
                     }
                 }
@@ -248,6 +265,7 @@ public object PropertyMapper {
             "layers" -> blockState.setValue(BlockStateProperties.LAYERS, value.toInt())
             "unstable" -> blockState.setValue(BlockStateProperties.UNSTABLE, toBoolean(value))
             "has_bottle_2" -> blockState.setValue(BlockStateProperties.HAS_BOTTLE_2, toBoolean(value))
+            "waterlogged" -> blockState.setValue(BlockStateProperties.WATERLOGGED, toBoolean(value))
             else -> blockState
         }
 
@@ -261,8 +279,8 @@ public object PropertyMapper {
     private val pistonList = listOf(
         Blocks.PISTON.name.toString(),
         Blocks.PISTON_HEAD.name.toString(),
-        Blocks.STICKY_PISTON.toString(),
-        Blocks.MOVING_PISTON.toString()
+        Blocks.STICKY_PISTON.name.toString(),
+        Blocks.MOVING_PISTON.name.toString()
     )
 
     private val age1List = listOf(
@@ -335,6 +353,18 @@ public object PropertyMapper {
         Blocks.RED_SANDSTONE_WALL.name.toString(),
         Blocks.SANDSTONE_WALL.name.toString(),
         Blocks.STONE_BRICK_WALL.name.toString(),
+    )
+
+    private val railList = listOf(
+//        Blocks.RAIL.name.toString(),
+        Blocks.POWERED_RAIL.name.toString(),
+        Blocks.ACTIVATOR_RAIL.name.toString(),
+        Blocks.DETECTOR_RAIL.name.toString(),
+    )
+
+    private val dispenserList = listOf(
+        Blocks.DISPENSER.name.toString(),
+        Blocks.DROPPER.name.toString()
     )
 
     private fun toBoolean(value: String): Boolean {

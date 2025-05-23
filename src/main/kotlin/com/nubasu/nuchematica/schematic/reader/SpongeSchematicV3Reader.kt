@@ -1,5 +1,6 @@
 package com.nubasu.nuchematica.schematic.reader
 
+import com.mojang.logging.LogUtils
 import com.nubasu.nuchematica.utils.PropertyMapper
 import com.nubasu.nuchematica.schematic.Clipboard
 import com.nubasu.nuchematica.schematic.container.BiomeContainer
@@ -19,6 +20,7 @@ import java.io.IOException
 
 public object SpongeSchematicV3Reader: SchematicReader {
     override fun read(tag: CompoundTag): Clipboard {
+        LogUtils.getLogger().info("use SpongeSchematicV3Reader")
         val head = tag.value[""] as CompoundTag
 
         if (!head.value.containsKey("Schematic")) {

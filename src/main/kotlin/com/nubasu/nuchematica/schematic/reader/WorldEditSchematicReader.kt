@@ -1,11 +1,13 @@
 package com.nubasu.nuchematica.schematic.reader
 
-import com.nubasu.nuchematica.utils.BlockIdMapper
-import com.nubasu.nuchematica.utils.PropertyMapper
+import com.mojang.logging.LogUtils
 import com.nubasu.nuchematica.schematic.Clipboard
 import com.nubasu.nuchematica.schematic.format.WorldEditSchematicFormat
 import com.nubasu.nuchematica.tag.CompoundTag
 import com.nubasu.nuchematica.tag.ListTag
+import com.nubasu.nuchematica.utils.BlockEntityMapper
+import com.nubasu.nuchematica.utils.BlockIdMapper
+import com.nubasu.nuchematica.utils.PropertyMapper
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.ResourceLocation
 import net.minecraftforge.registries.ForgeRegistries
@@ -13,6 +15,8 @@ import java.io.IOException
 
 public object WorldEditSchematicReader: SchematicReader {
     public override fun read(tag: CompoundTag): Clipboard {
+        LogUtils.getLogger().info("use WorldEditSchematicReader")
+
         if (!tag.value.containsKey("Schematic")) {
             throw IOException("does not exist Tag \"Schematic\"")
         }
@@ -87,7 +91,9 @@ public object WorldEditSchematicReader: SchematicReader {
                     clipboard.block.add(blockState)
                     clipboard.position.add(BlockPos(x, y, z))
 
-                    val type = ForgeRegistries.BLOCK_ENTITY_TYPES.getValue(ResourceLocation(blockId))
+                    val blockEntityId = BlockEntityMapper.fromBlockId(blockId)
+                    val type = ForgeRegistries.BLOCK_ENTITY_TYPES.getValue(ResourceLocation(blockEntityId))
+
                     if (type != null) {
                         val blockEntity = type.create(BlockPos(x, y, z), blockState)
                         clipboard.tileEntity.add(blockEntity)
