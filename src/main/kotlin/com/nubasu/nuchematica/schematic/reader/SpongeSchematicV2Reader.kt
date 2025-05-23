@@ -1,5 +1,6 @@
 package com.nubasu.nuchematica.schematic.reader
 
+import com.mojang.logging.LogUtils
 import com.nubasu.nuchematica.utils.PropertyMapper
 import com.nubasu.nuchematica.schematic.Clipboard
 import com.nubasu.nuchematica.schematic.format.SpongeSchematicFormatV2
@@ -18,6 +19,7 @@ import java.io.IOException
 public object SpongeSchematicV2Reader: SchematicReader {
 
     override fun read(tag: CompoundTag): Clipboard {
+        LogUtils.getLogger().info("use SpongeSchematicV2Reader")
         if (!tag.value.containsKey("Schematic")) {
             throw IOException("does not exist Tag \"Schematic\"")
         }

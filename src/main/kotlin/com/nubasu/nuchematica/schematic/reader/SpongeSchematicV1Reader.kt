@@ -1,22 +1,24 @@
 package com.nubasu.nuchematica.schematic.reader
 
-import com.nubasu.nuchematica.utils.PropertyMapper
+import com.mojang.logging.LogUtils
 import com.nubasu.nuchematica.schematic.Clipboard
 import com.nubasu.nuchematica.schematic.format.SpongeSchematicFormatV1
-import com.nubasu.nuchematica.schematic.schemaobject.*
+import com.nubasu.nuchematica.schematic.schemaobject.MetadataObject
+import com.nubasu.nuchematica.schematic.schemaobject.PaletteObject
+import com.nubasu.nuchematica.schematic.schemaobject.TileEntityObject
 import com.nubasu.nuchematica.tag.CompoundTag
 import com.nubasu.nuchematica.tag.IntTag
 import com.nubasu.nuchematica.tag.StringTag
+import com.nubasu.nuchematica.utils.PropertyMapper
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.ResourceLocation
-import net.minecraft.world.level.block.entity.BlockEntity
-import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraftforge.registries.ForgeRegistries
 import java.io.IOException
 
 public object SpongeSchematicV1Reader: SchematicReader {
 
     override fun read(tag: CompoundTag): Clipboard {
+        LogUtils.getLogger().info("use SpongeSchematicV1Reader")
         if (!tag.value.containsKey("Schematic")) {
             throw IOException("does not exist Tag \"Schematic\"")
         }
