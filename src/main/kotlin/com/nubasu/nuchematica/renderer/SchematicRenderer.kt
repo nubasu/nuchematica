@@ -237,6 +237,9 @@ class SchematicRenderer {
             if (blockEntity == null) continue
             val render = dispatcher.getRenderer(blockEntity)
             if (render == null) continue
+            if (blockEntity is PistonMovingBlockEntity) {
+                continue
+            }
 
             blockEntity.setLevel(mc.level)
             poseStack.pushPose()
