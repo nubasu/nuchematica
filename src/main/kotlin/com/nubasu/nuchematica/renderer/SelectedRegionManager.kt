@@ -9,11 +9,21 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
+import net.minecraftforge.client.event.RenderLevelStageEvent
 import net.minecraftforge.server.ServerLifecycleHooks
 
 public object SelectedRegionManager {
     private val mc = Minecraft.getInstance()
+    private val regionRenderer = SelectedRegionRenderer()
+    public var isRendering: Boolean = false
     public var selectedRegion: SelectedRegion = SelectedRegion(Vector3.ONE, Vector3.ONE)
+
+    public fun renderLine(event: RenderLevelStageEvent) {
+        if (isRendering) {
+            regionRenderer.renderSelectedRegion(selectedRegion, event.poseStack, event.projectionMatrix)
+        }
+    }
+
     public fun setFirstPosition(position: Vec3): SelectedRegion {
         selectedRegion = SelectedRegion(position.toVector3(), selectedRegion.pos2)
         return selectedRegion
