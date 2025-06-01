@@ -26,11 +26,13 @@ public object SelectedRegionManager {
 
     public fun setFirstPosition(position: Vec3): SelectedRegion {
         selectedRegion = SelectedRegion(position.toVector3(), selectedRegion.pos2)
+        isRendering = true
         return selectedRegion
     }
 
     public fun setSecondPosition(position: Vec3): SelectedRegion {
         selectedRegion = SelectedRegion(selectedRegion.pos1, position.toVector3())
+        isRendering = true
         return selectedRegion
     }
 
