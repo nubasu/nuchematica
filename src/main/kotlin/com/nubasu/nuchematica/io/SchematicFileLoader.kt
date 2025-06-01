@@ -1,5 +1,6 @@
 package com.nubasu.nuchematica.io
 
+import com.nubasu.nuchematica.common.PlacedBlockMap
 import com.nubasu.nuchematica.common.SchematicCache
 import com.nubasu.nuchematica.schematic.SchematicHolder
 import com.nubasu.nuchematica.schematic.reader.WorldEditSchematicReader
@@ -38,6 +39,11 @@ public object SchematicFileLoader {
                     blockEntities[relativeBlockPos] = clipboard.tileEntity[i]
                 } else {
                     blocks[relativeBlockPos] = clipboard.block[i]
+                }
+                if (PlacedBlockMap.blockList.containsKey(block.block)) {
+                    PlacedBlockMap.blockList[block.block] = PlacedBlockMap.blockList[block.block]!! + 1
+                } else {
+                    PlacedBlockMap.blockList.put(block.block, 1)
                 }
             }
         }
