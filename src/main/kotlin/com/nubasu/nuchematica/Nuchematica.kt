@@ -1,11 +1,10 @@
 package com.nubasu.nuchematica
 
-import com.mojang.blaze3d.vertex.*
 import com.mojang.brigadier.Command
 import com.mojang.logging.LogUtils
-import com.nubasu.nuchematica.command.TestCommand
 import com.nubasu.nuchematica.gui.MainGui
 import com.nubasu.nuchematica.keysetting.KeyManager
+import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import com.nubasu.nuchematica.renderer.SelectedRegionManager
 import com.nubasu.nuchematica.utils.ChatSender
 import net.minecraft.client.Minecraft
@@ -13,7 +12,6 @@ import net.minecraft.commands.Commands
 import net.minecraft.world.level.block.Blocks
 import net.minecraftforge.api.distmarker.Dist
 import net.minecraftforge.client.event.RenderLevelStageEvent
-import net.minecraftforge.client.event.RenderLevelStageEvent.RegisterStageEvent
 import net.minecraftforge.client.event.RenderLevelStageEvent.Stage
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.event.CreativeModeTabEvent.BuildContents
@@ -27,12 +25,9 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext
 import net.minecraftforge.registries.ForgeRegistries
 
-
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(Nuchematica.MODID)
 public class Nuchematica {
-    private val testCommand = TestCommand()
-
     init {
         val modEventBus = FMLJavaModLoadingContext.get().modEventBus
 
@@ -72,11 +67,6 @@ public class Nuchematica {
         val testBuilder = Commands.literal("test")
             .executes {
                 LOGGER.info("test command")
-                try {
-                    testCommand.isRendering = !testCommand.isRendering
-                } catch (e: Exception) {
-                    LOGGER.info(e.stackTraceToString())
-                }
                 Command.SINGLE_SUCCESS
             }
 
@@ -117,19 +107,11 @@ public class Nuchematica {
     }
 
     @SubscribeEvent
-    public fun renderBlockPreview(event: RegisterStageEvent) {
-        println(event.toString())
-    }
-
-    @SubscribeEvent
     public fun onWorldRenderLast(event: RenderLevelStageEvent) {
-//        event.levelRenderer.chunkRenderDispatcher.
-        testCommand.renderLine(SelectedRegionManager.selectedRegion, event.poseStack, event.projectionMatrix)
-
-        if (event.stage == Stage.AFTER_TRIPWIRE_BLOCKS) {
-            testCommand.renderBlock(Blocks.OAK_PLANKS.defaultBlockState(), event.poseStack)
+        SelectedRegionManager.renderLine(event)
+        if (event.stage == Stage.AFTER_TRANSLUCENT_BLOCKS ) {
+            SchematicRenderManager.render(event)
         }
-
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
@@ -150,4 +132,3 @@ public class Nuchematica {
         private val LOGGER = LogUtils.getLogger()
     }
 }
-

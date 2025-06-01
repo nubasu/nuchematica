@@ -2,7 +2,7 @@ package com.nubasu.nuchematica.gui.screen
 
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.logging.LogUtils
-import com.nubasu.nuchematica.io.SchematicFileLoader
+import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
@@ -66,14 +66,16 @@ public class SchematicListScreen : Screen(Component.literal("Schematics")) {
     }
 
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        val startY = 40
-        val index = ((mouseY - startY) / rowHeight).toInt()
+        val startY = paddingTopBottom / 2
+        val index = ((mouseY.toInt() - startY) / rowHeight)
 
         val actualIndex = scrollOffset + index
         if (index in 0 until visibleRows && actualIndex in schematicFiles.indices) {
             val file = schematicFiles[actualIndex]
             LogUtils.getLogger().info("clicked: ${file.name}")
-            SchematicFileLoader.loadRenderBlocks(file.name)
+            SchematicRenderManager.loadRenderBlocks(file.name)
+            SchematicRenderManager.isRendering = true
+            SchematicRenderManager.initialize()
             onClose()
             return true
         }

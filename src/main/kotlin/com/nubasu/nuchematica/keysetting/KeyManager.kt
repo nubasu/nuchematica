@@ -2,10 +2,13 @@ package com.nubasu.nuchematica.keysetting
 
 import com.mojang.blaze3d.platform.InputConstants
 import com.nubasu.nuchematica.Nuchematica
+import com.nubasu.nuchematica.gui.RenderSettings
+import com.nubasu.nuchematica.gui.screen.SchematicListScreen
+import com.nubasu.nuchematica.gui.screen.SchematicSettingsScreen
 import com.nubasu.nuchematica.gui.screen.SettingScreen
 import com.nubasu.nuchematica.io.NbtReader
-import com.nubasu.nuchematica.schematic.reader.SpongeSchematicV2Reader
 import com.nubasu.nuchematica.renderer.SelectedRegionManager
+import com.nubasu.nuchematica.schematic.SchematicHolder
 import com.nubasu.nuchematica.schematic.reader.SpongeSchematicV3Reader
 import com.nubasu.nuchematica.utils.ChatSender
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream
@@ -22,7 +25,7 @@ import java.util.zip.GZIPInputStream
 
 @Mod.EventBusSubscriber(modid = Nuchematica.MODID)
 public class KeyManager {
-    private val setting: KeyMapping = KeyMapping(
+    private val settingKey: KeyMapping = KeyMapping(
         "key.nuchematica.setting",
         KeyConflictContext.IN_GAME,
         InputConstants.Type.KEYSYM,
@@ -31,18 +34,18 @@ public class KeyManager {
     )
 
     private val pos1Key: KeyMapping = KeyMapping(
-        "key.nuchematica.minus",
+        "key.nuchematica.pos1",
         KeyConflictContext.IN_GAME,
         InputConstants.Type.KEYSYM,
-        '-'.code,
+        ','.code,
         "key.nuchematica.category"
     )
 
     private val pos2Key: KeyMapping = KeyMapping(
-        "key.nuchematica.plus",
+        "key.nuchematica.pos2",
         KeyConflictContext.IN_GAME,
         InputConstants.Type.KEYSYM,
-        ';'.code,
+        '.'.code,
         "key.nuchematica.category"
     )
 
@@ -54,18 +57,27 @@ public class KeyManager {
         "key.nuchematica.category"
     )
 
+    private val shemaKey: KeyMapping = KeyMapping(
+        "key.nuchematica.shema",
+        KeyConflictContext.IN_GAME,
+        InputConstants.Type.KEYSYM,
+        ';'.code,
+        "key.nuchematica.category"
+    )
+
     @SubscribeEvent
     public fun keyRegister(event: RegisterKeyMappingsEvent) {
-        event.register(setting)
+        event.register(settingKey)
         event.register(pos1Key)
         event.register(pos2Key)
         event.register(saveKey)
+        event.register(shemaKey)
     }
 
     @SubscribeEvent
     public fun keyPressed(event: InputEvent.Key) {
-        if (setting.consumeClick()) {
-            Minecraft.getInstance().setScreen(SettingScreen())
+        if (settingKey.consumeClick()) {
+            Minecraft.getInstance().setScreen(SchematicSettingsScreen(RenderSettings()))
         }
         if (pos1Key.consumeClick()) {
             val pos = Minecraft.getInstance().player?.position()!!
@@ -75,7 +87,7 @@ public class KeyManager {
         if (pos2Key.consumeClick()) {
             ChatSender.send(Minecraft.getInstance().gameDirectory.absolutePath)
             val pos = Minecraft.getInstance().player?.position()!!
-            ChatSender.send("pos1: ${pos.x.toInt()}, ${pos.y.toInt()}, ${pos.z.toInt()}")
+            ChatSender.send("pos2: ${pos.x.toInt()}, ${pos.y.toInt()}, ${pos.z.toInt()}")
             SelectedRegionManager.setSecondPosition(pos)
         }
         if (saveKey.consumeClick()) {
@@ -84,6 +96,9 @@ public class KeyManager {
             val compoundTag = NbtReader(inputStream).readCompoundTag()
             val clipboard = SpongeSchematicV3Reader.read(compoundTag)
             SelectedRegionManager.place(clipboard)
+        }
+        if (shemaKey.consumeClick()) {
+            Minecraft.getInstance().setScreen(SchematicListScreen())
         }
     }
 }

@@ -4,28 +4,22 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.*
 import com.mojang.blaze3d.vertex.VertexBuffer.unbind
 import com.mojang.logging.LogUtils
-import com.nubasu.nuchematica.common.SchematicCache
-import com.nubasu.nuchematica.io.SchematicFileLoader
 import com.nubasu.nuchematica.schematic.SchematicHolder
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GameRenderer
 import net.minecraft.client.renderer.LightTexture
-import net.minecraft.client.renderer.RenderStateShard
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.client.renderer.texture.TextureAtlas
-import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.LightLayer
-import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.block.piston.PistonMovingBlockEntity
 import net.minecraft.world.phys.Vec3
 import net.minecraftforge.client.event.RenderLevelStageEvent
 import net.minecraftforge.client.model.data.ModelData
-import net.minecraftforge.client.model.data.ModelDataManager
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import org.lwjgl.opengl.GL11
 
 class SchematicRenderer {
 
@@ -36,8 +30,6 @@ class SchematicRenderer {
     private var isBuilding = false
 
     private var renderPos: Vec3 = Vec3(0.0, 0.0, 0.0)
-    private var cachedBlocks: SchematicCache = SchematicCache(emptyMap(), emptyMap())
-
     private val buildExecutor: ExecutorService = Executors.newSingleThreadExecutor()
 
     val mc = Minecraft.getInstance()
@@ -55,6 +47,7 @@ class SchematicRenderer {
         buildExecutor.submit {
             LogUtils.getLogger().info("buildVertexBufferAsync")
 
+            val cachedBlocks = SchematicHolder.schematicCache
             val cameraPos = mc.gameRenderer.mainCamera.position
             val blockColors = mc.blockColors
             val poseStack = PoseStack()
@@ -208,6 +201,7 @@ class SchematicRenderer {
         val camPos = event.camera.position
         val poseStack = event.poseStack
         val projection = event.projectionMatrix
+        val cachedBlocks = SchematicHolder.schematicCache
 
         RenderSystem.enableBlend()
         RenderSystem.defaultBlendFunc()
@@ -237,6 +231,9 @@ class SchematicRenderer {
             if (blockEntity == null) continue
             val render = dispatcher.getRenderer(blockEntity)
             if (render == null) continue
+            if (blockEntity is PistonMovingBlockEntity) {
+                continue
+            }
 
             blockEntity.setLevel(mc.level)
             poseStack.pushPose()
@@ -252,9 +249,7 @@ class SchematicRenderer {
         poseStack.popPose()
     }
 
-    fun loadSchematic() {
-        SchematicFileLoader.loadRenderBlocks("sorazima.schematic")
-        cachedBlocks = SchematicHolder.schematicCache
+    fun initialize() {
         setRenderPosition(
             Minecraft.getInstance().gameRenderer.mainCamera.position
         )
