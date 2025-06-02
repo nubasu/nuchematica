@@ -4,6 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.*
 import com.mojang.blaze3d.vertex.VertexBuffer.unbind
 import com.mojang.logging.LogUtils
+import com.mojang.math.Axis
 import com.nubasu.nuchematica.schematic.SchematicHolder
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GameRenderer
@@ -29,13 +30,11 @@ class SchematicRenderer {
     private var isBuilt = false
     private var isBuilding = false
 
-    private var renderPos: Vec3 = Vec3(0.0, 0.0, 0.0)
     private val buildExecutor: ExecutorService = Executors.newSingleThreadExecutor()
 
     val mc = Minecraft.getInstance()
 
     fun setRenderPosition(pos: Vec3) {
-        renderPos = pos
         isBuilt = false
     }
 
@@ -56,14 +55,14 @@ class SchematicRenderer {
             val randomSource = RandomSource.create(0)
             val overlay = OverlayTexture.NO_OVERLAY
 
-            val sortedBlocks = cachedBlocks.blocks.entries.sortedByDescending {
-                val pos = it.key
-                val dx = pos.x - cameraPos.x
-                val dy = pos.y - cameraPos.y
-                val dz = pos.z - cameraPos.z
-                dx * dx + dy * dy + dz * dz
-            }
-            LogUtils.getLogger().info("${sortedBlocks.size}")
+//            val sortedBlocks = cachedBlocks.blocks.entries.sortedByDescending {
+//                val pos = it.key
+//                val dx = pos.x - cameraPos.x
+//                val dy = pos.y - cameraPos.y
+//                val dz = pos.z - cameraPos.z
+//                dx * dx + dy * dy + dz * dz
+//            }
+//            LogUtils.getLogger().info("${sortedBlocks.size}")
 
             val solidBuilder = BufferBuilder(262144)
             val translucentBuilder = BufferBuilder(262144)
@@ -71,7 +70,8 @@ class SchematicRenderer {
             solidBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK)
             translucentBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK)
 
-            for (block in sortedBlocks) {
+            val blocks = cachedBlocks.blocks
+            for (block in blocks) {
                 val pos = block.key
                 val blockState = block.value
 
@@ -82,7 +82,6 @@ class SchematicRenderer {
                 val fluidState = blockState.fluidState
                 if (!fluidState.isEmpty) {
                     poseStack.pushPose()
-                    poseStack.translate(renderPos.x, renderPos.y, renderPos.z)
                     poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
                     val translated = VertexConsumerWithPose(translucentBuilder, pos, poseStack)
 
@@ -99,7 +98,6 @@ class SchematicRenderer {
 
                 val model = blockRenderer.blockModelShaper.getBlockModel(blockState)
                 poseStack.pushPose()
-                poseStack.translate(renderPos.x, renderPos.y, renderPos.z)
                 poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
                 val pose = poseStack.last()
 
@@ -193,7 +191,7 @@ class SchematicRenderer {
         }
     }
 
-    fun render(event: RenderLevelStageEvent) {
+    fun render(offset: Vec3, rotate: Float, rotateAxis: Vec3, event: RenderLevelStageEvent) {
         if (!isBuilt) buildVertexBufferAsync()
         if (!isBuilt) return
 
@@ -211,6 +209,15 @@ class SchematicRenderer {
 
         poseStack.pushPose()
         poseStack.translate(-camPos.x, -camPos.y, -camPos.z)
+        poseStack.translate(offset.x, offset.y, offset.z)
+
+        poseStack.rotateAround(
+            Axis.YP.rotationDegrees(rotate),
+            0.0f,
+            0.0f,
+            0.0f
+        )
+        poseStack.translate(rotateAxis.x, rotateAxis.y, rotateAxis.z)
 
         solidBuffer?.let {
             it.bind()
@@ -237,7 +244,6 @@ class SchematicRenderer {
 
             blockEntity.setLevel(mc.level)
             poseStack.pushPose()
-            poseStack.translate(renderPos.x, renderPos.y, renderPos.z)
             poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
             render.render(blockEntity, 0.0f, poseStack, bufferSource, 0x0f000f0, OverlayTexture.NO_OVERLAY)
             poseStack.popPose()
@@ -250,8 +256,6 @@ class SchematicRenderer {
     }
 
     fun initialize() {
-        setRenderPosition(
-            Minecraft.getInstance().gameRenderer.mainCamera.position
-        )
+        isBuilt = false
     }
 }

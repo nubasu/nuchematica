@@ -1,10 +1,12 @@
 package com.nubasu.nuchematica.gui.screen
 
 import com.mojang.blaze3d.vertex.PoseStack
+import com.nubasu.nuchematica.common.Vector3
 import com.nubasu.nuchematica.gui.DirectionSetting
 import com.nubasu.nuchematica.gui.DisplayFlag
 import com.nubasu.nuchematica.gui.RenderSettings
 import com.nubasu.nuchematica.gui.RenderSettingsIO
+import com.nubasu.nuchematica.schematic.SchematicEditor
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.components.EditBox
@@ -107,11 +109,13 @@ public class SchematicSettingsScreen(
         val plusX = Button.builder(Component.literal("+")) {
             settings.offsetX += 1
             inputX.value = settings.offsetX.toString()
+            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }.pos(OFFSET_X_PLUS_X, OFFSET_X_PLUS_Y).size(MINI_BUTTON_SIZE, MINI_BUTTON_SIZE).build()
         val minusX = Button.builder(Component.literal("-")) {
             settings.offsetX -= 1
             inputX.value = settings.offsetX.toString()
+            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }.pos(OFFSET_X_MINUS_X, OFFSET_X_MINUS_Y).size(MINI_BUTTON_SIZE, MINI_BUTTON_SIZE).build()
         addRenderableWidget(inputX)
@@ -132,11 +136,13 @@ public class SchematicSettingsScreen(
         val plusY = Button.builder(Component.literal("+")) {
             settings.offsetY += 1
             inputY.value = settings.offsetY.toString()
+            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }.pos(OFFSET_Y_PLUS_X, OFFSET_Y_PLUS_Y).size(MINI_BUTTON_SIZE, MINI_BUTTON_SIZE).build()
         val minusY = Button.builder(Component.literal("-")) {
             settings.offsetY -= 1
             inputY.value = settings.offsetY.toString()
+            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }.pos(OFFSET_Y_MINUS_X, OFFSET_Y_MINUS_Y).size(MINI_BUTTON_SIZE, MINI_BUTTON_SIZE).build()
         addRenderableWidget(inputY)
@@ -157,11 +163,13 @@ public class SchematicSettingsScreen(
         val plusZ = Button.builder(Component.literal("+")) {
             settings.offsetZ += 1
             inputZ.value = settings.offsetZ.toString()
+            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }.pos(OFFSET_Z_PLUS_X, OFFSET_Z_PLUS_Y).size(MINI_BUTTON_SIZE, MINI_BUTTON_SIZE).build()
         val minusZ = Button.builder(Component.literal("-")) {
             settings.offsetZ -= 1
             inputZ.value = settings.offsetZ.toString()
+            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }.pos(OFFSET_Z_MINUS_X, OFFSET_Z_MINUS_Y).size(MINI_BUTTON_SIZE, MINI_BUTTON_SIZE).build()
         addRenderableWidget(inputZ)
@@ -174,13 +182,13 @@ public class SchematicSettingsScreen(
 
         val rotationButton = Button.builder(Component.literal(settings.rotation.name)) {
             settings.rotation = when (settings.rotation) {
-                DirectionSetting.NONE -> DirectionSetting.NORTH
-                DirectionSetting.NORTH -> DirectionSetting.EAST
-                DirectionSetting.EAST -> DirectionSetting.SOUTH
-                DirectionSetting.SOUTH -> DirectionSetting.WEST
-                DirectionSetting.WEST -> DirectionSetting.NONE
+                DirectionSetting.CLOCKWISE_0 -> DirectionSetting.CLOCKWISE_90
+                DirectionSetting.CLOCKWISE_90 -> DirectionSetting.CLOCKWISE_180
+                DirectionSetting.CLOCKWISE_180 -> DirectionSetting.CLOCKWISE_270
+                DirectionSetting.CLOCKWISE_270 -> DirectionSetting.CLOCKWISE_0
             }
             Minecraft.getInstance().setScreen(this)
+            SchematicEditor.rotate(settings.rotation)
             notifySettingsChanged()
         }.pos(ROTATION_BUTTON_X, ROTATION_BUTTON_Y).size(BUTTON_WIDTH, BUTTON_HEIGHT).build()
         rotationButton.message = Component.literal(settings.rotation.name)
