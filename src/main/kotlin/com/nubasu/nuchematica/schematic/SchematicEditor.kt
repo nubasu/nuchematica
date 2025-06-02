@@ -12,13 +12,8 @@ public object SchematicEditor {
     }
 
     public fun rotate(rotation: DirectionSetting) {
-        val cache = SchematicHolder.schematicCache
-
-        val minX = cache.blocks.keys.minOfOrNull { it.x } ?: 0
-        val maxX = cache.blocks.keys.maxOfOrNull { it.x } ?: 0
-        val minZ = cache.blocks.keys.minOfOrNull { it.z } ?: 0
-        val maxZ = cache.blocks.keys.maxOfOrNull { it.z } ?: 0
-        val size = BlockPos(maxX - minX + 1, 0, maxZ - minZ + 1)
+        val schematicSize = SchematicHolder.schematicSize
+        val size = BlockPos(schematicSize.x + 1, 0, schematicSize.z + 1)
 
         SchematicRenderManager.rotate = when(rotation) {
             DirectionSetting.CLOCKWISE_0 -> 0f
