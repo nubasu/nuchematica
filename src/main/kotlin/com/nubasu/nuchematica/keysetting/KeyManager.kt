@@ -5,10 +5,8 @@ import com.nubasu.nuchematica.Nuchematica
 import com.nubasu.nuchematica.gui.RenderSettings
 import com.nubasu.nuchematica.gui.screen.SchematicListScreen
 import com.nubasu.nuchematica.gui.screen.SchematicSettingsScreen
-import com.nubasu.nuchematica.gui.screen.SettingScreen
 import com.nubasu.nuchematica.io.NbtReader
 import com.nubasu.nuchematica.renderer.SelectedRegionManager
-import com.nubasu.nuchematica.schematic.SchematicHolder
 import com.nubasu.nuchematica.schematic.reader.SpongeSchematicV3Reader
 import com.nubasu.nuchematica.utils.ChatSender
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream
