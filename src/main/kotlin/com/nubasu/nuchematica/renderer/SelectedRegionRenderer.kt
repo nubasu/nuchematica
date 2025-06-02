@@ -1,10 +1,10 @@
 package com.nubasu.nuchematica.renderer
 
 import com.mojang.blaze3d.vertex.*
+import com.mojang.math.Matrix4f
 import com.nubasu.nuchematica.common.SelectedRegion
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GameRenderer
-import org.joml.Matrix4f
 
 public class SelectedRegionRenderer {
     // call only in RenderLevelStageEvent
@@ -55,8 +55,9 @@ public class SelectedRegionRenderer {
         buffer.vertex(pos1.x.toDouble(), pos2.y.toDouble(), pos2.z.toDouble()).color(1f, 1f, 1f, 1f).endVertex()
         buffer.vertex(pos2.x.toDouble(), pos2.y.toDouble(), pos2.z.toDouble()).color(1f, 1f, 1f, 1f).endVertex()
 
+        buffer.end()
         vertexBuffer.bind()
-        vertexBuffer.upload(buffer.end())
+        vertexBuffer.upload(buffer)
 
         poseStack.pushPose()
         poseStack.translate(-view.x, -view.y, -view.z)

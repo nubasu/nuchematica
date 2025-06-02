@@ -12,11 +12,12 @@ import com.nubasu.nuchematica.utils.ChatSender
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
+import net.minecraftforge.client.ClientRegistry
 import net.minecraftforge.client.event.InputEvent
-import net.minecraftforge.client.event.RegisterKeyMappingsEvent
 import net.minecraftforge.client.settings.KeyConflictContext
 import net.minecraftforge.eventbus.api.SubscribeEvent
 import net.minecraftforge.fml.common.Mod
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
 import java.io.DataInputStream
 import java.io.FileInputStream
 import java.util.zip.GZIPInputStream
@@ -64,16 +65,16 @@ public class KeyManager {
     )
 
     @SubscribeEvent
-    public fun keyRegister(event: RegisterKeyMappingsEvent) {
-        event.register(settingKey)
-        event.register(pos1Key)
-        event.register(pos2Key)
-        event.register(saveKey)
-        event.register(shemaKey)
+    public fun keyRegister(event: FMLClientSetupEvent) {
+        ClientRegistry.registerKeyBinding(settingKey)
+        ClientRegistry.registerKeyBinding(pos1Key)
+        ClientRegistry.registerKeyBinding(pos2Key)
+        ClientRegistry.registerKeyBinding(saveKey)
+        ClientRegistry.registerKeyBinding(shemaKey)
     }
 
     @SubscribeEvent
-    public fun keyPressed(event: InputEvent.Key) {
+    public fun keyPressed(event: InputEvent.KeyInputEvent) {
         if (settingKey.consumeClick()) {
             Minecraft.getInstance().setScreen(SchematicSettingsScreen(RenderSettings()))
         }

@@ -10,14 +10,13 @@ import com.nubasu.nuchematica.schematic.SchematicEditor
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.components.EditBox
-import net.minecraft.client.gui.components.StringWidget
 import net.minecraft.client.gui.screens.Screen
-import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.TextComponent
 import kotlin.math.ceil
 
 public class SchematicSettingsScreen(
     private val settings: RenderSettings
-) : Screen(Component.literal("Rendering Setting")) {
+) : Screen(TextComponent("Rendering Setting")) {
 
     private val listeners = mutableListOf<() -> Unit>()
     private var screenHeight = 0
@@ -50,22 +49,21 @@ public class SchematicSettingsScreen(
     }
 
     private fun addSelectSchematicButton() {
-        val button = Button.builder(Component.literal("Select Schematic")) {
+        val button = Button(SELECT_SCHEMATIC_BUTTON_X, SELECT_SCHEMATIC_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, TextComponent("Select Schematic")) {
             Minecraft.getInstance().setScreen(SchematicListScreen())
-        }.pos(SELECT_SCHEMATIC_BUTTON_X, SELECT_SCHEMATIC_BUTTON_Y).size(BUTTON_WIDTH, BUTTON_HEIGHT).build()
+        }
         addRenderableWidget(button)
     }
 
     private fun addFilterSettingButton() {
-        val button = Button.builder(Component.literal("FilterSetting")) {
+        val button = Button(FILTER_SETTING_BUTTON_X, FILTER_SETTING_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, TextComponent("FilterSetting")) {
             Minecraft.getInstance().setScreen(FilterSettingScreen(settings, this) { notifySettingsChanged() } )
-        }.pos(FILTER_SETTING_BUTTON_X, FILTER_SETTING_BUTTON_Y).size(BUTTON_WIDTH, BUTTON_HEIGHT).build()
+        }
         addRenderableWidget(button)
     }
 
     private fun addOpacityControls() {
-        drawText("Alpha: ", ALPHA_HEADER_X, ALPHA_HEADER_Y)
-        val label = Component.literal("Alpha:")
+        val label = TextComponent("Alpha:")
         val opacityInput = EditBox(font, ALPHA_TEXT_X, ALPHA_TEXT_Y, NUMBER_TEXT_WIDTH, NUMBER_TEXT_HEIGHT, label).apply {
             value = settings.opacity.toString()
             setResponder {
@@ -75,28 +73,25 @@ public class SchematicSettingsScreen(
                 }
             }
         }
-        val plus = Button.builder(Component.literal("+")) {
+        val plus = Button(ALPHA_PLUS_X, ALPHA_PLUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("+")) {
             val a = (settings.opacity * 10).toInt() + 1
             settings.opacity = (a / 10f).coerceIn(0f, 1f)
             opacityInput.value = settings.opacity.toString()
             notifySettingsChanged()
-        }.pos(ALPHA_PLUS_X, ALPHA_PLUS_Y).size(MINI_BUTTON_SIZE, MINI_BUTTON_SIZE).build()
-        val minus = Button.builder(Component.literal("-")) {
+        }
+        val minus = Button(ALPHA_MINUS_X, ALPHA_MINUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("-")) {
             val a = (settings.opacity * 10).toInt() - 1
             settings.opacity = (a / 10f).coerceIn(0f, 1f)
             opacityInput.value = settings.opacity.toString()
             notifySettingsChanged()
-        }.pos(ALPHA_MINUS_X, ALPHA_MINUS_Y).size(MINI_BUTTON_SIZE, MINI_BUTTON_SIZE).build()
+        }
         addRenderableWidget(opacityInput)
         addRenderableWidget(plus)
         addRenderableWidget(minus)
     }
 
     private fun addOffsetControls() {
-        drawText("Offset: ", OFFSET_HEADER_X, OFFSET_HEADER_Y)
-
-        drawText("x: ", OFFSET_X_HEADER_X, OFFSET_X_HEADER_Y)
-        val labelX = Component.literal("X:")
+        val labelX = TextComponent("X:")
         val inputX = EditBox(font, OFFSET_X_TEXT_X, OFFSET_X_TEXT_Y, NUMBER_TEXT_WIDTH, NUMBER_TEXT_HEIGHT, labelX).apply {
             value = settings.offsetX.toString()
             setResponder {
@@ -106,24 +101,23 @@ public class SchematicSettingsScreen(
                 }
             }
         }
-        val plusX = Button.builder(Component.literal("+")) {
+        val plusX = Button(OFFSET_X_PLUS_X, OFFSET_X_PLUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("+")) {
             settings.offsetX += 1
             inputX.value = settings.offsetX.toString()
             SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
-        }.pos(OFFSET_X_PLUS_X, OFFSET_X_PLUS_Y).size(MINI_BUTTON_SIZE, MINI_BUTTON_SIZE).build()
-        val minusX = Button.builder(Component.literal("-")) {
+        }
+        val minusX = Button(OFFSET_X_MINUS_X, OFFSET_X_MINUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("-")) {
             settings.offsetX -= 1
             inputX.value = settings.offsetX.toString()
             SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
-        }.pos(OFFSET_X_MINUS_X, OFFSET_X_MINUS_Y).size(MINI_BUTTON_SIZE, MINI_BUTTON_SIZE).build()
+        }
         addRenderableWidget(inputX)
         addRenderableWidget(plusX)
         addRenderableWidget(minusX)
 
-        drawText("y: ", OFFSET_Y_HEADER_X, OFFSET_Y_HEADER_Y)
-        val labelY = Component.literal("Y:")
+        val labelY = TextComponent("Y:")
         val inputY = EditBox(font, OFFSET_Y_TEXT_X, OFFSET_Y_TEXT_Y, NUMBER_TEXT_WIDTH, NUMBER_TEXT_HEIGHT, labelY).apply {
             value = settings.offsetY.toString()
             setResponder {
@@ -133,24 +127,23 @@ public class SchematicSettingsScreen(
                 }
             }
         }
-        val plusY = Button.builder(Component.literal("+")) {
+        val plusY = Button(OFFSET_Y_PLUS_X, OFFSET_Y_PLUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("+")) {
             settings.offsetY += 1
             inputY.value = settings.offsetY.toString()
             SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
-        }.pos(OFFSET_Y_PLUS_X, OFFSET_Y_PLUS_Y).size(MINI_BUTTON_SIZE, MINI_BUTTON_SIZE).build()
-        val minusY = Button.builder(Component.literal("-")) {
+        }
+        val minusY = Button(OFFSET_Y_MINUS_X, OFFSET_Y_MINUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("-")) {
             settings.offsetY -= 1
             inputY.value = settings.offsetY.toString()
             SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
-        }.pos(OFFSET_Y_MINUS_X, OFFSET_Y_MINUS_Y).size(MINI_BUTTON_SIZE, MINI_BUTTON_SIZE).build()
+        }
         addRenderableWidget(inputY)
         addRenderableWidget(plusY)
         addRenderableWidget(minusY)
 
-        drawText("z: ", OFFSET_Z_HEADER_X, OFFSET_Z_HEADER_Y)
-        val labelZ = Component.literal("Z:")
+        val labelZ = TextComponent("Z:")
         val inputZ = EditBox(font, OFFSET_Z_TEXT_X, OFFSET_Z_TEXT_Y, NUMBER_TEXT_WIDTH, NUMBER_TEXT_HEIGHT, labelZ).apply {
             value = settings.offsetZ.toString()
             setResponder {
@@ -160,27 +153,26 @@ public class SchematicSettingsScreen(
                 }
             }
         }
-        val plusZ = Button.builder(Component.literal("+")) {
+        val plusZ = Button(OFFSET_Z_PLUS_X, OFFSET_Z_PLUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("+")) {
             settings.offsetZ += 1
             inputZ.value = settings.offsetZ.toString()
             SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
-        }.pos(OFFSET_Z_PLUS_X, OFFSET_Z_PLUS_Y).size(MINI_BUTTON_SIZE, MINI_BUTTON_SIZE).build()
-        val minusZ = Button.builder(Component.literal("-")) {
+        }
+        val minusZ = Button(OFFSET_Z_MINUS_X, OFFSET_Z_MINUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("-")) {
             settings.offsetZ -= 1
             inputZ.value = settings.offsetZ.toString()
             SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
-        }.pos(OFFSET_Z_MINUS_X, OFFSET_Z_MINUS_Y).size(MINI_BUTTON_SIZE, MINI_BUTTON_SIZE).build()
+        }
         addRenderableWidget(inputZ)
         addRenderableWidget(plusZ)
         addRenderableWidget(minusZ)
     }
 
     private fun addRotationButton() {
-        drawText("Rotation: ", ROTATION_HEADER_X, ROTATION_HEADER_Y)
 
-        val rotationButton = Button.builder(Component.literal(settings.rotation.name)) {
+        val rotationButton = Button(ROTATION_BUTTON_X, ROTATION_BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT, TextComponent(settings.rotation.name)) {
             settings.rotation = when (settings.rotation) {
                 DirectionSetting.CLOCKWISE_0 -> DirectionSetting.CLOCKWISE_90
                 DirectionSetting.CLOCKWISE_90 -> DirectionSetting.CLOCKWISE_180
@@ -190,38 +182,35 @@ public class SchematicSettingsScreen(
             Minecraft.getInstance().setScreen(this)
             SchematicEditor.rotate(settings.rotation)
             notifySettingsChanged()
-        }.pos(ROTATION_BUTTON_X, ROTATION_BUTTON_Y).size(BUTTON_WIDTH, BUTTON_HEIGHT).build()
-        rotationButton.message = Component.literal(settings.rotation.name)
+        }
+        rotationButton.message = TextComponent(settings.rotation.name)
         addRenderableWidget(rotationButton)
     }
 
     private fun addHeightControl() {
-        drawText("Display Height: ", DISPLAY_HEIGHT_HEADER_X, DISPLAY_HEIGHT_HEADER_Y)
-
-        val heightInput = EditBox(font, DISPLAY_HEIGHT_TEXT_X, DISPLAY_HEIGHT_TEXT_Y, NUMBER_TEXT_WIDTH, NUMBER_TEXT_HEIGHT, Component.literal("Height Control")).apply {
+        val heightInput = EditBox(font, DISPLAY_HEIGHT_TEXT_X, DISPLAY_HEIGHT_TEXT_Y, NUMBER_TEXT_WIDTH, NUMBER_TEXT_HEIGHT, TextComponent("Height Control")).apply {
             value = settings.heightLimit.toString()
             setResponder {
                 it.toIntOrNull()?.let { v -> settings.heightLimit = v; notifySettingsChanged() }
             }
         }
-        val plus = Button.builder(Component.literal("+")) {
+        val plus = Button(DISPLAY_HEIGHT_PLUS_X, DISPLAY_HEIGHT_PLUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("+")) {
             settings.heightLimit++
             heightInput.value = settings.heightLimit.toString()
             notifySettingsChanged()
-        }.pos(DISPLAY_HEIGHT_PLUS_X, DISPLAY_HEIGHT_PLUS_Y).size(MINI_BUTTON_SIZE, MINI_BUTTON_SIZE).build()
-        val minus = Button.builder(Component.literal("-")) {
+        }
+        val minus = Button(DISPLAY_HEIGHT_MINUS_X, DISPLAY_HEIGHT_MINUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("-")) {
             settings.heightLimit--
             heightInput.value = settings.heightLimit.toString()
             notifySettingsChanged()
-        }.pos(DISPLAY_HEIGHT_MINUS_X, DISPLAY_HEIGHT_MINUS_Y).size(MINI_BUTTON_SIZE, MINI_BUTTON_SIZE).build()
+        }
         addRenderableWidget(heightInput)
         addRenderableWidget(plus)
         addRenderableWidget(minus)
     }
 
     private fun addDisplayFlagToggles() {
-        drawText("Display Type: ", DISPLAY_TYPE_HEADER_X, DISPLAY_TYPE_HEADER_Y)
-        val button = Button.builder(Component.literal( settings.displayFlags.name)) {
+        val button = Button(DISPLAY_TYPE_BUTTON_X, DISPLAY_TYPE_BUTTON_Y, NUMBER_TEXT_WIDTH, NUMBER_TEXT_HEIGHT, TextComponent( settings.displayFlags.name)) {
             settings.displayFlags = when (settings.displayFlags) {
                 DisplayFlag.ALL -> DisplayFlag.UP_TO_HEIGHT
                 DisplayFlag.UP_TO_HEIGHT -> DisplayFlag.ONLY_HEIGHT
@@ -229,44 +218,45 @@ public class SchematicSettingsScreen(
             }
             Minecraft.getInstance().setScreen(this)
             notifySettingsChanged()
-        }.pos(DISPLAY_TYPE_BUTTON_X, DISPLAY_TYPE_BUTTON_Y).size(NUMBER_TEXT_WIDTH, NUMBER_TEXT_HEIGHT).build()
-        button.message = Component.literal(settings.displayFlags.name)
+        }
+        button.message = TextComponent(settings.displayFlags.name)
         addRenderableWidget(button)
     }
 
     private fun addPresetControls() {
         val presets = RenderSettingsIO.listPresets()
         presets.forEachIndexed { i, name ->
-            addRenderableWidget(Button.builder(Component.literal(name)) {
+            addRenderableWidget(Button(10, 360 + i * 25, 100, 20, TextComponent(name)) {
                 RenderSettingsIO.load(name)?.let {
                     settings.applyFrom(it)
                     notifySettingsChanged()
                 }
-            }.pos(10, 360 + i * 25).size(100, 20).build())
+            })
         }
-        addRenderableWidget(Button.builder(Component.literal("Save")) {
+        addRenderableWidget(Button(120, 360, 60, 20, TextComponent("Save")) {
             RenderSettingsIO.save(settings, "custom_preset")
-        }.pos(120, 360).size(60, 20).build())
+        })
     }
 
     override fun render(poseStack: PoseStack, mouseX: Int, mouseY: Int, partialTicks: Float) {
         renderBackground(poseStack)
+        drawText(poseStack, "Alpha: ", ALPHA_HEADER_X, ALPHA_HEADER_Y)
+        drawText(poseStack, "Offset: ", OFFSET_HEADER_X, OFFSET_HEADER_Y)
+        drawText(poseStack, "x: ", OFFSET_X_HEADER_X, OFFSET_X_HEADER_Y)
+        drawText(poseStack, "y: ", OFFSET_Y_HEADER_X, OFFSET_Y_HEADER_Y)
+        drawText(poseStack, "z: ", OFFSET_Z_HEADER_X, OFFSET_Z_HEADER_Y)
+        drawText(poseStack, "Rotation: ", ROTATION_HEADER_X, ROTATION_HEADER_Y)
+        drawText(poseStack, "Display Height: ", DISPLAY_HEIGHT_HEADER_X, DISPLAY_HEIGHT_HEADER_Y)
+        drawText(poseStack, "Display Type: ", DISPLAY_TYPE_HEADER_X, DISPLAY_TYPE_HEADER_Y)
+
+
         super.render(poseStack, mouseX, mouseY, partialTicks)
     }
 
     override fun isPauseScreen(): Boolean = false
 
-    public fun drawText(text: String, x: Int, y: Int) {
-        addRenderableWidget(
-            StringWidget(
-                x,
-                y,
-                font.width(text),
-                HEADER_TEXT_HEIGHT,
-                Component.literal(text),
-                font
-            )
-        )
+    public fun drawText(poseStack: PoseStack, text: String, x: Int, y: Int) {
+        font.draw(poseStack, text, x.toFloat(), y.toFloat(), 0xFFFFFF)
     }
 
     private companion object {

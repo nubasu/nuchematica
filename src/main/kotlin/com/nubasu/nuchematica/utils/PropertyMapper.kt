@@ -193,7 +193,7 @@ public object PropertyMapper {
                     in age1List -> blockState.setValue(BlockStateProperties.AGE_1, value.toInt())
                     in age2List -> blockState.setValue(BlockStateProperties.AGE_2, value.toInt())
                     in age3List -> blockState.setValue(BlockStateProperties.AGE_3, value.toInt())
-                    in age4List -> blockState.setValue(BlockStateProperties.AGE_4, value.toInt())
+                    in age5List -> blockState.setValue(BlockStateProperties.AGE_5, value.toInt())
                     in age7List -> blockState.setValue(BlockStateProperties.AGE_7, value.toInt())
                     in age15List -> blockState.setValue(BlockStateProperties.AGE_15, value.toInt())
                     in age25List -> blockState.setValue(BlockStateProperties.AGE_25, value.toInt())
@@ -292,7 +292,6 @@ public object PropertyMapper {
     )
 
     private val age3List = listOf(
-        Blocks.MANGROVE_ROOTS.name.toString(),
         Blocks.FROSTED_ICE.name.toString()
     )
 
@@ -300,7 +299,6 @@ public object PropertyMapper {
         Blocks.BEETROOTS.name.toString(),
         Blocks.SWEET_BERRY_BUSH.name.toString(),
         Blocks.NETHER_WART.name.toString(),
-
     )
 
     private val age5List = listOf(
@@ -343,7 +341,7 @@ public object PropertyMapper {
         Blocks.GRANITE_WALL.name.toString(),
         Blocks.MOSSY_COBBLESTONE_WALL.name.toString(),
         Blocks.MOSSY_STONE_BRICK_WALL.name.toString(),
-        Blocks.MUD_BRICK_WALL.name.toString(),
+//        Blocks.MUD_BRICK_WALL.name.toString(),
         Blocks.NETHER_BRICK_WALL.name.toString(),
         Blocks.POLISHED_BLACKSTONE_BRICK_WALL.name.toString(),
         Blocks.POLISHED_BLACKSTONE_WALL.name.toString(),

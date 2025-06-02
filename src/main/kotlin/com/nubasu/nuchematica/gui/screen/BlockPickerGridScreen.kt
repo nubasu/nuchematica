@@ -5,12 +5,13 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.TextComponent
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraftforge.registries.ForgeRegistries
 
 class BlockPickerGridScreen(
-    private val titleText: Component = Component.literal("Select Block"),
+    private val titleText: Component = TextComponent("Select Block"),
     private val parent: Screen,
     private val onBlockSelected: (Block) -> Unit,
 ) : Screen(titleText) {
@@ -27,9 +28,9 @@ class BlockPickerGridScreen(
         blockGrid.setPosition(10, 40, width - 30, height - 75)
         addRenderableWidget(blockGrid)
 
-        closeButton = Button.builder(Component.literal("Cancel")) {
+        closeButton = Button(width / 2 - 40, height - 30, 80, 20, TextComponent("Cancel")) {
             Minecraft.getInstance().setScreen(parent)
-        }.pos(width / 2 - 40, height - 30).size(80, 20).build()
+        }
         addRenderableWidget(closeButton)
     }
 

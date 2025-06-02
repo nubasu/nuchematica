@@ -94,11 +94,13 @@ configurations {
         minecraftLibrary.get().exclude("org.jetbrains", "annotations")
     }
 }
+
+
 repositories {
     maven("https://maven.enginehub.org/repo/")
 }
 dependencies {
-    minecraft("net.minecraftforge:forge:1.19.4-45.1.0")
+    minecraft("net.minecraftforge:forge:1.18.2-40.3.0")
 
     api("org.jetbrains.kotlin:kotlin-reflect:${kotlin.coreLibrariesVersion}")
     api("org.jetbrains.kotlin:kotlin-stdlib:${kotlin.coreLibrariesVersion}")

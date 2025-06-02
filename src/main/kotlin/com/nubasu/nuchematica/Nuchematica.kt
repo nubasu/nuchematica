@@ -14,7 +14,6 @@ import net.minecraftforge.api.distmarker.Dist
 import net.minecraftforge.client.event.RenderLevelStageEvent
 import net.minecraftforge.client.event.RenderLevelStageEvent.Stage
 import net.minecraftforge.common.MinecraftForge
-import net.minecraftforge.event.CreativeModeTabEvent.BuildContents
 import net.minecraftforge.event.RegisterCommandsEvent
 import net.minecraftforge.event.server.ServerStartingEvent
 import net.minecraftforge.eventbus.api.SubscribeEvent
@@ -42,11 +41,6 @@ public class Nuchematica {
         MinecraftForge.EVENT_BUS.register(this)
         MinecraftForge.EVENT_BUS.register(KeyManager())
         MinecraftForge.EVENT_BUS.register(MainGui())
-
-        // Register the item to a creative tab
-        modEventBus.addListener { event: BuildContents ->
-
-        }
     }
 
     private fun commonSetup(event: FMLCommonSetupEvent) {
@@ -93,7 +87,7 @@ public class Nuchematica {
                 blocks.forEach {
                     ChatSender.send(it.block.name.toString())
 
-                    it.blockHolder.tagKeys.forEach {
+                    it.tags.forEach {
                         ChatSender.send(it.toString())
                     }
                 }

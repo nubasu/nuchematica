@@ -5,9 +5,8 @@ import com.nubasu.nuchematica.common.PlacedBlockMap
 import com.nubasu.nuchematica.gui.RenderSettings
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.Button
-import net.minecraft.client.gui.components.StringWidget
 import net.minecraft.client.gui.screens.Screen
-import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.TextComponent
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.Block
 import net.minecraftforge.registries.ForgeRegistries
@@ -16,11 +15,11 @@ class FilterSettingScreen(
     private val settings: RenderSettings,
     private val parent: Screen,
     private val onSettingsChanged: () -> Unit,
-) : Screen(Component.literal("Filter Setting")) {
+) : Screen(TextComponent("Filter Setting")) {
     private val blockCounts: Map<Block, Int> = PlacedBlockMap.blockList
     private val placedBlockCounts: Map<Block, Int> = mapOf()
 
-    private val blockPickerLiteral = Component.literal("Select Block")
+    private val blockPickerLiteral = TextComponent("Select Block")
 
     private val itemRenderer = Minecraft.getInstance().itemRenderer
     private var scrollOffset = 0
@@ -83,7 +82,7 @@ class FilterSettingScreen(
     override fun init() {
         buttons.clear()
 
-        val toggleAllButton = Button.builder(Component.literal(getToggleAllLabel())) {
+        val toggleAllButton = Button(VISIBILITY_HEADER_X, height - 30, VISIBILITY_BUTTON_WIDTH, 20, TextComponent(getToggleAllLabel())) {
             isVisibleAll = !isVisibleAll
             if (isVisibleAll) {
                 settings.visibleBlocks.clear()
@@ -95,13 +94,13 @@ class FilterSettingScreen(
                 settings.hiddenBlocks.addAll(blockCounts.keys)
             }
             Minecraft.getInstance().setScreen(this)
-        }.pos(VISIBILITY_HEADER_X, height - 30).size(VISIBILITY_BUTTON_WIDTH, 20).build()
+        }
 
         addRenderableWidget(toggleAllButton)
 
-        addRenderableWidget(Button.builder(Component.literal("Back")) {
+        addRenderableWidget(Button(10, height - 30, 80, 20, TextComponent("Back")) {
             Minecraft.getInstance().setScreen(parent)
-        }.pos(10, height - 30).size(80, 20).build())
+        })
 
         // items
         val visible = blockCounts.entries.toList().drop(scrollOffset).take(visibleRows)
@@ -110,14 +109,14 @@ class FilterSettingScreen(
         visible.forEach { (block, _) ->
             val replaced = settings.blockReplaceMap[block]
 
-            val replaceButton = Button.builder(Component.literal(getReplaceLabel(replaced))) {
+            val replaceButton = Button(REPLACE_BUTTON_X, y + 6, REPLACE_BUTTON_WIDTH, 20, TextComponent(getReplaceLabel(replaced))) {
                 Minecraft.getInstance().setScreen(BlockPickerGridScreen(blockPickerLiteral, this) { selected ->
                     settings.blockReplaceMap[block] = selected
                 })
-            }.pos(REPLACE_BUTTON_X, y + 6).size(REPLACE_BUTTON_WIDTH, 20).build()
+            }
             addRenderableWidget(replaceButton)
 
-            val toggleButton = Button.builder(Component.literal(getToggleLabel(block))) {
+            val toggleButton = Button(VISIBILITY_HEADER_X, y, VISIBILITY_BUTTON_WIDTH, 20, TextComponent(getToggleLabel(block))) {
                 if (!settings.hiddenBlocks.contains(block)) {
                     settings.visibleBlocks.remove(block)
                     settings.hiddenBlocks.add(block)
@@ -126,7 +125,7 @@ class FilterSettingScreen(
                     settings.visibleBlocks.add(block)
                 }
                 Minecraft.getInstance().setScreen(this)
-            }.pos(VISIBILITY_HEADER_X, y).size(VISIBILITY_BUTTON_WIDTH, 20).build()
+            }
             addRenderableWidget(toggleButton)
 
             y += rowHeight
@@ -144,10 +143,10 @@ class FilterSettingScreen(
         renderBackground(poseStack)
 
         // header
-        drawText("Block", BLOCK_HEADER_X, BLOCK_HEADER_Y)
-        drawText("Replace To", REPLACE_HEADER_X, REPLACE_HEADER_Y)
-        drawText("Placed", PLACED_HEADER_X, PLACED_HEADER_Y)
-        drawText("Visibility", VISIBILITY_HEADER_X, VISIBILITY_HEADER_Y)
+        drawText(poseStack, "Block", BLOCK_HEADER_X, BLOCK_HEADER_Y)
+        drawText(poseStack, "Replace To", REPLACE_HEADER_X, REPLACE_HEADER_Y)
+        drawText(poseStack, "Placed", PLACED_HEADER_X, PLACED_HEADER_Y)
+        drawText(poseStack, "Visibility", VISIBILITY_HEADER_X, VISIBILITY_HEADER_Y)
 
         // items
         val visible = blockCounts.entries.toList().drop(scrollOffset).take(visibleRows)
@@ -159,7 +158,7 @@ class FilterSettingScreen(
             name = name.split(":").last()
             val placed = placedBlockCounts[block] ?: 0
 
-            itemRenderer.renderAndDecorateItem(poseStack, stack, 10, y)
+            itemRenderer.renderAndDecorateItem(stack, 10, y)
             font.draw(poseStack, name, BLOCK_HEADER_X.toFloat(), y + 6f, 0xFFFFFF)
             font.draw(poseStack, "$placed/$totalCount", PLACED_HEADER_X.toFloat(), y + 10f, 0xAAAAAA)
 
@@ -186,16 +185,7 @@ class FilterSettingScreen(
 
     override fun isPauseScreen(): Boolean = false
 
-    public fun drawText(text: String, x: Int, y: Int) {
-        addRenderableWidget(
-            StringWidget(
-                x,
-                y,
-                font.width(text),
-                HEADER_TEXT_HEIGHT,
-                Component.literal(text),
-                font
-            )
-        )
+    public fun drawText(poseStack: PoseStack, text: String, x: Int, y: Int) {
+        font.draw(poseStack, text, x.toFloat(), y.toFloat(), 0xFFFFFF)
     }
 }
