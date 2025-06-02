@@ -1,6 +1,7 @@
 package com.nubasu.nuchematica.gui
 
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.Rotation
 
 public enum class DisplayFlag {
     ALL,
@@ -9,11 +10,20 @@ public enum class DisplayFlag {
 }
 
 public enum class DirectionSetting {
-    NONE,
-    NORTH,
-    SOUTH,
-    WEST,
-    EAST,
+    CLOCKWISE_0,
+    CLOCKWISE_90,
+    CLOCKWISE_180,
+    CLOCKWISE_270;
+    public companion object {
+        public fun DirectionSetting.toMCRotation(): Rotation {
+            return when (this) {
+                CLOCKWISE_0 -> Rotation.NONE
+                CLOCKWISE_90 -> Rotation.CLOCKWISE_90
+                CLOCKWISE_180 -> Rotation.CLOCKWISE_180
+                CLOCKWISE_270 -> Rotation.COUNTERCLOCKWISE_90
+            }
+        }
+    }
 }
 
 data class RenderSettings(
@@ -21,7 +31,7 @@ data class RenderSettings(
     var offsetX: Int = 0,
     var offsetY: Int = 0,
     var offsetZ: Int = 0,
-    var rotation: DirectionSetting = DirectionSetting.NONE,
+    var rotation: DirectionSetting = DirectionSetting.CLOCKWISE_0,
     var blockReplaceMap: MutableMap<Block, Block?> = mutableMapOf(),
     var heightLimit: Int = 0,
     var visibleBlocks: MutableSet<Block> = mutableSetOf(),
