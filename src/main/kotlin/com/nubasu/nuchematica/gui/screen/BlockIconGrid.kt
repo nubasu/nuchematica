@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Blocks
 class BlockIconGrid(
     private val blocks: List<Block>,
     private val onBlockSelected: (Block) -> Unit
-) : AbstractWidget(0, 0, 0, 0, Component.empty()) {
+) : AbstractWidget(0, 0, 0, 0, Component.nullToEmpty("")) {
 
     private var columns = 10
     private val iconSize = 20
@@ -55,7 +55,7 @@ class BlockIconGrid(
                 val stack = itemStacks[index]
                 val xPos = x + col * (iconSize + padding)
                 val yPos = y + row * (iconSize + padding)
-                itemRenderer.renderAndDecorateItem(poseStack, stack, xPos, yPos)
+                itemRenderer.renderAndDecorateItem(stack, xPos, yPos)
                 if (isMouseOver(mouseX, mouseY, xPos, yPos)) {
                     hoveredStack = stack
                 }
@@ -85,11 +85,7 @@ class BlockIconGrid(
         return mouseX >= iconX && mouseX < iconX + iconSize && mouseY >= iconY && mouseY < iconY + iconSize
     }
 
-    override fun renderWidget(poseStack: PoseStack, mouseX: Int, mouseY: Int, partialTicks: Float) {
-        render(poseStack, mouseX, mouseY, partialTicks)
-    }
+    override fun updateNarration(p_169152_: NarrationElementOutput) {
 
-    override fun updateWidgetNarration(output: NarrationElementOutput) {
-        // no-op
     }
 }

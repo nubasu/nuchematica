@@ -44,7 +44,7 @@ public object DummyWorld : BlockAndTintGetter {
     }
 
     override fun getBlockTint(pos: BlockPos, resolver: ColorResolver): Int {
-        return resolver.getColor(Minecraft.getInstance().level!!.getBiome(pos).get(), pos.x.toDouble(),
+        return resolver.getColor(Minecraft.getInstance().level!!.getBiome(pos).value(), pos.x.toDouble(),
             pos.z.toDouble()
         )
     }

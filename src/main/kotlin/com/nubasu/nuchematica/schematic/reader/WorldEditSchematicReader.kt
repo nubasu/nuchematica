@@ -92,7 +92,7 @@ public object WorldEditSchematicReader: SchematicReader {
                     clipboard.position.add(BlockPos(x, y, z))
 
                     val blockEntityId = BlockEntityMapper.fromBlockId(blockId)
-                    val type = ForgeRegistries.BLOCK_ENTITY_TYPES.getValue(ResourceLocation(blockEntityId))
+                    val type = ForgeRegistries.BLOCK_ENTITIES.getValue(ResourceLocation(blockEntityId))
 
                     if (type != null) {
                         val blockEntity = type.create(BlockPos(x, y, z), blockState)

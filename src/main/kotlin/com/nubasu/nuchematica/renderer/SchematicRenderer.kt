@@ -4,21 +4,22 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.*
 import com.mojang.blaze3d.vertex.VertexBuffer.unbind
 import com.mojang.logging.LogUtils
-import com.mojang.math.Axis
+import com.mojang.math.Vector3f.YP
 import com.nubasu.nuchematica.schematic.SchematicHolder
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GameRenderer
+import net.minecraft.client.renderer.ItemBlockRenderTypes
 import net.minecraft.client.renderer.LightTexture
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.client.renderer.texture.TextureAtlas
 import net.minecraft.core.Direction
-import net.minecraft.util.RandomSource
 import net.minecraft.world.level.LightLayer
 import net.minecraft.world.level.block.piston.PistonMovingBlockEntity
 import net.minecraft.world.phys.Vec3
 import net.minecraftforge.client.event.RenderLevelStageEvent
-import net.minecraftforge.client.model.data.ModelData
+import net.minecraftforge.client.model.data.EmptyModelData
+import java.util.Random
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -52,7 +53,7 @@ class SchematicRenderer {
             val poseStack = PoseStack()
 
             val blockRenderer = mc.blockRenderer
-            val randomSource = RandomSource.create(0)
+            val randomSource = Random(0)
             val overlay = OverlayTexture.NO_OVERLAY
 
 //            val sortedBlocks = cachedBlocks.blocks.entries.sortedByDescending {
@@ -82,7 +83,7 @@ class SchematicRenderer {
                 val fluidState = blockState.fluidState
                 if (!fluidState.isEmpty) {
                     poseStack.pushPose()
-                    poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+                    poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
                     val translated = VertexConsumerWithPose(translucentBuilder, pos, poseStack)
 
                     mc.blockRenderer.renderLiquid(
@@ -102,53 +103,24 @@ class SchematicRenderer {
                 val pose = poseStack.last()
 
 //                val renderType = RenderTypeHelper.getFallbackItemRenderType(blockState.block.asItem().defaultInstance, model, false)
-                val renderTypes = model.getRenderTypes(blockState, randomSource, ModelData.EMPTY)
-                for (renderType in renderTypes) {
-                    val buffer = when (renderType) {
-                        RenderType.translucent(), RenderType.cutout() -> translucentBuilder // , RenderType.cutoutMipped()
-                        else -> solidBuilder
-                    }
-
-                    for (direction in Direction.values()) {
-                        val neighborPos = pos.relative(direction)
-                        val neighborIsSolid =
-                            cachedBlocks.blocks[neighborPos]?.isSolidRender(level, neighborPos) ?: false
-                        if (cachedBlocks.blocks.containsKey(neighborPos) && neighborIsSolid) continue
-
-                        val quads = model.getQuads(blockState, direction, randomSource, ModelData.EMPTY, renderType)
-                        for (quad in quads) {
-                            val tintIndex = quad.tintIndex
-                            val color = if (quad.isTinted && tintIndex >= 0) {
-                                blockColors.getColor(blockState, level, pos, tintIndex)
-                            } else -1
-
-                            val (r, g, b) = if (color != -1) {
-                                Triple(
-                                    (color shr 16 and 0xFF) / 255.0f,
-                                    (color shr 8 and 0xFF) / 255.0f,
-                                    (color and 0xFF) / 255.0f
-                                )
-                            } else {
-                                Triple(1f, 1f, 1f)
-                            }
-
-                            buffer.putBulkData(pose, quad, r, g, b, 0.7f, packedLight, overlay, true)
-                        }
-                    }
+                val renderType = ItemBlockRenderTypes.getRenderType(blockState, false)
+                val buffer = when (renderType) {
+                    RenderType.translucent(), RenderType.cutout() -> translucentBuilder // , RenderType.cutoutMipped()
+                    else -> solidBuilder
                 }
-                for (renderType in renderTypes) {
-                    val buffer = when (renderType) {
-                        RenderType.translucent(), RenderType.cutout() -> translucentBuilder // , RenderType.cutoutMipped()
-                        else -> solidBuilder
-                    }
-                    val nonSolidQuads = model.getQuads(blockState, null, randomSource, ModelData.EMPTY, renderType)
-                    for (quad in nonSolidQuads) {
+
+                for (direction in Direction.values()) {
+                    val neighborPos = pos.relative(direction)
+                    val neighborIsSolid =
+                        cachedBlocks.blocks[neighborPos]?.isSolidRender(level, neighborPos) ?: false
+                    if (cachedBlocks.blocks.containsKey(neighborPos) && neighborIsSolid) continue
+
+                    val quads = model.getQuads(blockState, direction, randomSource, EmptyModelData.INSTANCE)
+                    for (quad in quads) {
                         val tintIndex = quad.tintIndex
                         val color = if (quad.isTinted && tintIndex >= 0) {
                             blockColors.getColor(blockState, level, pos, tintIndex)
-                        } else {
-                            -1
-                        }
+                        } else -1
 
                         val (r, g, b) = if (color != -1) {
                             Triple(
@@ -163,12 +135,33 @@ class SchematicRenderer {
                         buffer.putBulkData(pose, quad, r, g, b, 0.7f, packedLight, overlay, true)
                     }
                 }
+                val nonSolidQuads = model.getQuads(blockState, null, randomSource, EmptyModelData.INSTANCE)
+                for (quad in nonSolidQuads) {
+                    val tintIndex = quad.tintIndex
+                    val color = if (quad.isTinted && tintIndex >= 0) {
+                        blockColors.getColor(blockState, level, pos, tintIndex)
+                    } else {
+                        -1
+                    }
+
+                    val (r, g, b) = if (color != -1) {
+                        Triple(
+                            (color shr 16 and 0xFF) / 255.0f,
+                            (color shr 8 and 0xFF) / 255.0f,
+                            (color and 0xFF) / 255.0f
+                        )
+                    } else {
+                        Triple(1f, 1f, 1f)
+                    }
+
+                    buffer.putBulkData(pose, quad, r, g, b, 0.7f, packedLight, overlay, true)
+                }
 
                 poseStack.popPose()
             }
 
-            val solidBuilt = solidBuilder.end()
-            val translucentBuilt = translucentBuilder.end()
+            solidBuilder.end()
+            translucentBuilder.end()
 
             Minecraft.getInstance().execute {
                 solidBuffer?.close()
@@ -176,12 +169,12 @@ class SchematicRenderer {
 
                 solidBuffer = VertexBuffer().apply {
                     bind()
-                    upload(solidBuilt)
+                    upload(solidBuilder)
                     unbind()
                 }
                 translucentBuffer = VertexBuffer().apply {
                     bind()
-                    upload(translucentBuilt)
+                    upload(translucentBuilder)
                     unbind()
                 }
 
@@ -211,11 +204,8 @@ class SchematicRenderer {
         poseStack.translate(-camPos.x, -camPos.y, -camPos.z)
         poseStack.translate(offset.x, offset.y, offset.z)
 
-        poseStack.rotateAround(
-            Axis.YP.rotationDegrees(rotate),
-            0.0f,
-            0.0f,
-            0.0f
+        poseStack.mulPose(
+            YP.rotationDegrees(rotate),
         )
         poseStack.translate(rotateAxis.x, rotateAxis.y, rotateAxis.z)
 

@@ -89,7 +89,7 @@ public object SpongeSchematicV1Reader: SchematicReader {
                     clipboard.block.add(blockState)
                     clipboard.position.add(BlockPos(x, y, z))
 
-                    val type = ForgeRegistries.BLOCK_ENTITY_TYPES.getValue(ResourceLocation(blockId))
+                    val type = ForgeRegistries.BLOCK_ENTITIES.getValue(ResourceLocation(blockId))
                     if (type != null) {
                         val blockEntity = type.create(BlockPos(x, y, z), blockState)
                         clipboard.tileEntity.add(blockEntity)

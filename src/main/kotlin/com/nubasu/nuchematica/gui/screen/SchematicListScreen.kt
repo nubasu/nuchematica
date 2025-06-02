@@ -5,10 +5,10 @@ import com.mojang.logging.LogUtils
 import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.Screen
-import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.TextComponent
 import java.io.File
 
-public class SchematicListScreen : Screen(Component.literal("Schematics")) {
+public class SchematicListScreen : Screen(TextComponent("Schematics")) {
     private val schematicsDir = File(Minecraft.getInstance().gameDirectory.absolutePath, "/schematics")
     private val schematicFiles = mutableListOf<File>()
     private var scrollOffset = 0
