@@ -1,19 +1,54 @@
 package com.nubasu.nuchematica.renderer
 
+import com.mojang.logging.LogUtils
 import com.nubasu.nuchematica.io.SchematicFileLoader
+import com.nubasu.nuchematica.schematic.SchematicHolder
+import net.minecraft.client.Minecraft
+import net.minecraft.core.Direction
+import net.minecraft.world.phys.Vec3
 import net.minecraftforge.client.event.RenderLevelStageEvent
+import kotlin.math.floor
 
 public object SchematicRenderManager {
     public var isRendering: Boolean = true
     private val renderer = SchematicRenderer()
+    private var initialPosition = Vec3.ZERO
+    private var offset = Vec3.ZERO
+    public var rotate = 0f
+    public var rotationAxis = Vec3.ZERO
+
+    public fun getRenderBase(): Vec3 {
+        return Vec3(
+            initialPosition.x + offset.x,
+            initialPosition.y + offset.y,
+            initialPosition.z + offset.z
+        )
+    }
+
+    public fun setOffset(vec3: Vec3) {
+        offset = vec3
+    }
 
     public fun initialize() {
+        val playerPos = Minecraft.getInstance().player!!.position()
+        val direction = Minecraft.getInstance().player!!.direction
+        val size = SchematicHolder.schematicSize
+        initialPosition = when(direction) {
+            Direction.EAST -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z)) // East
+            Direction.SOUTH -> Vec3(floor(playerPos.x - size.x), floor(playerPos.y), floor(playerPos.z)) // South
+            Direction.WEST -> Vec3(floor(playerPos.x - size.x), floor(playerPos.y), floor(playerPos.z - size.z)) // West
+            else -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z - size.z)) // North
+        }
+        renderer.initialize()
+    }
+
+    public fun rerender() {
         renderer.initialize()
     }
 
     public fun render(event: RenderLevelStageEvent) {
         if (!isRendering) return
-        renderer.render(event)
+        renderer.render(getRenderBase(), rotate, rotationAxis, event)
     }
 
     public fun loadRenderBlocks(schematicFile: String) {
