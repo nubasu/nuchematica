@@ -132,7 +132,7 @@ class SchematicRenderer {
                             Triple(1f, 1f, 1f)
                         }
 
-                        buffer.putBulkData(pose, quad, r, g, b, 0.7f, packedLight, overlay, true)
+                        buffer.putBulkData(pose, quad, r, g, b, 0.5f, packedLight, overlay, true)
                     }
                 }
                 val nonSolidQuads = model.getQuads(blockState, null, randomSource, EmptyModelData.INSTANCE)
@@ -154,7 +154,7 @@ class SchematicRenderer {
                         Triple(1f, 1f, 1f)
                     }
 
-                    buffer.putBulkData(pose, quad, r, g, b, 0.7f, packedLight, overlay, true)
+                    buffer.putBulkData(pose, quad, r, g, b, 0.5f, packedLight, overlay, true)
                 }
 
                 poseStack.popPose()
@@ -196,6 +196,8 @@ class SchematicRenderer {
 
         RenderSystem.enableBlend()
         RenderSystem.defaultBlendFunc()
+        RenderSystem.enablePolygonOffset()
+        RenderSystem.polygonOffset(0.5f, 5f) // 手前にずらす
         RenderSystem.setShader { GameRenderer.getRendertypeTranslucentShader() }
         RenderSystem.setShaderTexture(0, TextureAtlas.LOCATION_BLOCKS)
         mc.gameRenderer.lightTexture().turnOnLightLayer()
@@ -241,11 +243,16 @@ class SchematicRenderer {
 
         bufferSource.endBatch()
         RenderSystem.disableBlend()
+        RenderSystem.disablePolygonOffset()
         mc.gameRenderer.lightTexture().turnOffLightLayer()
         poseStack.popPose()
     }
 
     fun initialize() {
         isBuilt = false
+        Minecraft.getInstance().execute {
+            solidBuffer?.close()
+            translucentBuffer?.close()
+        }
     }
 }
