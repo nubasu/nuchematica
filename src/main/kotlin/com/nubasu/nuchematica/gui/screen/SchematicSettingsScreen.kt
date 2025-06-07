@@ -6,6 +6,7 @@ import com.nubasu.nuchematica.gui.DirectionSetting
 import com.nubasu.nuchematica.gui.DisplayFlag
 import com.nubasu.nuchematica.gui.RenderSettings
 import com.nubasu.nuchematica.gui.RenderSettingsIO
+import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import com.nubasu.nuchematica.schematic.SchematicEditor
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.Button
@@ -33,6 +34,7 @@ public class SchematicSettingsScreen(
         addFilterSettingButton()
         addHeightControl()
         addDisplayFlagToggles()
+        addMoveHere()
 //        addPresetControls()
 
         screenHeight = this.height
@@ -223,6 +225,15 @@ public class SchematicSettingsScreen(
         addRenderableWidget(button)
     }
 
+    private fun addMoveHere() {
+        val button = Button(MOVE_HERE_BUTTON_X, MOVE_HERE_BUTTON_Y, NUMBER_TEXT_WIDTH, NUMBER_TEXT_HEIGHT, TextComponent( "Move Here")) {
+            SchematicRenderManager.updateInitialPosition()
+        }
+        button.message = TextComponent("Move Here")
+        addRenderableWidget(button)
+    }
+
+
     private fun addPresetControls() {
         val presets = RenderSettingsIO.listPresets()
         presets.forEachIndexed { i, name ->
@@ -340,19 +351,32 @@ public class SchematicSettingsScreen(
     private var DISPLAY_TYPE_BUTTON_X = SECOND_LINE_BASELINE
     private var DISPLAY_TYPE_BUTTON_Y = DISPLAY_TYPE_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
 
+    private var MOVE_HERE_HEADER_X = SECOND_LINE_BASELINE
+    private var MOVE_HERE_HEADER_Y = DISPLAY_TYPE_BUTTON_Y + BUTTON_HEIGHT + PADDING
+    private var MOVE_HERE_BUTTON_X = SECOND_LINE_BASELINE
+    private var MOVE_HERE_BUTTON_Y = MOVE_HERE_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
+
     private fun initializeGuiSize() {
         SECOND_LINE_BASELINE = this.width - 130
         SELECT_SCHEMATIC_BUTTON_X = SECOND_LINE_BASELINE
         SELECT_SCHEMATIC_BUTTON_Y = 20
+
         FILTER_SETTING_BUTTON_X = SECOND_LINE_BASELINE
         FILTER_SETTING_BUTTON_Y = SELECT_SCHEMATIC_BUTTON_Y + BUTTON_HEIGHT + PADDING
+
         ROTATION_HEADER_X = SECOND_LINE_BASELINE
         ROTATION_HEADER_Y = FILTER_SETTING_BUTTON_Y + BUTTON_HEIGHT + PADDING
         ROTATION_BUTTON_X = SECOND_LINE_BASELINE
         ROTATION_BUTTON_Y = ROTATION_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
+
         DISPLAY_TYPE_HEADER_X = SECOND_LINE_BASELINE
         DISPLAY_TYPE_HEADER_Y = ROTATION_BUTTON_Y + BUTTON_HEIGHT + PADDING
         DISPLAY_TYPE_BUTTON_X = SECOND_LINE_BASELINE
         DISPLAY_TYPE_BUTTON_Y = DISPLAY_TYPE_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
+
+        MOVE_HERE_HEADER_X = SECOND_LINE_BASELINE
+        MOVE_HERE_HEADER_Y = DISPLAY_TYPE_BUTTON_Y + BUTTON_HEIGHT + PADDING
+        MOVE_HERE_BUTTON_X = SECOND_LINE_BASELINE
+        MOVE_HERE_BUTTON_Y = MOVE_HERE_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
     }
 }
