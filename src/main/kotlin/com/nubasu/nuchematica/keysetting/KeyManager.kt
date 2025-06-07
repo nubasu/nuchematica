@@ -2,6 +2,7 @@ package com.nubasu.nuchematica.keysetting
 
 import com.mojang.blaze3d.platform.InputConstants
 import com.nubasu.nuchematica.Nuchematica
+import com.nubasu.nuchematica.gui.RenderSettingHolder
 import com.nubasu.nuchematica.gui.RenderSettings
 import com.nubasu.nuchematica.gui.screen.SchematicListScreen
 import com.nubasu.nuchematica.gui.screen.SchematicSettingsScreen
@@ -86,7 +87,7 @@ public class KeyManager {
     @SubscribeEvent
     public fun keyPressed(event: InputEvent.KeyInputEvent) {
         if (settingKey.consumeClick()) {
-            Minecraft.getInstance().setScreen(SchematicSettingsScreen(RenderSettings()))
+            Minecraft.getInstance().setScreen(SchematicSettingsScreen(RenderSettingHolder.renderSettings))
         }
         if (pos1Key.consumeClick()) {
             val pos = Minecraft.getInstance().player?.position()!!
