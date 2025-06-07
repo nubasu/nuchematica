@@ -4,6 +4,7 @@ import com.nubasu.nuchematica.common.Vector3
 import com.nubasu.nuchematica.gui.DirectionSetting
 import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.world.phys.Vec3
 
 public object SchematicEditor {
@@ -15,17 +16,56 @@ public object SchematicEditor {
         val schematicSize = SchematicHolder.schematicSize
         val size = BlockPos(schematicSize.x + 1, 0, schematicSize.z + 1)
 
-        SchematicRenderManager.rotate = when(rotation) {
+        val rot = when(rotation) {
             DirectionSetting.CLOCKWISE_0 -> 0f
             DirectionSetting.CLOCKWISE_90 -> 90f
             DirectionSetting.CLOCKWISE_180 -> 180f
             DirectionSetting.CLOCKWISE_270 -> 270f
         }
-        SchematicRenderManager.rotationAxis =  when(rotation) {
-            DirectionSetting.CLOCKWISE_0 -> Vec3(0.0, 0.0, 0.0)
-            DirectionSetting.CLOCKWISE_90 -> Vec3( -size.x.toDouble(), 0.0, 0.0)
-            DirectionSetting.CLOCKWISE_180 ->  Vec3(-size.x.toDouble(), 0.0, -size.z.toDouble())
-            DirectionSetting.CLOCKWISE_270 -> Vec3(0.0, 0.0, -size.z.toDouble())
+
+        val axis = when(SchematicRenderManager.initialDirection) {
+            Direction.EAST -> {
+                when(rotation) {
+                    DirectionSetting.CLOCKWISE_0 -> Vec3(0.0, 0.0, 0.0)
+                    DirectionSetting.CLOCKWISE_90 -> Vec3( -size.x.toDouble(), 0.0, 0.0)
+                    DirectionSetting.CLOCKWISE_180 ->  Vec3(-size.x.toDouble(), 0.0, -size.z.toDouble())
+                    DirectionSetting.CLOCKWISE_270 -> Vec3(0.0, 0.0, -size.z.toDouble())
+                }
+            }
+            Direction.SOUTH -> {
+                when(rotation) {
+                    DirectionSetting.CLOCKWISE_0 -> Vec3(0.0, 0.0, 0.0)
+                    DirectionSetting.CLOCKWISE_90 -> Vec3( -size.x.toDouble(), 0.0, size.x.toDouble()-size.z.toDouble())
+                    DirectionSetting.CLOCKWISE_180 ->  Vec3(-size.x.toDouble(), 0.0, -size.z.toDouble())
+                    DirectionSetting.CLOCKWISE_270 -> Vec3(0.0, 0.0, -size.z.toDouble()-(size.x.toDouble()-size.z.toDouble()))
+                }
+            }
+            Direction.WEST -> {
+                when(rotation) {
+                    DirectionSetting.CLOCKWISE_0 -> Vec3(0.0, 0.0, 0.0)
+                    DirectionSetting.CLOCKWISE_90 -> Vec3( -size.z.toDouble(), 0.0, size.x.toDouble()-size.z.toDouble())
+                    DirectionSetting.CLOCKWISE_180 ->  Vec3(-size.x.toDouble(), 0.0, -size.z.toDouble())
+                    DirectionSetting.CLOCKWISE_270 -> Vec3(size.z.toDouble()-size.x.toDouble(), 0.0, -size.z.toDouble()-(size.x.toDouble()-size.z.toDouble()))
+                }
+            }
+            Direction.NORTH -> {
+                when(rotation) {
+                    DirectionSetting.CLOCKWISE_0 -> Vec3(0.0, 0.0, 0.0)
+                    DirectionSetting.CLOCKWISE_90 -> Vec3( -size.z.toDouble(), 0.0, 0.0)
+                    DirectionSetting.CLOCKWISE_180 ->  Vec3(-size.x.toDouble(), 0.0, -size.z.toDouble())
+                    DirectionSetting.CLOCKWISE_270 -> Vec3(size.z.toDouble()-size.x.toDouble(), 0.0, -size.z.toDouble())
+                }
+            }
+            else -> {
+                when(rotation) {
+                    DirectionSetting.CLOCKWISE_0 -> Vec3(0.0, 0.0, 0.0)
+                    DirectionSetting.CLOCKWISE_90 -> Vec3( -size.x.toDouble(), 0.0, 0.0)
+                    DirectionSetting.CLOCKWISE_180 ->  Vec3(-size.x.toDouble(), 0.0, -size.z.toDouble())
+                    DirectionSetting.CLOCKWISE_270 -> Vec3(0.0, 0.0, -size.z.toDouble())
+                }
+            }
         }
+
+        SchematicRenderManager.setRotation(rot, axis)
     }
 }

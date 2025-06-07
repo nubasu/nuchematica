@@ -6,6 +6,7 @@ import com.nubasu.nuchematica.gui.RenderSettings
 import com.nubasu.nuchematica.gui.screen.SchematicListScreen
 import com.nubasu.nuchematica.gui.screen.SchematicSettingsScreen
 import com.nubasu.nuchematica.io.NbtReader
+import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import com.nubasu.nuchematica.renderer.SelectedRegionManager
 import com.nubasu.nuchematica.schematic.reader.SpongeSchematicV3Reader
 import com.nubasu.nuchematica.utils.ChatSender
@@ -64,6 +65,14 @@ public class KeyManager {
         "key.nuchematica.category"
     )
 
+    private val toggleDisplayKey: KeyMapping = KeyMapping(
+        "key.nuchematica.display",
+        KeyConflictContext.IN_GAME,
+        InputConstants.Type.KEYSYM,
+        'I'.code,
+        "key.nuchematica.category"
+    )
+
     @SubscribeEvent
     public fun keyRegister(event: FMLClientSetupEvent) {
         ClientRegistry.registerKeyBinding(settingKey)
@@ -71,6 +80,7 @@ public class KeyManager {
         ClientRegistry.registerKeyBinding(pos2Key)
         ClientRegistry.registerKeyBinding(saveKey)
         ClientRegistry.registerKeyBinding(shemaKey)
+        ClientRegistry.registerKeyBinding(toggleDisplayKey)
     }
 
     @SubscribeEvent
@@ -98,6 +108,9 @@ public class KeyManager {
         }
         if (shemaKey.consumeClick()) {
             Minecraft.getInstance().setScreen(SchematicListScreen())
+        }
+        if (toggleDisplayKey.consumeClick()) {
+            SchematicRenderManager.isRendering = !SchematicRenderManager.isRendering
         }
     }
 }

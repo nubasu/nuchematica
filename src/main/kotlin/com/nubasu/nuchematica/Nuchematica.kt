@@ -6,6 +6,7 @@ import com.nubasu.nuchematica.gui.MainGui
 import com.nubasu.nuchematica.keysetting.KeyManager
 import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import com.nubasu.nuchematica.renderer.SelectedRegionManager
+import com.nubasu.nuchematica.schematic.MissingBlockHolder
 import com.nubasu.nuchematica.utils.ChatSender
 import net.minecraft.client.Minecraft
 import net.minecraft.commands.Commands
@@ -16,6 +17,7 @@ import net.minecraftforge.client.event.RenderLevelStageEvent.Stage
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.event.RegisterCommandsEvent
 import net.minecraftforge.event.server.ServerStartingEvent
+import net.minecraftforge.event.world.BlockEvent
 import net.minecraftforge.eventbus.api.SubscribeEvent
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber
@@ -116,6 +118,28 @@ public class Nuchematica {
             // Some client setup code
             LOGGER.info("HELLO FROM CLIENT SETUP")
             LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().user.name)
+        }
+    }
+
+    @SubscribeEvent
+    fun onBlockPlaced(event: BlockEvent.EntityPlaceEvent) {
+        val pos = event.pos
+        val state = event.placedBlock
+
+        val needUpdating = MissingBlockHolder.placed(pos, state)
+        if (needUpdating) {
+            SchematicRenderManager.updatePlacedBlocks()
+        }
+    }
+
+    @SubscribeEvent
+    fun onBlockBroken(event: BlockEvent.BreakEvent) {
+        val pos = event.pos
+        val state = event.state
+
+        val needUpdating = MissingBlockHolder.removed(pos)
+        if (needUpdating) {
+            SchematicRenderManager.updatePlacedBlocks()
         }
     }
 
