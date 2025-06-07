@@ -30,8 +30,7 @@ public object SchematicRenderManager {
 
     public fun setOffset(vec3: Vec3) {
         offset = vec3
-        MissingBlockHolder.initialize()
-        missingBlockRenderer.initialize()
+        initMissingBlock()
     }
 
     public fun rotate(pos: BlockPos): BlockPos {
@@ -75,8 +74,7 @@ public object SchematicRenderManager {
     public fun setRotation(rot: Float, axis: Vec3) {
         rotate = rot
         rotationAxis = axis
-        MissingBlockHolder.initialize()
-        missingBlockRenderer.initialize()
+        initMissingBlock()
     }
 
     public fun initialize() {
@@ -96,10 +94,26 @@ public object SchematicRenderManager {
         rerender()
     }
 
+    public fun updateInitialPosition() {
+        val playerPos = Minecraft.getInstance().player!!.position()
+        val size = SchematicHolder.schematicSize
+        rotationAxis = Vec3.ZERO
+        offset = Vec3.ZERO
+        rotate = 0f
+        initialDirection = Minecraft.getInstance().player!!.direction
+        initialPosition = when(initialDirection) {
+            Direction.EAST -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z)) // East
+            Direction.SOUTH -> Vec3(floor(playerPos.x - size.x), floor(playerPos.y), floor(playerPos.z)) // South
+            Direction.WEST -> Vec3(floor(playerPos.x - size.x), floor(playerPos.y), floor(playerPos.z - size.z)) // West
+            Direction.NORTH -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z - size.z)) // North
+            else -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z))
+        }
+        initMissingBlock()
+    }
+
     public fun rerender() {
-        MissingBlockHolder.initialize()
         schematicRenderer.initialize()
-        missingBlockRenderer.initialize()
+        initMissingBlock()
     }
 
     public fun render(event: RenderLevelStageEvent) {
@@ -114,5 +128,10 @@ public object SchematicRenderManager {
 
     public fun loadRenderBlocks(schematicFile: String) {
         SchematicFileLoader.loadRenderBlocks(schematicFile)
+    }
+
+    private fun initMissingBlock() {
+        MissingBlockHolder.initialize()
+        missingBlockRenderer.initialize()
     }
 }
