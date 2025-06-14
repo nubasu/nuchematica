@@ -1,13 +1,37 @@
 package com.nubasu.nuchematica.schematic
 
+import com.mojang.logging.LogUtils
 import com.nubasu.nuchematica.common.Vector3
 import com.nubasu.nuchematica.gui.DirectionSetting
+import com.nubasu.nuchematica.gui.RenderSettings
 import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.phys.Vec3
 
 public object SchematicEditor {
+    public fun applyJson(settings: RenderSettings) {
+        if (settings.lastLoadedSchematicFile == "") return
+        LogUtils.getLogger().info("clicked: ${settings.lastLoadedSchematicFile}")
+        SchematicRenderManager.loadRenderBlocks(settings.lastLoadedSchematicFile)
+
+        SchematicRenderManager.initialize()
+        translate(Vector3(
+            settings.offsetX,
+            settings.offsetY,
+            settings.offsetZ
+        ))
+        rotate(settings.rotation)
+        SchematicRenderManager.updateInitialPosition(
+            settings.initialRotation,
+            Vec3(
+                settings.initialPosition.x.toDouble(),
+                settings.initialPosition.y.toDouble(),
+                settings.initialPosition.z.toDouble(),
+            )
+        )
+    }
+
     public fun translate(offset: Vector3) {
         SchematicRenderManager.setOffset(Vec3(offset.x.toDouble(), offset.y.toDouble(), offset.z.toDouble()))
     }
