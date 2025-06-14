@@ -3,6 +3,8 @@ package com.nubasu.nuchematica.gui.screen
 import com.mojang.blaze3d.vertex.PoseStack
 import com.nubasu.nuchematica.common.PlacedBlockMap
 import com.nubasu.nuchematica.gui.RenderSettings
+import com.nubasu.nuchematica.renderer.SchematicRenderManager
+import com.nubasu.nuchematica.utils.BlockToString.getBlockId
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.screens.Screen
@@ -79,11 +81,6 @@ class FilterSettingScreen(
         return getBlockId(block) ?: "unknown"
     }
 
-    private fun getBlockId(block: Block): String? {
-        val name = BLOCKS.getKey(block)?.toString()
-        return name?.split(":")?.last()
-    }
-
     override fun init() {
         buttons.clear()
 
@@ -105,6 +102,11 @@ class FilterSettingScreen(
 
         addRenderableWidget(Button(10, height - 30, 80, 20, TextComponent("Back")) {
             Minecraft.getInstance().setScreen(parent)
+        })
+
+        addRenderableWidget(Button(REPLACE_BUTTON_X, height - 30, 80, 20, TextComponent("Apply")) {
+            SchematicRenderManager.applyFilterBlock()
+            SchematicRenderManager.rerender()
         })
 
         // items

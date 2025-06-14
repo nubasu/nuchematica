@@ -69,7 +69,7 @@ public class MissingBlockRender {
     private fun buildMissingBlockVertexBufferAsync(offset: Vec3) {
         if (isBuilt || isBuilding) return
         isBuilding = true
-        val dummy = SchematicHolder.schematicCache
+        val dummy = SchematicHolder.renderingBlocks
 
         buildExecutor.submit {
             LogUtils.getLogger().info("buildMissingBlockVertexBufferAsync")

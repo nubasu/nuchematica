@@ -14,7 +14,7 @@ object MissingBlockHolder {
         blockPos.clear()
         airPos.clear()
         val mc = Minecraft.getInstance()
-        val dummy = SchematicHolder.schematicCache
+        val dummy = SchematicHolder.renderingBlocks
         val world = mc.level!!
         val offset = SchematicRenderManager.getRenderBase()
 
@@ -39,7 +39,7 @@ object MissingBlockHolder {
 
     fun placed(pos: BlockPos, actualState: BlockState): Boolean {
         var needUpdateInitialize = false
-        val dummy = SchematicHolder.schematicCache
+        val dummy = SchematicHolder.renderingBlocks
         val offset = SchematicRenderManager.getRenderBase()
 
         val schemaPos = BlockPos(
@@ -64,7 +64,7 @@ object MissingBlockHolder {
         var needUpdateInitialize = false
 
         val offset = SchematicRenderManager.getRenderBase()
-        val dummy = SchematicHolder.schematicCache
+        val dummy = SchematicHolder.renderingBlocks
 
         val schemaPos = BlockPos(
             pos.x - offset.x.toInt(),

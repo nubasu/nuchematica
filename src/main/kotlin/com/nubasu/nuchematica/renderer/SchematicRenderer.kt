@@ -47,7 +47,7 @@ class SchematicRenderer {
         buildExecutor.submit {
             LogUtils.getLogger().info("buildVertexBufferAsync")
 
-            val cachedBlocks = SchematicHolder.schematicCache
+            val cachedBlocks = SchematicHolder.renderingBlocks
             val cameraPos = mc.gameRenderer.mainCamera.position
             val blockColors = mc.blockColors
             val poseStack = PoseStack()
@@ -192,7 +192,7 @@ class SchematicRenderer {
         val camPos = event.camera.position
         val poseStack = event.poseStack
         val projection = event.projectionMatrix
-        val cachedBlocks = SchematicHolder.schematicCache
+        val cachedBlocks = SchematicHolder.renderingBlocks
 
         RenderSystem.enableBlend()
         RenderSystem.defaultBlendFunc()
