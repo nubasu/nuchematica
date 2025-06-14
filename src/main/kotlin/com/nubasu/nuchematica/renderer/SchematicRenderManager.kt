@@ -11,10 +11,10 @@ import net.minecraftforge.client.event.RenderLevelStageEvent
 import kotlin.math.floor
 
 public object SchematicRenderManager {
-    public var isRendering: Boolean = true
+    public var isRendering: Boolean = false
     private val schematicRenderer = SchematicRenderer()
     private val missingBlockRenderer = MissingBlockRender()
-    private var initialPosition = Vec3.ZERO
+    public var initialPosition = Vec3.ZERO
     private var offset = Vec3.ZERO
     private var rotate = 0f
     private var rotationAxis = Vec3.ZERO
@@ -91,6 +91,7 @@ public object SchematicRenderManager {
             Direction.NORTH -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z - size.z)) // North
             else -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z))
         }
+        isRendering = true
         rerender()
     }
 
@@ -109,6 +110,12 @@ public object SchematicRenderManager {
             else -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z))
         }
         initMissingBlock()
+    }
+
+    public fun updateInitialPosition(direction: Direction, position: Vec3) {
+        initialDirection = direction
+        initialPosition = position
+        rerender()
     }
 
     public fun rerender() {

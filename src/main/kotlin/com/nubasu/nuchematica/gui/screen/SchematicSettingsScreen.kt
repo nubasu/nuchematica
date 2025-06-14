@@ -35,7 +35,7 @@ public class SchematicSettingsScreen(
         addHeightControl()
         addDisplayFlagToggles()
         addMoveHere()
-//        addPresetControls()
+        addPresetControls()
 
         screenHeight = this.height
         screenWidth = this.width
@@ -235,18 +235,26 @@ public class SchematicSettingsScreen(
 
 
     private fun addPresetControls() {
-        val presets = RenderSettingsIO.listPresets()
-        presets.forEachIndexed { i, name ->
-            addRenderableWidget(Button(10, 360 + i * 25, 100, 20, TextComponent(name)) {
-                RenderSettingsIO.load(name)?.let {
-                    settings.applyFrom(it)
-                    notifySettingsChanged()
-                }
-            })
+        val saveButton = Button(SETTING_SAVE_BUTTON_X, SETTING_SAVE_BUTTON_Y, SETTING_BUTTON_WIDTH, NUMBER_TEXT_HEIGHT, TextComponent( "Save")) {
+            settings.initialPosition = Vector3(
+                SchematicRenderManager.initialPosition.x,
+                SchematicRenderManager.initialPosition.y,
+                SchematicRenderManager.initialPosition.z,
+            )
+            settings.initialRotation = SchematicRenderManager.initialDirection
+            RenderSettingsIO.save(settings, "nuchematica_render_setting")
         }
-        addRenderableWidget(Button(120, 360, 60, 20, TextComponent("Save")) {
-            RenderSettingsIO.save(settings, "custom_preset")
-        })
+        val loadButton = Button(SETTING_LOAD_BUTTON_X, SETTING_LOAD_BUTTON_Y, SETTING_BUTTON_WIDTH, NUMBER_TEXT_HEIGHT, TextComponent( "Load")) {
+            RenderSettingsIO.load("nuchematica_render_setting")?.let {
+                settings.applyFrom(it)
+                SchematicEditor.applyJson(settings)
+                notifySettingsChanged()
+                Minecraft.getInstance().setScreen(this)
+            }
+        }
+        loadButton.message = TextComponent("Load")
+        addRenderableWidget(saveButton)
+        addRenderableWidget(loadButton)
     }
 
     override fun render(poseStack: PoseStack, mouseX: Int, mouseY: Int, partialTicks: Float) {
@@ -259,7 +267,7 @@ public class SchematicSettingsScreen(
         drawText(poseStack, "Rotation: ", ROTATION_HEADER_X, ROTATION_HEADER_Y)
         drawText(poseStack, "Display Height: ", DISPLAY_HEIGHT_HEADER_X, DISPLAY_HEIGHT_HEADER_Y)
         drawText(poseStack, "Display Type: ", DISPLAY_TYPE_HEADER_X, DISPLAY_TYPE_HEADER_Y)
-
+        drawText(poseStack, "Save/Load a Setting: ", SETTING_HEADER_X, SETTING_HEADER_Y)
 
         super.render(poseStack, mouseX, mouseY, partialTicks)
     }
@@ -279,6 +287,8 @@ public class SchematicSettingsScreen(
         private const val NUMBER_TEXT_HEIGHT= 20
 
         private const val FIRST_LINE_BASELINE = 10
+
+        private const val SETTING_BUTTON_WIDTH = 40
 
         private const val ALPHA_HEADER_X = FIRST_LINE_BASELINE
         private const val ALPHA_HEADER_Y = 10
@@ -327,6 +337,14 @@ public class SchematicSettingsScreen(
         private const val DISPLAY_HEIGHT_TEXT_Y = DISPLAY_HEIGHT_MINUS_Y
         private const val DISPLAY_HEIGHT_PLUS_X = DISPLAY_HEIGHT_TEXT_X + NUMBER_TEXT_WIDTH + PADDING
         private const val DISPLAY_HEIGHT_PLUS_Y = DISPLAY_HEIGHT_TEXT_Y
+
+        private var SETTING_HEADER_X = FIRST_LINE_BASELINE
+        private var SETTING_HEADER_Y = DISPLAY_HEIGHT_PLUS_Y + NUMBER_TEXT_HEIGHT + PADDING
+        private var SETTING_SAVE_BUTTON_X = FIRST_LINE_BASELINE
+        private var SETTING_SAVE_BUTTON_Y = SETTING_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
+        private var SETTING_LOAD_BUTTON_X = SETTING_SAVE_BUTTON_X + SETTING_BUTTON_WIDTH + PADDING
+        private var SETTING_LOAD_BUTTON_Y = SETTING_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
+
     }
 
 

@@ -1,12 +1,13 @@
 package com.nubasu.nuchematica.gui
 
-import com.google.gson.GsonBuilder
+import com.mojang.logging.LogUtils
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.io.File
 import net.minecraft.client.Minecraft
 
 object RenderSettingsIO {
-    private val gson = GsonBuilder().setPrettyPrinting().create()
-    private val settingsDir = File(Minecraft.getInstance().gameDirectory, "schematic_settings")
+    private val settingsDir = File(Minecraft.getInstance().gameDirectory, "nuchematica_settings")
 
     init {
         if (!settingsDir.exists()) settingsDir.mkdirs()
@@ -14,13 +15,21 @@ object RenderSettingsIO {
 
     fun save(settings: RenderSettings, name: String) {
         val file = File(settingsDir, "$name.json")
-        file.writeText(gson.toJson(settings))
+        LogUtils.getLogger().info("$settings")
+        val json = Json.encodeToString(settings)
+        LogUtils.getLogger().info("json $json")
+
+        file.writeText(json)
+        LogUtils.getLogger().info("save to $name.json")
     }
 
     fun load(name: String): RenderSettings? {
         val file = File(settingsDir, "$name.json")
         if (!file.exists()) return null
-        return gson.fromJson(file.readText(), RenderSettings::class.java)
+        LogUtils.getLogger().info("load from $name.json")
+        val json = file.readText()
+        LogUtils.getLogger().info("json $json")
+        return Json.decodeFromString<RenderSettings>(json)
     }
 
     fun listPresets(): List<String> {

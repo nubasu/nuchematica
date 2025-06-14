@@ -4,6 +4,7 @@ import com.mojang.brigadier.Command
 import com.mojang.logging.LogUtils
 import com.nubasu.nuchematica.gui.MainGui
 import com.nubasu.nuchematica.keysetting.KeyManager
+import com.nubasu.nuchematica.renderer.ClientBlockInteractHandler
 import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import com.nubasu.nuchematica.renderer.SelectedRegionManager
 import com.nubasu.nuchematica.schematic.MissingBlockHolder
@@ -16,8 +17,8 @@ import net.minecraftforge.client.event.RenderLevelStageEvent
 import net.minecraftforge.client.event.RenderLevelStageEvent.Stage
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.event.RegisterCommandsEvent
+import net.minecraftforge.event.TickEvent
 import net.minecraftforge.event.server.ServerStartingEvent
-import net.minecraftforge.event.world.BlockEvent
 import net.minecraftforge.eventbus.api.SubscribeEvent
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber
@@ -43,6 +44,7 @@ public class Nuchematica {
         MinecraftForge.EVENT_BUS.register(this)
         MinecraftForge.EVENT_BUS.register(KeyManager())
         MinecraftForge.EVENT_BUS.register(MainGui())
+        MinecraftForge.EVENT_BUS.register(ClientBlockInteractHandler())
     }
 
     private fun commonSetup(event: FMLCommonSetupEvent) {
@@ -122,26 +124,45 @@ public class Nuchematica {
     }
 
     @SubscribeEvent
-    fun onBlockPlaced(event: BlockEvent.EntityPlaceEvent) {
-        val pos = event.pos
-        val state = event.placedBlock
+    public fun onClientTick(event: TickEvent.ClientTickEvent ) {
+        if (event.phase != TickEvent.Phase.END) return  // run at end of tick
+        val world = Minecraft.getInstance().level
+        if (world == null) return
 
-        val needUpdating = MissingBlockHolder.placed(pos, state)
-        if (needUpdating) {
-            SchematicRenderManager.updatePlacedBlocks()
+        // Check pending breaks
+        val breakIter = ClientBlockInteractHandler.pendingBreakPositions.iterator()
+        while (breakIter.hasNext()) {
+            val pos = breakIter.next()
+            val currentState = world.getBlockState(pos)
+            if (currentState.isAir) {
+                // The block was broken by the player
+                LOGGER.info("Block broken at $pos, new state: $currentState")
+                val needUpdating = MissingBlockHolder.removed(pos)
+                if (needUpdating) {
+                    SchematicRenderManager.updatePlacedBlocks()
+                }
+                breakIter.remove()
+            }
+            // (Optional: remove after a timeout to avoid stuck entries if not broken)
+        }
+
+        // Check pending placements
+        val placeIter = ClientBlockInteractHandler.pendingPlacePositions.iterator()
+        while (placeIter.hasNext()) {
+            val pos = placeIter.next()
+            val currentState = world.getBlockState(pos)
+            if (!currentState.isAir) {
+                // A block was placed by the player
+                LOGGER.info("Block placed at $pos, new state: $currentState")
+                val needUpdating = MissingBlockHolder.placed(pos, currentState)
+                if (needUpdating) {
+                    SchematicRenderManager.updatePlacedBlocks()
+                }
+                placeIter.remove()
+            }
         }
     }
 
-    @SubscribeEvent
-    fun onBlockBroken(event: BlockEvent.BreakEvent) {
-        val pos = event.pos
-        val state = event.state
-
-        val needUpdating = MissingBlockHolder.removed(pos)
-        if (needUpdating) {
-            SchematicRenderManager.updatePlacedBlocks()
-        }
-    }
 
     public companion object {
         // Define mod id in a common place for everything to reference
