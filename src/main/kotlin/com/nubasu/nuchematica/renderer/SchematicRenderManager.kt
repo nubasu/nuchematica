@@ -1,11 +1,15 @@
 package com.nubasu.nuchematica.renderer
 
+import com.nubasu.nuchematica.common.SchematicCache
+import com.nubasu.nuchematica.gui.RenderSettingHolder
 import com.nubasu.nuchematica.io.SchematicFileLoader
 import com.nubasu.nuchematica.schematic.MissingBlockHolder
 import com.nubasu.nuchematica.schematic.SchematicHolder
+import com.nubasu.nuchematica.utils.BlockToString.getBlockId
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.phys.Vec3
 import net.minecraftforge.client.event.RenderLevelStageEvent
 import kotlin.math.floor
@@ -92,6 +96,7 @@ public object SchematicRenderManager {
             else -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z))
         }
         isRendering = true
+        applyFilterBlock()
         rerender()
     }
 
@@ -140,5 +145,15 @@ public object SchematicRenderManager {
     private fun initMissingBlock() {
         MissingBlockHolder.initialize()
         missingBlockRenderer.initialize()
+    }
+
+    public fun applyFilterBlock() {
+        val filteredBlocks = SchematicHolder.schematicCache.blocks.filter {
+            !RenderSettingHolder.renderSettings.hiddenBlocks.contains(getBlockId(it.value.block))
+        }
+        val filteredEntity = SchematicHolder.schematicCache.blockEntities.filter {
+            !RenderSettingHolder.renderSettings.hiddenBlocks.contains(getBlockId(it.value!!.blockState.block))
+        }
+        SchematicHolder.renderingBlocks = SchematicCache(filteredBlocks, filteredEntity)
     }
 }

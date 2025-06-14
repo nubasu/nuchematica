@@ -3,6 +3,8 @@ package com.nubasu.nuchematica.gui.screen
 import com.mojang.blaze3d.vertex.PoseStack
 import com.nubasu.nuchematica.common.PlacedBlockMap
 import com.nubasu.nuchematica.gui.RenderSettings
+import com.nubasu.nuchematica.renderer.SchematicRenderManager
+import com.nubasu.nuchematica.utils.BlockToString.getBlockId
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.screens.Screen
@@ -65,10 +67,10 @@ class FilterSettingScreen(
         }
     }
     private fun getToggleLabel(block: Block): String {
-        return if (!settings.hiddenBlocks.contains(BLOCKS.getKey(block)?.toString())) {
-            "Visible"
-        } else {
+        return if (settings.hiddenBlocks.contains(getBlockId(block))) {
             "Hidden"
+        } else {
+            "Visible"
         }
     }
 
@@ -77,11 +79,6 @@ class FilterSettingScreen(
             return "Select"
         }
         return getBlockId(block) ?: "unknown"
-    }
-
-    private fun getBlockId(block: Block): String? {
-        val name = BLOCKS.getKey(block)?.toString()
-        return name?.split(":")?.last()
     }
 
     override fun init() {
@@ -107,6 +104,11 @@ class FilterSettingScreen(
             Minecraft.getInstance().setScreen(parent)
         })
 
+        addRenderableWidget(Button(REPLACE_BUTTON_X, height - 30, 80, 20, TextComponent("Apply")) {
+            SchematicRenderManager.applyFilterBlock()
+            SchematicRenderManager.rerender()
+        })
+
         // items
         val visible = blockCounts.entries.toList().drop(scrollOffset).take(visibleRows)
         var y = Y_START + 20
@@ -123,12 +125,12 @@ class FilterSettingScreen(
 
             val toggleButton = Button(VISIBILITY_HEADER_X, y, VISIBILITY_BUTTON_WIDTH, 20, TextComponent(getToggleLabel(block))) {
                 val blockId = getBlockId(block)
-                if (!settings.hiddenBlocks.contains(blockId)) {
-                    settings.visibleBlocks.remove(blockId)
-                    settings.hiddenBlocks.add(blockId!!)
-                } else {
+                if (settings.hiddenBlocks.contains(blockId)) {
                     settings.hiddenBlocks.remove(blockId)
                     settings.visibleBlocks.add(blockId!!)
+                } else {
+                    settings.visibleBlocks.remove(blockId)
+                    settings.hiddenBlocks.add(blockId!!)
                 }
                 Minecraft.getInstance().setScreen(this)
             }

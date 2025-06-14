@@ -16,8 +16,8 @@ import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
 
 public object DummyWorld : BlockAndTintGetter {
-    private val blocks = SchematicHolder.schematicCache.blocks
-    private val blockEntities = SchematicHolder.schematicCache.blockEntities
+    private val blocks = SchematicHolder.renderingBlocks.blocks
+    private val blockEntities = SchematicHolder.renderingBlocks.blockEntities
 
     private val chunkBlockMap: Map<ChunkPos, Map<BlockPos, BlockState>> =
         blocks.entries.groupBy({ ChunkPos(it.key) }, { it.key to it.value })
@@ -28,11 +28,11 @@ public object DummyWorld : BlockAndTintGetter {
             .mapValues { it.value.toMap() }
 
     override fun getBlockState(pos: BlockPos): BlockState {
-        return SchematicHolder.schematicCache.blocks[pos] ?: Blocks.AIR.defaultBlockState()
+        return SchematicHolder.renderingBlocks.blocks[pos] ?: Blocks.AIR.defaultBlockState()
     }
 
     override fun getFluidState(pos: BlockPos): FluidState {
-        return SchematicHolder.schematicCache.blocks[pos]?.fluidState ?: Fluids.EMPTY.defaultFluidState()
+        return SchematicHolder.renderingBlocks.blocks[pos]?.fluidState ?: Fluids.EMPTY.defaultFluidState()
     }
 
     override fun getShade(direction: Direction, shade: Boolean): Float {
@@ -50,7 +50,7 @@ public object DummyWorld : BlockAndTintGetter {
     }
 
     override fun getBlockEntity(pos: BlockPos): BlockEntity? {
-        return SchematicHolder.schematicCache.blockEntities[pos]
+        return SchematicHolder.renderingBlocks.blockEntities[pos]
     }
 
     override fun getBrightness(lightLayer: LightLayer, pos: BlockPos): Int {
