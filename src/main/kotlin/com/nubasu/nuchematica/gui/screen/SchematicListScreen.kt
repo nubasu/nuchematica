@@ -2,6 +2,8 @@ package com.nubasu.nuchematica.gui.screen
 
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.logging.LogUtils
+import com.nubasu.nuchematica.gui.RenderSettingHolder
+import com.nubasu.nuchematica.gui.RenderSettings
 import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.Screen
@@ -75,6 +77,8 @@ public class SchematicListScreen : Screen(TextComponent("Schematics")) {
             LogUtils.getLogger().info("clicked: ${file.name}")
             SchematicRenderManager.loadRenderBlocks(file.name)
             SchematicRenderManager.isRendering = true
+            RenderSettingHolder.renderSettings = RenderSettings()
+            RenderSettingHolder.renderSettings.lastLoadedSchematicFile = file.name
             SchematicRenderManager.initialize()
             onClose()
             return true

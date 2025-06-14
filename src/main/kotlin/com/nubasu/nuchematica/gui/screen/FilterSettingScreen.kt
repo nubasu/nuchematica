@@ -55,6 +55,7 @@ class FilterSettingScreen(
     }
 
     private val buttons = mutableListOf<Button>()
+    private val BLOCKS = ForgeRegistries.BLOCKS
 
     private fun getToggleAllLabel(): String {
         return if (isVisibleAll) {
@@ -64,7 +65,7 @@ class FilterSettingScreen(
         }
     }
     private fun getToggleLabel(block: Block): String {
-        return if (!settings.hiddenBlocks.contains(block)) {
+        return if (!settings.hiddenBlocks.contains(BLOCKS.getKey(block)?.toString())) {
             "Visible"
         } else {
             "Hidden"
@@ -75,8 +76,12 @@ class FilterSettingScreen(
         if (block == null) {
             return "Select"
         }
-        val name = ForgeRegistries.BLOCKS.getKey(block)?.toString() ?: "unknown"
-        return name.split(":").last()
+        return getBlockId(block) ?: "unknown"
+    }
+
+    private fun getBlockId(block: Block): String? {
+        val name = BLOCKS.getKey(block)?.toString()
+        return name?.split(":")?.last()
     }
 
     override fun init() {
@@ -87,11 +92,11 @@ class FilterSettingScreen(
             if (isVisibleAll) {
                 settings.visibleBlocks.clear()
                 settings.hiddenBlocks.clear()
-                settings.visibleBlocks.addAll(blockCounts.keys)
+                settings.visibleBlocks.addAll(blockCounts.keys.mapNotNull { getBlockId(it) })
             } else {
                 settings.visibleBlocks.clear()
                 settings.hiddenBlocks.clear()
-                settings.hiddenBlocks.addAll(blockCounts.keys)
+                settings.hiddenBlocks.addAll(blockCounts.keys.mapNotNull { getBlockId(it) })
             }
             Minecraft.getInstance().setScreen(this)
         }
@@ -107,22 +112,23 @@ class FilterSettingScreen(
         var y = Y_START + 20
 
         visible.forEach { (block, _) ->
-            val replaced = settings.blockReplaceMap[block]
+            val replaced = settings.blockReplaceMap[getBlockId((block))]
 
-            val replaceButton = Button(REPLACE_BUTTON_X, y + 6, REPLACE_BUTTON_WIDTH, 20, TextComponent(getReplaceLabel(replaced))) {
+            val replaceButton = Button(REPLACE_BUTTON_X, y + 6, REPLACE_BUTTON_WIDTH, 20, TextComponent(replaced ?: "unknown")) {
                 Minecraft.getInstance().setScreen(BlockPickerGridScreen(blockPickerLiteral, this) { selected ->
-                    settings.blockReplaceMap[block] = selected
+                    settings.blockReplaceMap[getBlockId(block)!!] = getBlockId(selected)
                 })
             }
             addRenderableWidget(replaceButton)
 
             val toggleButton = Button(VISIBILITY_HEADER_X, y, VISIBILITY_BUTTON_WIDTH, 20, TextComponent(getToggleLabel(block))) {
-                if (!settings.hiddenBlocks.contains(block)) {
-                    settings.visibleBlocks.remove(block)
-                    settings.hiddenBlocks.add(block)
+                val blockId = getBlockId(block)
+                if (!settings.hiddenBlocks.contains(blockId)) {
+                    settings.visibleBlocks.remove(blockId)
+                    settings.hiddenBlocks.add(blockId!!)
                 } else {
-                    settings.hiddenBlocks.remove(block)
-                    settings.visibleBlocks.add(block)
+                    settings.hiddenBlocks.remove(blockId)
+                    settings.visibleBlocks.add(blockId!!)
                 }
                 Minecraft.getInstance().setScreen(this)
             }
