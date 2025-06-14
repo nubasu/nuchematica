@@ -65,10 +65,10 @@ class FilterSettingScreen(
         }
     }
     private fun getToggleLabel(block: Block): String {
-        return if (!settings.hiddenBlocks.contains(BLOCKS.getKey(block)?.toString())) {
-            "Visible"
-        } else {
+        return if (settings.hiddenBlocks.contains(getBlockId(block))) {
             "Hidden"
+        } else {
+            "Visible"
         }
     }
 
@@ -123,12 +123,12 @@ class FilterSettingScreen(
 
             val toggleButton = Button(VISIBILITY_HEADER_X, y, VISIBILITY_BUTTON_WIDTH, 20, TextComponent(getToggleLabel(block))) {
                 val blockId = getBlockId(block)
-                if (!settings.hiddenBlocks.contains(blockId)) {
-                    settings.visibleBlocks.remove(blockId)
-                    settings.hiddenBlocks.add(blockId!!)
-                } else {
+                if (settings.hiddenBlocks.contains(blockId)) {
                     settings.hiddenBlocks.remove(blockId)
                     settings.visibleBlocks.add(blockId!!)
+                } else {
+                    settings.visibleBlocks.remove(blockId)
+                    settings.hiddenBlocks.add(blockId!!)
                 }
                 Minecraft.getInstance().setScreen(this)
             }
