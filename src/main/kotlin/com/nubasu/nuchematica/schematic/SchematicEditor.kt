@@ -1,6 +1,5 @@
 package com.nubasu.nuchematica.schematic
 
-import com.mojang.logging.LogUtils
 import com.nubasu.nuchematica.common.Vector3
 import com.nubasu.nuchematica.gui.DirectionSetting
 import com.nubasu.nuchematica.gui.RenderSettings
@@ -12,8 +11,7 @@ import net.minecraft.world.phys.Vec3
 public object SchematicEditor {
     public fun applyJson(settings: RenderSettings) {
         if (settings.lastLoadedSchematicFile == "") return
-        LogUtils.getLogger().info("clicked: ${settings.lastLoadedSchematicFile}")
-        SchematicRenderManager.loadRenderBlocks(settings.lastLoadedSchematicFile)
+        if (!SchematicRenderManager.loadRenderBlocks(settings.lastLoadedSchematicFile)) return
 
         SchematicRenderManager.initialize()
         translate(Vector3(

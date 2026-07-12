@@ -1,21 +1,20 @@
 package com.nubasu.nuchematica.gui
 
 import com.mojang.blaze3d.systems.RenderSystem
-import com.nubasu.nuchematica.Nuchematica
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Gui
 import net.minecraftforge.client.event.RenderGameOverlayEvent
 import net.minecraftforge.eventbus.api.SubscribeEvent
-import net.minecraftforge.fml.common.Mod
 import java.awt.Color
 
 
-@Mod.EventBusSubscriber(modid = Nuchematica.MODID)
 public class MainGui: Gui(Minecraft.getInstance()) {
     private val mc: Minecraft = Minecraft.getInstance()
 
     @SubscribeEvent
-    public fun onPostRenderGuiOverlayEvent(event: RenderGameOverlayEvent.Post) { // 画面が表示されたとき
+    public fun onPostRenderGuiOverlayEvent(event: RenderGameOverlayEvent.Post) {
+        // Post fires once per element type; draw only once per frame.
+        if (event.type != RenderGameOverlayEvent.ElementType.ALL) return
         if (mc.player == null) return
         RenderSystem.setShaderColor(
             1f,

@@ -41,8 +41,8 @@ public object WorldEditSchematicReader: SchematicReader {
             blockIds = root.getByteArray("Blocks"),
             blockData = root.getByteArray("Data"),
             addBlocks = root.getByteArray("AddBlocks"), // unsupported in this mod
-            tileEntities = (root.value["TileEntities"] as ListTag).value,
-            entities = (root.value["TileEntities"] as ListTag).value
+            tileEntities = (root.value["TileEntities"] as? ListTag)?.value ?: emptyList(),
+            entities = (root.value["Entities"] as? ListTag)?.value ?: emptyList()
         )
 
         val clipboard = Clipboard()
@@ -72,7 +72,12 @@ public object WorldEditSchematicReader: SchematicReader {
                     }
                     val blockLocation = ResourceLocation(blockId)
 
-                    var blockState = ForgeRegistries.BLOCKS.getValue(blockLocation)!!.defaultBlockState()
+                    val block = ForgeRegistries.BLOCKS.getValue(blockLocation)
+                    if (block == null) {
+                        LogUtils.getLogger().warn("unknown block id: $blockId")
+                        continue
+                    }
+                    var blockState = block.defaultBlockState()
                     if (blockState.isAir) {
                         continue
                     }

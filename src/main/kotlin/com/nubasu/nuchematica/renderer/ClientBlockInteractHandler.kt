@@ -3,13 +3,10 @@ package com.nubasu.nuchematica.renderer
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.world.item.BlockItem
-import net.minecraftforge.api.distmarker.Dist
 import net.minecraftforge.event.entity.player.PlayerInteractEvent.LeftClickBlock
 import net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock
 import net.minecraftforge.eventbus.api.SubscribeEvent
-import net.minecraftforge.fml.common.Mod
 
-@Mod.EventBusSubscriber(Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ClientBlockInteractHandler {
     @SubscribeEvent
     public fun onBlockLeftClick(event: LeftClickBlock) {

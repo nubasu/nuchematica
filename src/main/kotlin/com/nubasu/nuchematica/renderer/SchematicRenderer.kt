@@ -2,9 +2,9 @@ package com.nubasu.nuchematica.renderer
 
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.*
-import com.mojang.blaze3d.vertex.VertexBuffer.unbind
 import com.mojang.logging.LogUtils
 import com.mojang.math.Vector3f.YP
+import com.nubasu.nuchematica.gui.RenderSettingHolder
 import com.nubasu.nuchematica.schematic.SchematicHolder
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GameRenderer
@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.LightTexture
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.client.renderer.texture.TextureAtlas
+import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.LightLayer
 import net.minecraft.world.level.block.piston.PistonMovingBlockEntity
@@ -28,99 +29,122 @@ class SchematicRenderer {
     private var solidBuffer: VertexBuffer? = null
     private var translucentBuffer: VertexBuffer? = null
 
+    @Volatile
     private var isBuilt = false
+    @Volatile
     private var isBuilding = false
+    // Incremented on every initialize(); an in-flight build whose generation no longer
+    // matches is discarded instead of uploading stale geometry.
+    @Volatile
+    private var buildGeneration = 0
 
-    private val buildExecutor: ExecutorService = Executors.newSingleThreadExecutor()
-
-    val mc = Minecraft.getInstance()
-
-    fun setRenderPosition(pos: Vec3) {
-        isBuilt = false
+    private val buildExecutor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "nuchematica-schematic-builder").apply { isDaemon = true }
     }
 
     private fun buildVertexBufferAsync() {
         if (isBuilt || isBuilding) return
+        val mc = Minecraft.getInstance()
+        val level = mc.level ?: return
         isBuilding = true
-        val level = mc.level!!
+
+        // Snapshot everything mutable on the main thread; the maps inside SchematicCache
+        // are replaced wholesale (never mutated in place), so holding the reference is safe.
+        val generation = buildGeneration
+        val cachedBlocks = SchematicHolder.renderingBlocks
+        val alpha = RenderSettingHolder.renderSettings.opacity
+        val renderBase = SchematicRenderManager.getRenderBase()
 
         buildExecutor.submit {
-            LogUtils.getLogger().info("buildVertexBufferAsync")
+            try {
+                val blockColors = mc.blockColors
+                val poseStack = PoseStack()
+                val blockRenderer = mc.blockRenderer
+                val randomSource = Random(0)
+                val overlay = OverlayTexture.NO_OVERLAY
 
-            val cachedBlocks = SchematicHolder.renderingBlocks
-            val cameraPos = mc.gameRenderer.mainCamera.position
-            val blockColors = mc.blockColors
-            val poseStack = PoseStack()
+                val solidBuilder = BufferBuilder(262144)
+                val translucentBuilder = BufferBuilder(262144)
 
-            val blockRenderer = mc.blockRenderer
-            val randomSource = Random(0)
-            val overlay = OverlayTexture.NO_OVERLAY
+                solidBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK)
+                translucentBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK)
 
-//            val sortedBlocks = cachedBlocks.blocks.entries.sortedByDescending {
-//                val pos = it.key
-//                val dx = pos.x - cameraPos.x
-//                val dy = pos.y - cameraPos.y
-//                val dz = pos.z - cameraPos.z
-//                dx * dx + dy * dy + dz * dz
-//            }
-//            LogUtils.getLogger().info("${sortedBlocks.size}")
+                for ((pos, blockState) in cachedBlocks.blocks) {
+                    // Sample light at the world position where the block will actually appear.
+                    // If rotation changes later the baked light can lag one rebuild behind,
+                    // which is acceptable for a preview.
+                    val rotated = SchematicRenderManager.rotate(pos)
+                    val worldPos = BlockPos(
+                        rotated.x + renderBase.x.toInt(),
+                        rotated.y + renderBase.y.toInt(),
+                        rotated.z + renderBase.z.toInt()
+                    )
+                    val skyLight = level.getBrightness(LightLayer.SKY, worldPos)
+                    val blockLight = level.getBrightness(LightLayer.BLOCK, worldPos)
+                    val packedLight = LightTexture.pack(skyLight, blockLight)
 
-            val solidBuilder = BufferBuilder(262144)
-            val translucentBuilder = BufferBuilder(262144)
+                    val fluidState = blockState.fluidState
+                    if (!fluidState.isEmpty) {
+                        poseStack.pushPose()
+                        poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+                        val translated = VertexConsumerWithPose(translucentBuilder, pos, poseStack)
 
-            solidBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK)
-            translucentBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK)
+                        blockRenderer.renderLiquid(
+                            pos,
+                            level,
+                            translated,
+                            blockState,
+                            fluidState
+                        )
+                        poseStack.popPose()
+                        continue
+                    }
 
-            val blocks = cachedBlocks.blocks
-            for (block in blocks) {
-                val pos = block.key
-                val blockState = block.value
-
-                val skyLight = level.getBrightness(LightLayer.SKY, pos)
-                val blockLight = level.getBrightness(LightLayer.BLOCK, pos)
-                val packedLight = LightTexture.pack(skyLight, blockLight) // ← 修正ここ
-
-                val fluidState = blockState.fluidState
-                if (!fluidState.isEmpty) {
+                    val model = blockRenderer.blockModelShaper.getBlockModel(blockState)
                     poseStack.pushPose()
                     poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
-                    val translated = VertexConsumerWithPose(translucentBuilder, pos, poseStack)
+                    val pose = poseStack.last()
 
-                    mc.blockRenderer.renderLiquid(
-                        pos,
-                        level,
-                        translated,
-                        blockState,
-                        fluidState
-                    )
-                    poseStack.popPose()
-                    continue
-                }
+                    val renderType = ItemBlockRenderTypes.getRenderType(blockState, false)
+                    val buffer = when (renderType) {
+                        RenderType.translucent(), RenderType.cutout() -> translucentBuilder
+                        else -> solidBuilder
+                    }
 
-                val model = blockRenderer.blockModelShaper.getBlockModel(blockState)
-                poseStack.pushPose()
-                poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
-                val pose = poseStack.last()
+                    for (direction in Direction.values()) {
+                        val neighborPos = pos.relative(direction)
+                        val neighborIsSolid =
+                            cachedBlocks.blocks[neighborPos]?.isSolidRender(level, neighborPos) ?: false
+                        if (cachedBlocks.blocks.containsKey(neighborPos) && neighborIsSolid) continue
 
-//                val renderType = RenderTypeHelper.getFallbackItemRenderType(blockState.block.asItem().defaultInstance, model, false)
-                val renderType = ItemBlockRenderTypes.getRenderType(blockState, false)
-                val buffer = when (renderType) {
-                    RenderType.translucent(), RenderType.cutout() -> translucentBuilder // , RenderType.cutoutMipped()
-                    else -> solidBuilder
-                }
+                        val quads = model.getQuads(blockState, direction, randomSource, EmptyModelData.INSTANCE)
+                        for (quad in quads) {
+                            val tintIndex = quad.tintIndex
+                            val color = if (quad.isTinted && tintIndex >= 0) {
+                                blockColors.getColor(blockState, level, pos, tintIndex)
+                            } else -1
 
-                for (direction in Direction.values()) {
-                    val neighborPos = pos.relative(direction)
-                    val neighborIsSolid =
-                        cachedBlocks.blocks[neighborPos]?.isSolidRender(level, neighborPos) ?: false
-                    if (cachedBlocks.blocks.containsKey(neighborPos) && neighborIsSolid) continue
+                            val (r, g, b) = if (color != -1) {
+                                Triple(
+                                    (color shr 16 and 0xFF) / 255.0f,
+                                    (color shr 8 and 0xFF) / 255.0f,
+                                    (color and 0xFF) / 255.0f
+                                )
+                            } else {
+                                Triple(1f, 1f, 1f)
+                            }
 
-                    val quads = model.getQuads(blockState, direction, randomSource, EmptyModelData.INSTANCE)
-                    for (quad in quads) {
+                            buffer.putBulkData(pose, quad, r, g, b, alpha, packedLight, overlay, true)
+                        }
+                    }
+                    val nonSolidQuads = model.getQuads(blockState, null, randomSource, EmptyModelData.INSTANCE)
+                    for (quad in nonSolidQuads) {
                         val tintIndex = quad.tintIndex
                         val color = if (quad.isTinted && tintIndex >= 0) {
                             blockColors.getColor(blockState, level, pos, tintIndex)
-                        } else -1
+                        } else {
+                            -1
+                        }
 
                         val (r, g, b) = if (color != -1) {
                             Triple(
@@ -132,52 +156,46 @@ class SchematicRenderer {
                             Triple(1f, 1f, 1f)
                         }
 
-                        buffer.putBulkData(pose, quad, r, g, b, 0.5f, packedLight, overlay, true)
-                    }
-                }
-                val nonSolidQuads = model.getQuads(blockState, null, randomSource, EmptyModelData.INSTANCE)
-                for (quad in nonSolidQuads) {
-                    val tintIndex = quad.tintIndex
-                    val color = if (quad.isTinted && tintIndex >= 0) {
-                        blockColors.getColor(blockState, level, pos, tintIndex)
-                    } else {
-                        -1
+                        buffer.putBulkData(pose, quad, r, g, b, alpha, packedLight, overlay, true)
                     }
 
-                    val (r, g, b) = if (color != -1) {
-                        Triple(
-                            (color shr 16 and 0xFF) / 255.0f,
-                            (color shr 8 and 0xFF) / 255.0f,
-                            (color and 0xFF) / 255.0f
-                        )
-                    } else {
-                        Triple(1f, 1f, 1f)
+                    poseStack.popPose()
+                }
+
+                solidBuilder.end()
+                translucentBuilder.end()
+
+                mc.execute {
+                    // finally guarantees isBuilding is released even if the upload throws.
+                    try {
+                        if (generation != buildGeneration) {
+                            // A newer initialize() superseded this build; drop it and let
+                            // the next frame rebuild from current data.
+                            return@execute
+                        }
+                        solidBuffer?.close()
+                        translucentBuffer?.close()
+
+                        solidBuffer = VertexBuffer().apply {
+                            bind()
+                            upload(solidBuilder)
+                            VertexBuffer.unbind()
+                        }
+                        translucentBuffer = VertexBuffer().apply {
+                            bind()
+                            upload(translucentBuilder)
+                            VertexBuffer.unbind()
+                        }
+
+                        isBuilt = true
+                    } finally {
+                        isBuilding = false
                     }
-
-                    buffer.putBulkData(pose, quad, r, g, b, 0.5f, packedLight, overlay, true)
                 }
-
-                poseStack.popPose()
-            }
-
-            solidBuilder.end()
-            translucentBuilder.end()
-
-            Minecraft.getInstance().execute {
-                solidBuffer?.close()
-                translucentBuffer?.close()
-
-                solidBuffer = VertexBuffer().apply {
-                    bind()
-                    upload(solidBuilder)
-                    unbind()
-                }
-                translucentBuffer = VertexBuffer().apply {
-                    bind()
-                    upload(translucentBuilder)
-                    unbind()
-                }
-
+            } catch (e: Exception) {
+                LogUtils.getLogger().error("failed to build schematic vertex buffers", e)
+                // Mark as built so the render loop does not retry (and log-spam) every
+                // frame; the next initialize() resets the state and tries again.
                 isBuilt = true
                 isBuilding = false
             }
@@ -197,7 +215,7 @@ class SchematicRenderer {
         RenderSystem.enableBlend()
         RenderSystem.defaultBlendFunc()
         RenderSystem.enablePolygonOffset()
-        RenderSystem.polygonOffset(0.5f, 5f) // 手前にずらす
+        RenderSystem.polygonOffset(0.5f, 5f)
         RenderSystem.setShader { GameRenderer.getRendertypeTranslucentShader() }
         RenderSystem.setShaderTexture(0, TextureAtlas.LOCATION_BLOCKS)
         mc.gameRenderer.lightTexture().turnOnLightLayer()
@@ -223,13 +241,11 @@ class SchematicRenderer {
             VertexBuffer.unbind()
         }
 
-        val dispatcher = Minecraft.getInstance().blockEntityRenderDispatcher
-        val bufferSource = Minecraft.getInstance().renderBuffers().bufferSource()
+        val dispatcher = mc.blockEntityRenderDispatcher
+        val bufferSource = mc.renderBuffers().bufferSource()
 
         for ((pos, blockEntity) in cachedBlocks.blockEntities) {
-            if (blockEntity == null) continue
-            val render = dispatcher.getRenderer(blockEntity)
-            if (render == null) continue
+            val render = dispatcher.getRenderer(blockEntity) ?: continue
             if (blockEntity is PistonMovingBlockEntity) {
                 continue
             }
@@ -249,10 +265,13 @@ class SchematicRenderer {
     }
 
     fun initialize() {
+        buildGeneration++
         isBuilt = false
         Minecraft.getInstance().execute {
             solidBuffer?.close()
+            solidBuffer = null
             translucentBuffer?.close()
+            translucentBuffer = null
         }
     }
 }

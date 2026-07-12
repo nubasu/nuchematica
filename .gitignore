@@ -40,3 +40,8 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Claude Code (pseudo-fable) ###
+.claude/state/
+
+internal_doc/

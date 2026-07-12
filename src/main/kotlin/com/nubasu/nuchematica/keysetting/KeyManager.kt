@@ -1,30 +1,24 @@
 package com.nubasu.nuchematica.keysetting
 
 import com.mojang.blaze3d.platform.InputConstants
-import com.nubasu.nuchematica.Nuchematica
+import com.mojang.logging.LogUtils
 import com.nubasu.nuchematica.gui.RenderSettingHolder
-import com.nubasu.nuchematica.gui.RenderSettings
 import com.nubasu.nuchematica.gui.screen.SchematicListScreen
 import com.nubasu.nuchematica.gui.screen.SchematicSettingsScreen
-import com.nubasu.nuchematica.io.NbtReader
 import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import com.nubasu.nuchematica.renderer.SelectedRegionManager
+import com.nubasu.nuchematica.schematic.reader.SchematicFormatDetector
 import com.nubasu.nuchematica.schematic.reader.SpongeSchematicV3Reader
 import com.nubasu.nuchematica.utils.ChatSender
-import it.unimi.dsi.fastutil.io.FastBufferedInputStream
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import net.minecraftforge.client.ClientRegistry
 import net.minecraftforge.client.event.InputEvent
 import net.minecraftforge.client.settings.KeyConflictContext
 import net.minecraftforge.eventbus.api.SubscribeEvent
-import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
-import java.io.DataInputStream
-import java.io.FileInputStream
-import java.util.zip.GZIPInputStream
+import java.io.File
 
-@Mod.EventBusSubscriber(modid = Nuchematica.MODID)
 public class KeyManager {
     private val settingKey: KeyMapping = KeyMapping(
         "key.nuchematica.setting",
@@ -74,7 +68,7 @@ public class KeyManager {
         "key.nuchematica.category"
     )
 
-    @SubscribeEvent
+    // Registered on the MOD event bus from the Nuchematica constructor.
     public fun keyRegister(event: FMLClientSetupEvent) {
         ClientRegistry.registerKeyBinding(settingKey)
         ClientRegistry.registerKeyBinding(pos1Key)
@@ -90,28 +84,37 @@ public class KeyManager {
             Minecraft.getInstance().setScreen(SchematicSettingsScreen(RenderSettingHolder.renderSettings))
         }
         if (pos1Key.consumeClick()) {
-            val pos = Minecraft.getInstance().player?.position()!!
-            ChatSender.send("pos1: ${pos.x.toInt()}, ${pos.y.toInt()}, ${pos.z.toInt()}")
-            SelectedRegionManager.setFirstPosition(pos)
+            Minecraft.getInstance().player?.position()?.let { pos ->
+                ChatSender.send("pos1: ${pos.x.toInt()}, ${pos.y.toInt()}, ${pos.z.toInt()}")
+                SelectedRegionManager.setFirstPosition(pos)
+            }
         }
         if (pos2Key.consumeClick()) {
-            ChatSender.send(Minecraft.getInstance().gameDirectory.absolutePath)
-            val pos = Minecraft.getInstance().player?.position()!!
-            ChatSender.send("pos2: ${pos.x.toInt()}, ${pos.y.toInt()}, ${pos.z.toInt()}")
-            SelectedRegionManager.setSecondPosition(pos)
+            Minecraft.getInstance().player?.position()?.let { pos ->
+                ChatSender.send("pos2: ${pos.x.toInt()}, ${pos.y.toInt()}, ${pos.z.toInt()}")
+                SelectedRegionManager.setSecondPosition(pos)
+            }
         }
         if (saveKey.consumeClick()) {
-            val shemDir = Minecraft.getInstance().gameDirectory.absolutePath + "/schematics"
-            val inputStream = DataInputStream(FastBufferedInputStream(GZIPInputStream(FileInputStream("$shemDir/v3_sign.schem"))))
-            val compoundTag = NbtReader(inputStream).readCompoundTag()
-            val clipboard = SpongeSchematicV3Reader.read(compoundTag)
-            SelectedRegionManager.place(clipboard)
+            placeTestSchematic()
         }
         if (shemaKey.consumeClick()) {
             Minecraft.getInstance().setScreen(SchematicListScreen())
         }
         if (toggleDisplayKey.consumeClick()) {
             SchematicRenderManager.isRendering = !SchematicRenderManager.isRendering
+        }
+    }
+
+    // Dev helper: places a hardcoded test schematic into the world (single player only).
+    private fun placeTestSchematic() {
+        try {
+            val file = File(Minecraft.getInstance().gameDirectory, "schematics/v3_sign.schem")
+            val clipboard = SpongeSchematicV3Reader.read(SchematicFormatDetector.readRootTag(file))
+            SelectedRegionManager.place(clipboard)
+        } catch (e: Exception) {
+            LogUtils.getLogger().error("failed to place test schematic", e)
+            ChatSender.send("[nuchematica] failed to place test schematic: ${e.message}")
         }
     }
 }

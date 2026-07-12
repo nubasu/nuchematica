@@ -1,6 +1,7 @@
 package com.nubasu.nuchematica.renderer
 
 import com.nubasu.nuchematica.common.SchematicCache
+import com.nubasu.nuchematica.gui.DisplayFlag
 import com.nubasu.nuchematica.gui.RenderSettingHolder
 import com.nubasu.nuchematica.io.SchematicFileLoader
 import com.nubasu.nuchematica.schematic.MissingBlockHolder
@@ -9,7 +10,7 @@ import com.nubasu.nuchematica.utils.BlockToString.getBlockId
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
-import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.phys.Vec3
 import net.minecraftforge.client.event.RenderLevelStageEvent
 import kotlin.math.floor
@@ -82,39 +83,34 @@ public object SchematicRenderManager {
     }
 
     public fun initialize() {
-        val playerPos = Minecraft.getInstance().player!!.position()
-        val size = SchematicHolder.schematicSize
-        rotationAxis = Vec3.ZERO
-        offset = Vec3.ZERO
-        rotate = 0f
-        initialDirection = Minecraft.getInstance().player!!.direction
-        initialPosition = when(initialDirection) {
-            Direction.EAST -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z)) // East
-            Direction.SOUTH -> Vec3(floor(playerPos.x - size.x), floor(playerPos.y), floor(playerPos.z)) // South
-            Direction.WEST -> Vec3(floor(playerPos.x - size.x), floor(playerPos.y), floor(playerPos.z - size.z)) // West
-            Direction.NORTH -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z - size.z)) // North
-            else -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z))
-        }
+        resetTransformToPlayer()
         isRendering = true
         applyFilterBlock()
         rerender()
     }
 
     public fun updateInitialPosition() {
-        val playerPos = Minecraft.getInstance().player!!.position()
+        resetTransformToPlayer()
+        initMissingBlock()
+    }
+
+    // Resets offset/rotation and anchors the render base at the player's position,
+    // shifted by the schematic size depending on the facing direction.
+    private fun resetTransformToPlayer() {
+        val player = Minecraft.getInstance().player ?: return
+        val playerPos = player.position()
         val size = SchematicHolder.schematicSize
         rotationAxis = Vec3.ZERO
         offset = Vec3.ZERO
         rotate = 0f
-        initialDirection = Minecraft.getInstance().player!!.direction
+        initialDirection = player.direction
         initialPosition = when(initialDirection) {
-            Direction.EAST -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z)) // East
-            Direction.SOUTH -> Vec3(floor(playerPos.x - size.x), floor(playerPos.y), floor(playerPos.z)) // South
-            Direction.WEST -> Vec3(floor(playerPos.x - size.x), floor(playerPos.y), floor(playerPos.z - size.z)) // West
-            Direction.NORTH -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z - size.z)) // North
+            Direction.EAST -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z))
+            Direction.SOUTH -> Vec3(floor(playerPos.x - size.x), floor(playerPos.y), floor(playerPos.z))
+            Direction.WEST -> Vec3(floor(playerPos.x - size.x), floor(playerPos.y), floor(playerPos.z - size.z))
+            Direction.NORTH -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z - size.z))
             else -> Vec3(floor(playerPos.x), floor(playerPos.y), floor(playerPos.z))
         }
-        initMissingBlock()
     }
 
     public fun updateInitialPosition(direction: Direction, position: Vec3) {
@@ -138,8 +134,8 @@ public object SchematicRenderManager {
         missingBlockRenderer.initialize()
     }
 
-    public fun loadRenderBlocks(schematicFile: String) {
-        SchematicFileLoader.loadRenderBlocks(schematicFile)
+    public fun loadRenderBlocks(schematicFile: String): Boolean {
+        return SchematicFileLoader.loadRenderBlocks(schematicFile)
     }
 
     private fun initMissingBlock() {
@@ -148,11 +144,23 @@ public object SchematicRenderManager {
     }
 
     public fun applyFilterBlock() {
+        val settings = RenderSettingHolder.renderSettings
+
+        // heightLimit is in schematic-local Y (0 = bottom layer of the schematic).
+        fun isVisible(pos: BlockPos, block: Block): Boolean {
+            if (settings.hiddenBlocks.contains(getBlockId(block))) return false
+            return when (settings.displayFlags) {
+                DisplayFlag.ALL -> true
+                DisplayFlag.UP_TO_HEIGHT -> pos.y <= settings.heightLimit
+                DisplayFlag.ONLY_HEIGHT -> pos.y == settings.heightLimit
+            }
+        }
+
         val filteredBlocks = SchematicHolder.schematicCache.blocks.filter {
-            !RenderSettingHolder.renderSettings.hiddenBlocks.contains(getBlockId(it.value.block))
+            isVisible(it.key, it.value.block)
         }
         val filteredEntity = SchematicHolder.schematicCache.blockEntities.filter {
-            !RenderSettingHolder.renderSettings.hiddenBlocks.contains(getBlockId(it.value!!.blockState.block))
+            isVisible(it.key, it.value.blockState.block)
         }
         SchematicHolder.renderingBlocks = SchematicCache(filteredBlocks, filteredEntity)
     }

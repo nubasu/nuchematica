@@ -46,8 +46,13 @@ public class SchematicSettingsScreen(
         listeners += listener
     }
 
+    // Applies the current settings to the renderer. Rebuilds run asynchronously and are
+    // coalesced by the renderer, so calling this on every input change is fine.
     private fun notifySettingsChanged() {
         listeners.forEach { it() }
+        SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
+        SchematicRenderManager.applyFilterBlock()
+        SchematicRenderManager.rerender()
     }
 
     private fun addSelectSchematicButton() {
@@ -106,13 +111,11 @@ public class SchematicSettingsScreen(
         val plusX = Button(OFFSET_X_PLUS_X, OFFSET_X_PLUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("+")) {
             settings.offsetX += 1
             inputX.value = settings.offsetX.toString()
-            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }
         val minusX = Button(OFFSET_X_MINUS_X, OFFSET_X_MINUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("-")) {
             settings.offsetX -= 1
             inputX.value = settings.offsetX.toString()
-            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }
         addRenderableWidget(inputX)
@@ -132,13 +135,11 @@ public class SchematicSettingsScreen(
         val plusY = Button(OFFSET_Y_PLUS_X, OFFSET_Y_PLUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("+")) {
             settings.offsetY += 1
             inputY.value = settings.offsetY.toString()
-            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }
         val minusY = Button(OFFSET_Y_MINUS_X, OFFSET_Y_MINUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("-")) {
             settings.offsetY -= 1
             inputY.value = settings.offsetY.toString()
-            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }
         addRenderableWidget(inputY)
@@ -158,13 +159,11 @@ public class SchematicSettingsScreen(
         val plusZ = Button(OFFSET_Z_PLUS_X, OFFSET_Z_PLUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("+")) {
             settings.offsetZ += 1
             inputZ.value = settings.offsetZ.toString()
-            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }
         val minusZ = Button(OFFSET_Z_MINUS_X, OFFSET_Z_MINUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("-")) {
             settings.offsetZ -= 1
             inputZ.value = settings.offsetZ.toString()
-            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }
         addRenderableWidget(inputZ)

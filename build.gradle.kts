@@ -1,4 +1,3 @@
-import java.time.LocalDateTime
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
@@ -99,6 +98,10 @@ dependencies {
 
 }
 
+tasks.test {
+    useJUnitPlatform()
+}
+
 val processResources by tasks.getting(Copy::class) {
     // this will ensure that this task is redone when the versions change.
     inputs.property("version", project.version)
@@ -157,7 +160,6 @@ val jar by tasks.getting(Jar::class) {
             "Implementation-Title" to project.name,
             "Implementation-Version" to project.version,
             "Implementation-Vendor" to "nubasu.com",
-            "Implementation-Timestamp" to LocalDateTime.now(),
             "Automatic-Module-Name" to "com.nubasu.nuchematica",
         )
     }

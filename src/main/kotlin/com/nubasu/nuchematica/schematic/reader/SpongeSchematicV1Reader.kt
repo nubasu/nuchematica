@@ -70,7 +70,12 @@ public object SpongeSchematicV1Reader: SchematicReader {
                     }
                     val blockLocation = ResourceLocation(blockId)
 
-                    var blockState = ForgeRegistries.BLOCKS.getValue(blockLocation)!!.defaultBlockState()
+                    val block = ForgeRegistries.BLOCKS.getValue(blockLocation)
+                    if (block == null) {
+                        LogUtils.getLogger().warn("unknown block id: $blockId")
+                        continue
+                    }
+                    var blockState = block.defaultBlockState()
                     if (blockState.isAir) {
                         continue
                     }
