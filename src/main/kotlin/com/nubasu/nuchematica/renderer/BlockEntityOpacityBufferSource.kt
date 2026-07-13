@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.GlStateManager.DestFactor
 import com.mojang.blaze3d.platform.GlStateManager.SourceFactor
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.BufferBuilder
+import com.mojang.blaze3d.vertex.BufferUploader
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
@@ -43,19 +44,23 @@ internal class BlockEntityOpacityBufferSource : MultiBufferSource {
     }
 
     internal fun endBatch() {
-        delegate.endBatch()
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
+        try {
+            delegate.endBatch()
+        } finally {
+            RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
+        }
     }
 
     private fun createOpacityRenderType(parent: RenderType): RenderType {
         val hasVertexColor = parent.format().hasColor()
+        val shouldSortOnUpload = sortOnUpload(parent)
         return object : RenderType(
             "nuchematica_be_opacity[$parent]",
             parent.format(),
             parent.mode(),
             parent.bufferSize(),
             parent.affectsCrumbling(),
-            sortOnUpload(parent),
+            shouldSortOnUpload,
             Runnable {
                 parent.setupRenderState()
                 when (parent) {
@@ -79,10 +84,27 @@ internal class BlockEntityOpacityBufferSource : MultiBufferSource {
                 RenderSystem.setShaderColor(1f, 1f, 1f, if (hasVertexColor) 1f else opacity)
             },
             Runnable {
-                RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
-                parent.clearRenderState()
+                try {
+                    RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
+                } finally {
+                    parent.clearRenderState()
+                }
             },
-        ) {}
+        ) {
+            override fun end(builder: BufferBuilder, x: Int, y: Int, z: Int): Unit {
+                if (!builder.building()) return
+                if (shouldSortOnUpload) {
+                    builder.setQuadSortOrigin(x.toFloat(), y.toFloat(), z.toFloat())
+                }
+                builder.end()
+
+                withRenderStateRestored(
+                    setup = { setupRenderState() },
+                    draw = { BufferUploader.end(builder) },
+                    clear = { clearRenderState() },
+                )
+            }
+        }
     }
 
     // RenderType has no accessor for this private flag in 1.18.2. Forge remaps the SRG field name
@@ -94,5 +116,18 @@ internal class BlockEntityOpacityBufferSource : MultiBufferSource {
 
     private companion object {
         private const val SORT_ON_UPLOAD_FIELD = "f_110393_"
+    }
+}
+
+internal inline fun withRenderStateRestored(
+    setup: () -> Unit,
+    draw: () -> Unit,
+    clear: () -> Unit,
+): Unit {
+    try {
+        setup()
+        draw()
+    } finally {
+        clear()
     }
 }

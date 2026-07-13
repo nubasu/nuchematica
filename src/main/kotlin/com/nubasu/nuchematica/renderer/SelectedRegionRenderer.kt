@@ -25,13 +25,22 @@ public class SelectedRegionRenderer {
         }
 
         poseStack.pushPose()
-        poseStack.translate(-view.x, -view.y, -view.z)
-        NuchematicaRenderTypes.REGION_LINES.setupRenderState()
-        buffer.bind()
-        buffer.drawWithShader(poseStack.last().pose(), projectionMatrix, RenderSystem.getShader())
-        VertexBuffer.unbind()
-        NuchematicaRenderTypes.REGION_LINES.clearRenderState()
-        poseStack.popPose()
+        try {
+            poseStack.translate(-view.x, -view.y, -view.z)
+            try {
+                NuchematicaRenderTypes.REGION_LINES.setupRenderState()
+                try {
+                    buffer.bind()
+                    buffer.drawWithShader(poseStack.last().pose(), projectionMatrix, RenderSystem.getShader())
+                } finally {
+                    VertexBuffer.unbind()
+                }
+            } finally {
+                NuchematicaRenderTypes.REGION_LINES.clearRenderState()
+            }
+        } finally {
+            poseStack.popPose()
+        }
     }
 
     private fun uploadRegion(region: SelectedRegion): VertexBuffer {
@@ -77,13 +86,31 @@ public class SelectedRegionRenderer {
 
         builder.end()
 
-        val buffer = vertexBuffer ?: VertexBuffer().also { vertexBuffer = it }
-        buffer.bind()
-        buffer.upload(builder)
-        VertexBuffer.unbind()
-
+        val buffer = uploadVertexBuffer(builder)
+        val oldBuffer = vertexBuffer
+        vertexBuffer = buffer
         cachedPos1 = pos1.copy()
         cachedPos2 = pos2.copy()
+        oldBuffer?.close()
         return buffer
+    }
+
+    private fun uploadVertexBuffer(builder: BufferBuilder): VertexBuffer {
+        val buffer = VertexBuffer()
+        var uploaded = false
+        try {
+            try {
+                buffer.bind()
+                buffer.upload(builder)
+            } finally {
+                VertexBuffer.unbind()
+            }
+            uploaded = true
+            return buffer
+        } finally {
+            if (!uploaded) {
+                buffer.close()
+            }
+        }
     }
 }

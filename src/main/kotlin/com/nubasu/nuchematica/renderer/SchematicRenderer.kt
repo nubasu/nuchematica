@@ -3,6 +3,7 @@ package com.nubasu.nuchematica.renderer
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.*
 import com.mojang.logging.LogUtils
+import com.mojang.math.Matrix4f
 import com.mojang.math.Vector3f.YP
 import com.nubasu.nuchematica.gui.RenderSettingHolder
 import com.nubasu.nuchematica.schematic.SchematicHolder
@@ -108,43 +109,69 @@ class SchematicRenderer {
                             floatArrayOf(0.15f, 0.35f, 1.0f, 0.85f)
                         }
                         poseStack.pushPose()
-                        poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
-                        val translated = VertexConsumerWithPose(translucentBuilder, pos, poseStack, fluidColor)
+                        try {
+                            poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+                            val translated = VertexConsumerWithPose(translucentBuilder, pos, poseStack, fluidColor)
 
-                        blockRenderer.renderLiquid(
-                            pos,
-                            level,
-                            translated,
-                            blockState,
-                            fluidState
-                        )
-                        poseStack.popPose()
+                            blockRenderer.renderLiquid(
+                                pos,
+                                level,
+                                translated,
+                                blockState,
+                                fluidState
+                            )
+                        } finally {
+                            poseStack.popPose()
+                        }
                         continue
                     }
 
                     val model = blockRenderer.blockModelShaper.getBlockModel(blockState)
                     poseStack.pushPose()
-                    poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
-                    val pose = poseStack.last()
+                    try {
+                        poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+                        val pose = poseStack.last()
 
-                    val renderType = ItemBlockRenderTypes.getRenderType(blockState, false)
-                    val buffer = when (renderType) {
-                        RenderType.translucent(), RenderType.cutout() -> translucentBuilder
-                        else -> solidBuilder
-                    }
+                        val renderType = ItemBlockRenderTypes.getRenderType(blockState, false)
+                        val buffer = when (renderType) {
+                            RenderType.translucent(), RenderType.cutout() -> translucentBuilder
+                            else -> solidBuilder
+                        }
 
-                    for (direction in Direction.values()) {
-                        val neighborPos = pos.relative(direction)
-                        val neighborIsSolid =
-                            cachedBlocks.blocks[neighborPos]?.isSolidRender(level, neighborPos) ?: false
-                        if (cachedBlocks.blocks.containsKey(neighborPos) && neighborIsSolid) continue
+                        for (direction in Direction.values()) {
+                            val neighborPos = pos.relative(direction)
+                            val neighborIsSolid =
+                                cachedBlocks.blocks[neighborPos]?.isSolidRender(level, neighborPos) ?: false
+                            if (cachedBlocks.blocks.containsKey(neighborPos) && neighborIsSolid) continue
 
-                        val quads = model.getQuads(blockState, direction, randomSource, EmptyModelData.INSTANCE)
-                        for (quad in quads) {
+                            val quads = model.getQuads(blockState, direction, randomSource, EmptyModelData.INSTANCE)
+                            for (quad in quads) {
+                                val tintIndex = quad.tintIndex
+                                val color = if (quad.isTinted && tintIndex >= 0) {
+                                    blockColors.getColor(blockState, level, pos, tintIndex)
+                                } else -1
+
+                                val (r, g, b) = if (color != -1) {
+                                    Triple(
+                                        (color shr 16 and 0xFF) / 255.0f,
+                                        (color shr 8 and 0xFF) / 255.0f,
+                                        (color and 0xFF) / 255.0f
+                                    )
+                                } else {
+                                    Triple(1f, 1f, 1f)
+                                }
+
+                                buffer.putBulkData(pose, quad, r, g, b, 1.0f, packedLight, overlay, true)
+                            }
+                        }
+                        val nonSolidQuads = model.getQuads(blockState, null, randomSource, EmptyModelData.INSTANCE)
+                        for (quad in nonSolidQuads) {
                             val tintIndex = quad.tintIndex
                             val color = if (quad.isTinted && tintIndex >= 0) {
                                 blockColors.getColor(blockState, level, pos, tintIndex)
-                            } else -1
+                            } else {
+                                -1
+                            }
 
                             val (r, g, b) = if (color != -1) {
                                 Triple(
@@ -158,30 +185,9 @@ class SchematicRenderer {
 
                             buffer.putBulkData(pose, quad, r, g, b, 1.0f, packedLight, overlay, true)
                         }
+                    } finally {
+                        poseStack.popPose()
                     }
-                    val nonSolidQuads = model.getQuads(blockState, null, randomSource, EmptyModelData.INSTANCE)
-                    for (quad in nonSolidQuads) {
-                        val tintIndex = quad.tintIndex
-                        val color = if (quad.isTinted && tintIndex >= 0) {
-                            blockColors.getColor(blockState, level, pos, tintIndex)
-                        } else {
-                            -1
-                        }
-
-                        val (r, g, b) = if (color != -1) {
-                            Triple(
-                                (color shr 16 and 0xFF) / 255.0f,
-                                (color shr 8 and 0xFF) / 255.0f,
-                                (color and 0xFF) / 255.0f
-                            )
-                        } else {
-                            Triple(1f, 1f, 1f)
-                        }
-
-                        buffer.putBulkData(pose, quad, r, g, b, 1.0f, packedLight, overlay, true)
-                    }
-
-                    poseStack.popPose()
                 }
 
                 solidBuilder.end()
@@ -191,30 +197,40 @@ class SchematicRenderer {
                 translucentBuilder.end()
 
                 mc.execute {
-                    // finally guarantees isBuilding is released even if the upload throws.
+                    var newSolidBuffer: VertexBuffer? = null
+                    var newTranslucentBuffer: VertexBuffer? = null
+                    var swapped = false
                     try {
                         if (generation != buildGeneration) {
                             // A newer initialize() superseded this build; drop it and let
                             // the next frame rebuild from current data.
                             return@execute
                         }
-                        solidBuffer?.close()
-                        translucentBuffer?.close()
 
-                        solidBuffer = VertexBuffer().apply {
-                            bind()
-                            upload(solidBuilder)
-                            VertexBuffer.unbind()
-                        }
-                        translucentBuffer = VertexBuffer().apply {
-                            bind()
-                            upload(translucentBuilder)
-                            VertexBuffer.unbind()
-                        }
+                        newSolidBuffer = uploadVertexBuffer(solidBuilder)
+                        newTranslucentBuffer = uploadVertexBuffer(translucentBuilder)
+
+                        val oldSolidBuffer = solidBuffer
+                        val oldTranslucentBuffer = translucentBuffer
+                        solidBuffer = newSolidBuffer
+                        translucentBuffer = newTranslucentBuffer
+                        newSolidBuffer = null
+                        newTranslucentBuffer = null
 
                         isBuilt = true
+                        swapped = true
+                        closeVertexBuffers(oldSolidBuffer, oldTranslucentBuffer)
+                    } catch (e: Exception) {
+                        LogUtils.getLogger().error("failed to upload schematic vertex buffers", e)
+                        if (!swapped && generation == buildGeneration) {
+                            buildFailed = true
+                        }
                     } finally {
-                        isBuilding = false
+                        try {
+                            closeVertexBuffers(newSolidBuffer, newTranslucentBuffer)
+                        } finally {
+                            isBuilding = false
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -250,82 +266,137 @@ class SchematicRenderer {
         val cachedBlocks = SchematicHolder.renderingBlocks
 
         poseStack.pushPose()
-        poseStack.translate(-camPos.x, -camPos.y, -camPos.z)
-        poseStack.translate(offset.x, offset.y, offset.z)
-
-        poseStack.mulPose(
-            YP.rotationDegrees(rotate),
-        )
-        poseStack.translate(rotateAxis.x, rotateAxis.y, rotateAxis.z)
-
-        solidBuffer?.let {
-            NuchematicaRenderTypes.GHOST_BLOCKS.setupRenderState()
-            // RenderType setup/clear can reset the shader color, so apply opacity after setup.
-            RenderSystem.setShaderColor(1f, 1f, 1f, opacity)
-            it.bind()
-            it.drawWithShader(poseStack.last().pose(), projection, RenderSystem.getShader())
-            VertexBuffer.unbind()
-            NuchematicaRenderTypes.GHOST_BLOCKS.clearRenderState()
-        }
-
-        translucentBuffer?.let {
-            NuchematicaRenderTypes.GHOST_TRANSLUCENT.setupRenderState()
-            RenderSystem.setShaderColor(1f, 1f, 1f, opacity)
-            it.bind()
-            it.drawWithShader(poseStack.last().pose(), projection, RenderSystem.getShader())
-            VertexBuffer.unbind()
-            NuchematicaRenderTypes.GHOST_TRANSLUCENT.clearRenderState()
-        }
-
-        // Reset before block entities render with their own render types.
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
-
-        val dispatcher = mc.blockEntityRenderDispatcher
-        val bufferSource: MultiBufferSource
-        val usesOpacityBuffer = opacity < 1f
-        if (usesOpacityBuffer) {
-            blockEntityOpacityBufferSource.begin(opacity)
-            bufferSource = blockEntityOpacityBufferSource
-        } else {
-            bufferSource = mc.renderBuffers().bufferSource()
-        }
-
-        NuchematicaRenderTypes.setupGhostLayering()
         try {
-            for ((pos, blockEntity) in cachedBlocks.blockEntities) {
-                val render = dispatcher.getRenderer(blockEntity) ?: continue
-                if (blockEntity is PistonMovingBlockEntity) {
-                    continue
-                }
+            poseStack.translate(-camPos.x, -camPos.y, -camPos.z)
+            poseStack.translate(offset.x, offset.y, offset.z)
 
-                blockEntity.setLevel(mc.level)
-                poseStack.pushPose()
-                poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
-                render.render(blockEntity, 0.0f, poseStack, bufferSource, 0x0f000f0, OverlayTexture.NO_OVERLAY)
-                poseStack.popPose()
+            poseStack.mulPose(
+                YP.rotationDegrees(rotate),
+            )
+            poseStack.translate(rotateAxis.x, rotateAxis.y, rotateAxis.z)
+
+            solidBuffer?.let {
+                drawBuffer(it, NuchematicaRenderTypes.GHOST_BLOCKS, poseStack, projection, opacity)
             }
 
+            translucentBuffer?.let {
+                drawBuffer(it, NuchematicaRenderTypes.GHOST_TRANSLUCENT, poseStack, projection, opacity)
+            }
+
+            // Reset before block entities render with their own render types.
+            RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
+
+            val dispatcher = mc.blockEntityRenderDispatcher
+            val bufferSource: MultiBufferSource
+            val usesOpacityBuffer = opacity < 1f
             if (usesOpacityBuffer) {
-                blockEntityOpacityBufferSource.endBatch()
+                blockEntityOpacityBufferSource.begin(opacity)
+                bufferSource = blockEntityOpacityBufferSource
             } else {
-                (bufferSource as MultiBufferSource.BufferSource).endBatch()
+                bufferSource = mc.renderBuffers().bufferSource()
+            }
+
+            try {
+                NuchematicaRenderTypes.setupGhostLayering()
+                try {
+                    for ((pos, blockEntity) in cachedBlocks.blockEntities) {
+                        val render = dispatcher.getRenderer(blockEntity) ?: continue
+                        if (blockEntity is PistonMovingBlockEntity) {
+                            continue
+                        }
+
+                        blockEntity.setLevel(mc.level)
+                        poseStack.pushPose()
+                        try {
+                            poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+                            render.render(
+                                blockEntity,
+                                0.0f,
+                                poseStack,
+                                bufferSource,
+                                0x0f000f0,
+                                OverlayTexture.NO_OVERLAY,
+                            )
+                        } finally {
+                            poseStack.popPose()
+                        }
+                    }
+                } finally {
+                    try {
+                        if (usesOpacityBuffer) {
+                            blockEntityOpacityBufferSource.endBatch()
+                        } else {
+                            (bufferSource as MultiBufferSource.BufferSource).endBatch()
+                        }
+                    } finally {
+                        RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
+                    }
+                }
+            } finally {
+                NuchematicaRenderTypes.clearGhostLayering()
             }
         } finally {
-            NuchematicaRenderTypes.clearGhostLayering()
+            try {
+                RenderSystem.setShaderColor(1f, 1f, 1f, 1f)
+            } finally {
+                poseStack.popPose()
+            }
         }
-        poseStack.popPose()
+    }
+
+    private fun drawBuffer(
+        buffer: VertexBuffer,
+        renderType: RenderType,
+        poseStack: PoseStack,
+        projection: Matrix4f,
+        opacity: Float,
+    ) {
+        try {
+            renderType.setupRenderState()
+            // RenderType setup/clear can reset the shader color, so apply opacity after setup.
+            RenderSystem.setShaderColor(1f, 1f, 1f, opacity)
+            try {
+                buffer.bind()
+                buffer.drawWithShader(poseStack.last().pose(), projection, RenderSystem.getShader())
+            } finally {
+                VertexBuffer.unbind()
+            }
+        } finally {
+            renderType.clearRenderState()
+        }
+    }
+
+    private fun uploadVertexBuffer(builder: BufferBuilder): VertexBuffer {
+        val buffer = VertexBuffer()
+        var uploaded = false
+        try {
+            try {
+                buffer.bind()
+                buffer.upload(builder)
+            } finally {
+                VertexBuffer.unbind()
+            }
+            uploaded = true
+            return buffer
+        } finally {
+            if (!uploaded) {
+                buffer.close()
+            }
+        }
+    }
+
+    private fun closeVertexBuffers(first: VertexBuffer?, second: VertexBuffer?) {
+        try {
+            first?.close()
+        } finally {
+            second?.close()
+        }
     }
 
     fun initialize() {
         buildGeneration++
         isBuilt = false
         buildFailed = false
-        Minecraft.getInstance().execute {
-            solidBuffer?.close()
-            solidBuffer = null
-            translucentBuffer?.close()
-            translucentBuffer = null
-        }
     }
 
     private companion object {

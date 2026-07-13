@@ -34,10 +34,6 @@ public class MissingBlockRender {
     public fun initialize() {
         buildGeneration++
         isBuilt = false
-        Minecraft.getInstance().execute {
-            missingBlockBuffer?.close()
-            missingBlockBuffer = null
-        }
     }
 
     public fun render(offset: Vec3, rotate: Float, rotateAxis: Vec3, event: RenderLevelStageEvent) {
@@ -48,20 +44,29 @@ public class MissingBlockRender {
         val projection = event.projectionMatrix
 
         poseStack.pushPose()
-        poseStack.translate(-camPos.x, -camPos.y, -camPos.z)
-        poseStack.translate(offset.x, offset.y, offset.z)
-        poseStack.mulPose(
-            YP.rotationDegrees(rotate),
-        )
-        poseStack.translate(rotateAxis.x, rotateAxis.y, rotateAxis.z)
-        missingBlockBuffer?.let {
-            NuchematicaRenderTypes.MISSING_OVERLAY.setupRenderState()
-            it.bind()
-            it.drawWithShader(poseStack.last().pose(), projection, RenderSystem.getShader())
-            VertexBuffer.unbind()
-            NuchematicaRenderTypes.MISSING_OVERLAY.clearRenderState()
+        try {
+            poseStack.translate(-camPos.x, -camPos.y, -camPos.z)
+            poseStack.translate(offset.x, offset.y, offset.z)
+            poseStack.mulPose(
+                YP.rotationDegrees(rotate),
+            )
+            poseStack.translate(rotateAxis.x, rotateAxis.y, rotateAxis.z)
+            missingBlockBuffer?.let {
+                try {
+                    NuchematicaRenderTypes.MISSING_OVERLAY.setupRenderState()
+                    try {
+                        it.bind()
+                        it.drawWithShader(poseStack.last().pose(), projection, RenderSystem.getShader())
+                    } finally {
+                        VertexBuffer.unbind()
+                    }
+                } finally {
+                    NuchematicaRenderTypes.MISSING_OVERLAY.clearRenderState()
+                }
+            }
+        } finally {
+            poseStack.popPose()
         }
-        poseStack.popPose()
     }
 
     private fun buildMissingBlockVertexBufferAsync() {
@@ -90,23 +95,34 @@ public class MissingBlockRender {
                 missingBlockBuilder.end()
 
                 mc.execute {
-                    // finally guarantees isBuilding is released even if the upload throws.
+                    var newBuffer: VertexBuffer? = null
+                    var swapped = false
                     try {
                         if (generation != buildGeneration) {
                             // A newer initialize() superseded this build; drop it and let
                             // the next frame rebuild from current data.
                             return@execute
                         }
-                        missingBlockBuffer?.close()
 
-                        missingBlockBuffer = VertexBuffer().apply {
-                            bind()
-                            upload(missingBlockBuilder)
-                            VertexBuffer.unbind()
-                        }
+                        newBuffer = uploadVertexBuffer(missingBlockBuilder)
+                        val oldBuffer = missingBlockBuffer
+                        missingBlockBuffer = newBuffer
+                        newBuffer = null
                         isBuilt = true
+                        swapped = true
+                        oldBuffer?.close()
+                    } catch (e: Exception) {
+                        LogUtils.getLogger().error("failed to upload missing-block vertex buffer", e)
+                        if (!swapped && generation == buildGeneration) {
+                            // Keep an existing buffer drawable and avoid retrying every frame.
+                            isBuilt = true
+                        }
                     } finally {
-                        isBuilding = false
+                        try {
+                            newBuffer?.close()
+                        } finally {
+                            isBuilding = false
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -137,15 +153,37 @@ public class MissingBlockRender {
             if (visibleFaces.isEmpty()) return@forEach
 
             poseStack.pushPose()
-            poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
-            BaseRender.drawVisibleFacesCubeWithBuffer(
-                builder,
-                poseStack,
-                Vec3(0.0, 0.0, 0.0),
-                color,
-                visibleFaces
-            )
-            poseStack.popPose()
+            try {
+                poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+                BaseRender.drawVisibleFacesCubeWithBuffer(
+                    builder,
+                    poseStack,
+                    Vec3(0.0, 0.0, 0.0),
+                    color,
+                    visibleFaces
+                )
+            } finally {
+                poseStack.popPose()
+            }
+        }
+    }
+
+    private fun uploadVertexBuffer(builder: BufferBuilder): VertexBuffer {
+        val buffer = VertexBuffer()
+        var uploaded = false
+        try {
+            try {
+                buffer.bind()
+                buffer.upload(builder)
+            } finally {
+                VertexBuffer.unbind()
+            }
+            uploaded = true
+            return buffer
+        } finally {
+            if (!uploaded) {
+                buffer.close()
+            }
         }
     }
 }
