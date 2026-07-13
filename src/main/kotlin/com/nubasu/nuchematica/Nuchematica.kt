@@ -86,6 +86,8 @@ public class Nuchematica {
         val world = Minecraft.getInstance().level
         if (world == null) return
 
+        SchematicRenderManager.tickPendingSettings()
+
         // Check pending breaks
         val breakIter = ClientBlockInteractHandler.pendingBreakPositions.iterator()
         while (breakIter.hasNext()) {

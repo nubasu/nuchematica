@@ -36,6 +36,8 @@ class SchematicRenderer {
     private var isBuilt = false
     @Volatile
     private var isBuilding = false
+    @Volatile
+    private var buildFailed = false
     // Incremented on every initialize(); an in-flight build whose generation no longer
     // matches is discarded instead of uploading stale geometry.
     @Volatile
@@ -47,7 +49,7 @@ class SchematicRenderer {
     }
 
     private fun buildVertexBufferAsync(renderBase: Vec3, rotateDeg: Float, rotateAxis: Vec3, camPos: Vec3) {
-        if (isBuilt || isBuilding) return
+        if (isBuilt || isBuilding || buildFailed) return
         val mc = Minecraft.getInstance()
         val level = mc.level ?: return
         isBuilding = true
@@ -217,29 +219,30 @@ class SchematicRenderer {
                 }
             } catch (e: Exception) {
                 LogUtils.getLogger().error("failed to build schematic vertex buffers", e)
-                // Mark as built so the render loop does not retry (and log-spam) every
-                // frame; the next initialize() resets the state and tries again.
-                isBuilt = true
+                // A deterministic model failure must not retry on every camera-distance rebuild.
+                // Keep this separate from isBuilt so block entities can still render without VBOs.
+                if (generation == buildGeneration) {
+                    buildFailed = true
+                }
                 isBuilding = false
             }
         }
     }
 
     fun render(offset: Vec3, rotate: Float, rotateAxis: Vec3, event: RenderLevelStageEvent) {
-        val camPos = event.camera.position
-
-        // Translucency sorting is baked at build time; rebuild when the camera has moved
-        // far enough for the sort order to go stale. Old buffers keep drawing meanwhile.
-        if (isBuilt && camPos.distanceToSqr(lastBuildCameraPos) > RESORT_DISTANCE_SQ) {
-            isBuilt = false
-        }
-        if (!isBuilt) buildVertexBufferAsync(offset, rotate, rotateAxis, camPos)
-        if (solidBuffer == null && translucentBuffer == null) return
-
         val opacity = RenderSettingHolder.renderSettings.opacity
         // Opacity zero hides all schematic content without leaving invisible depth writes.
         // Selection and missing/wrong overlays are separate renderers and remain visible.
         if (opacity <= 0f) return
+
+        val camPos = event.camera.position
+
+        // Translucency sorting is baked at build time; rebuild when the camera has moved
+        // far enough for the sort order to go stale. Old buffers keep drawing meanwhile.
+        if (isBuilt && !buildFailed && camPos.distanceToSqr(lastBuildCameraPos) > RESORT_DISTANCE_SQ) {
+            isBuilt = false
+        }
+        if (!isBuilt && !buildFailed) buildVertexBufferAsync(offset, rotate, rotateAxis, camPos)
 
         val mc = Minecraft.getInstance()
         val poseStack = event.poseStack
@@ -287,23 +290,28 @@ class SchematicRenderer {
             bufferSource = mc.renderBuffers().bufferSource()
         }
 
-        for ((pos, blockEntity) in cachedBlocks.blockEntities) {
-            val render = dispatcher.getRenderer(blockEntity) ?: continue
-            if (blockEntity is PistonMovingBlockEntity) {
-                continue
+        NuchematicaRenderTypes.setupGhostLayering()
+        try {
+            for ((pos, blockEntity) in cachedBlocks.blockEntities) {
+                val render = dispatcher.getRenderer(blockEntity) ?: continue
+                if (blockEntity is PistonMovingBlockEntity) {
+                    continue
+                }
+
+                blockEntity.setLevel(mc.level)
+                poseStack.pushPose()
+                poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+                render.render(blockEntity, 0.0f, poseStack, bufferSource, 0x0f000f0, OverlayTexture.NO_OVERLAY)
+                poseStack.popPose()
             }
 
-            blockEntity.setLevel(mc.level)
-            poseStack.pushPose()
-            poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
-            render.render(blockEntity, 0.0f, poseStack, bufferSource, 0x0f000f0, OverlayTexture.NO_OVERLAY)
-            poseStack.popPose()
-        }
-
-        if (usesOpacityBuffer) {
-            blockEntityOpacityBufferSource.endBatch()
-        } else {
-            (bufferSource as MultiBufferSource.BufferSource).endBatch()
+            if (usesOpacityBuffer) {
+                blockEntityOpacityBufferSource.endBatch()
+            } else {
+                (bufferSource as MultiBufferSource.BufferSource).endBatch()
+            }
+        } finally {
+            NuchematicaRenderTypes.clearGhostLayering()
         }
         poseStack.popPose()
     }
@@ -311,6 +319,7 @@ class SchematicRenderer {
     fun initialize() {
         buildGeneration++
         isBuilt = false
+        buildFailed = false
         Minecraft.getInstance().execute {
             solidBuffer?.close()
             solidBuffer = null

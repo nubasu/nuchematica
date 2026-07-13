@@ -24,6 +24,8 @@ public object SchematicRenderManager {
     private var rotate = 0f
     private var rotationAxis = Vec3.ZERO
     public var initialDirection: Direction = Direction.NORTH
+    private var settingsApplyPending = false
+    private var ticksSinceSettingsChange = 0
 
     public fun getRenderBase(): Vec3 {
         return Vec3(
@@ -84,6 +86,7 @@ public object SchematicRenderManager {
     }
 
     public fun initialize() {
+        settingsApplyPending = false
         resetTransformToPlayer()
         isRendering = true
         applyFilterBlock()
@@ -92,7 +95,29 @@ public object SchematicRenderManager {
 
     public fun updateInitialPosition() {
         resetTransformToPlayer()
-        initMissingBlock()
+        rerender()
+    }
+
+    internal fun scheduleSettingsApply(): Unit {
+        settingsApplyPending = true
+        ticksSinceSettingsChange = 0
+    }
+
+    internal fun tickPendingSettings(): Unit {
+        if (!settingsApplyPending) return
+        if (++ticksSinceSettingsChange >= SETTINGS_APPLY_DELAY_TICKS) {
+            flushPendingSettings()
+        }
+    }
+
+    internal fun flushPendingSettings(): Unit {
+        if (!settingsApplyPending) return
+        settingsApplyPending = false
+
+        val settings = RenderSettingHolder.renderSettings
+        setOffset(Vec3(settings.offsetX.toDouble(), settings.offsetY.toDouble(), settings.offsetZ.toDouble()))
+        applyFilterBlock()
+        rerender()
     }
 
     // Resets offset/rotation and anchors the render base at the player's position,
@@ -165,4 +190,6 @@ public object SchematicRenderManager {
         }
         SchematicHolder.renderingBlocks = SchematicCache(filteredBlocks, filteredEntity)
     }
+
+    private const val SETTINGS_APPLY_DELAY_TICKS = 4
 }

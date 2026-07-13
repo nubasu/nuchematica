@@ -41,6 +41,10 @@ public object NuchematicaRenderTypes : RenderType(
         },
     )
 
+    internal fun setupGhostLayering(): Unit = ghostLayering.setupRenderState()
+
+    internal fun clearGhostLayering(): Unit = ghostLayering.clearRenderState()
+
     // A5 adopted pair matches the output target already active during AFTER_PARTICLES.
     private val schematicOutput: RenderStateShard.OutputStateShard = PARTICLES_TARGET
 

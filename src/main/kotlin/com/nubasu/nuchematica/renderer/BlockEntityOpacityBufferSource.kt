@@ -7,6 +7,7 @@ import com.mojang.blaze3d.vertex.BufferBuilder
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
+import net.minecraftforge.fml.util.ObfuscationReflectionHelper
 import java.util.IdentityHashMap
 
 /**
@@ -54,7 +55,7 @@ internal class BlockEntityOpacityBufferSource : MultiBufferSource {
             parent.mode(),
             parent.bufferSize(),
             parent.affectsCrumbling(),
-            false,
+            sortOnUpload(parent),
             Runnable {
                 parent.setupRenderState()
                 when (parent) {
@@ -82,5 +83,16 @@ internal class BlockEntityOpacityBufferSource : MultiBufferSource {
                 parent.clearRenderState()
             },
         ) {}
+    }
+
+    // RenderType has no accessor for this private flag in 1.18.2. Forge remaps the SRG field name
+    // in both development and production, preserving the parent type's upload-time sorting.
+    private fun sortOnUpload(parent: RenderType): Boolean =
+        checkNotNull(
+            ObfuscationReflectionHelper.getPrivateValue(RenderType::class.java, parent, SORT_ON_UPLOAD_FIELD)
+        ) { "missing RenderType.sortOnUpload" }
+
+    private companion object {
+        private const val SORT_ON_UPLOAD_FIELD = "f_110393_"
     }
 }
