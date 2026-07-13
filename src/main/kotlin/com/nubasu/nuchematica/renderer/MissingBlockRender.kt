@@ -9,7 +9,6 @@ import com.nubasu.nuchematica.schematic.MissingBlockHolder
 import com.nubasu.nuchematica.schematic.SchematicHolder
 import com.nubasu.nuchematica.utils.BaseRender
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.GameRenderer
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.phys.Vec3
@@ -48,14 +47,6 @@ public class MissingBlockRender {
         val poseStack = event.poseStack
         val projection = event.projectionMatrix
 
-        RenderSystem.enableBlend()
-        RenderSystem.defaultBlendFunc()
-        RenderSystem.enableDepthTest()
-        RenderSystem.disableCull()
-        RenderSystem.enablePolygonOffset()
-        RenderSystem.polygonOffset(-1f, -10f)
-        RenderSystem.setShader { GameRenderer.getPositionColorShader() }
-
         poseStack.pushPose()
         poseStack.translate(-camPos.x, -camPos.y, -camPos.z)
         poseStack.translate(offset.x, offset.y, offset.z)
@@ -64,16 +55,13 @@ public class MissingBlockRender {
         )
         poseStack.translate(rotateAxis.x, rotateAxis.y, rotateAxis.z)
         missingBlockBuffer?.let {
+            NuchematicaRenderTypes.MISSING_OVERLAY.setupRenderState()
             it.bind()
-            it.drawWithShader(poseStack.last().pose(), projection, GameRenderer.getPositionColorShader())
+            it.drawWithShader(poseStack.last().pose(), projection, RenderSystem.getShader())
             VertexBuffer.unbind()
+            NuchematicaRenderTypes.MISSING_OVERLAY.clearRenderState()
         }
         poseStack.popPose()
-
-        RenderSystem.disablePolygonOffset()
-        RenderSystem.enableCull()
-        RenderSystem.enableDepthTest()
-        RenderSystem.disableBlend()
     }
 
     private fun buildMissingBlockVertexBufferAsync() {

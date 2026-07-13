@@ -23,6 +23,9 @@ public class SchematicSettingsScreen(
     private var screenHeight = 0
     private var screenWidth = 0
 
+    private var settingsDirty = false
+    private var ticksSinceChange = 0
+
     override fun init() {
         initializeGuiSize()
 
@@ -46,13 +49,33 @@ public class SchematicSettingsScreen(
         listeners += listener
     }
 
-    // Applies the current settings to the renderer. Rebuilds run asynchronously and are
-    // coalesced by the renderer, so calling this on every input change is fine.
+    // Debounced: applying settings runs a full missing-block world scan, which is too
+    // heavy to run on every EditBox keystroke. Changes apply a few ticks after the last
+    // input, and immediately when the screen closes.
     private fun notifySettingsChanged() {
         listeners.forEach { it() }
+        settingsDirty = true
+        ticksSinceChange = 0
+    }
+
+    private fun applyPendingSettings() {
+        if (!settingsDirty) return
+        settingsDirty = false
         SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
         SchematicRenderManager.applyFilterBlock()
         SchematicRenderManager.rerender()
+    }
+
+    override fun tick() {
+        super.tick()
+        if (settingsDirty && ++ticksSinceChange >= SETTINGS_APPLY_DELAY_TICKS) {
+            applyPendingSettings()
+        }
+    }
+
+    override fun onClose() {
+        applyPendingSettings()
+        super.onClose()
     }
 
     private fun addSelectSchematicButton() {
@@ -278,6 +301,8 @@ public class SchematicSettingsScreen(
     }
 
     private companion object {
+        private const val SETTINGS_APPLY_DELAY_TICKS = 4
+
         private const val HEADER_TEXT_HEIGHT = 15
         private const val PADDING = 5
         private const val MINI_BUTTON_SIZE = 20

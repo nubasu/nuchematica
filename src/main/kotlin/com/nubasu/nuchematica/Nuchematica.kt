@@ -4,6 +4,7 @@ import com.mojang.brigadier.Command
 import com.nubasu.nuchematica.gui.MainGui
 import com.nubasu.nuchematica.keysetting.KeyManager
 import com.nubasu.nuchematica.renderer.ClientBlockInteractHandler
+import com.nubasu.nuchematica.renderer.NuchematicaShaders
 import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import com.nubasu.nuchematica.renderer.SelectedRegionManager
 import com.nubasu.nuchematica.schematic.MissingBlockHolder
@@ -29,6 +30,7 @@ public class Nuchematica {
         // Key bindings must be registered on the MOD event bus (FMLClientSetupEvent is a
         // mod-bus event and never fires for listeners registered on the Forge bus).
         modEventBus.addListener(keyManager::keyRegister)
+        modEventBus.addListener(NuchematicaShaders::registerShaders)
 
         MinecraftForge.EVENT_BUS.register(this)
         MinecraftForge.EVENT_BUS.register(keyManager)
@@ -70,8 +72,10 @@ public class Nuchematica {
 
     @SubscribeEvent
     public fun onWorldRenderLast(event: RenderLevelStageEvent) {
-        SelectedRegionManager.renderLine(event)
-        if (event.stage == Stage.AFTER_TRANSLUCENT_BLOCKS ) {
+        // A5 adopted pair: draw after particles and target that stage's active output.
+        // RenderLevelStageEvent fires once per stage (~10x per frame); draw only once.
+        if (event.stage == Stage.AFTER_PARTICLES) {
+            SelectedRegionManager.renderLine(event)
             SchematicRenderManager.render(event)
         }
     }

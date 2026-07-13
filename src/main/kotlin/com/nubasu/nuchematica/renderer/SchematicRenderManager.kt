@@ -33,9 +33,10 @@ public object SchematicRenderManager {
         )
     }
 
+    // Missing-block state is NOT refreshed here; every caller path ends in rerender(),
+    // which does it once. Refreshing here too would run the full world scan twice.
     public fun setOffset(vec3: Vec3) {
         offset = vec3
-        initMissingBlock()
     }
 
     public fun rotate(pos: BlockPos): BlockPos {
@@ -76,10 +77,10 @@ public object SchematicRenderManager {
         }
     }
 
+    // See setOffset: rerender() is responsible for the missing-block refresh.
     public fun setRotation(rot: Float, axis: Vec3) {
         rotate = rot
         rotationAxis = axis
-        initMissingBlock()
     }
 
     public fun initialize() {
