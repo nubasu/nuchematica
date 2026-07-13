@@ -33,39 +33,39 @@ public object BaseRender {
 
         if (Direction.DOWN in visibleFaces) {
             vertex(x,     y,     z)
-            vertex(x,     y,     z + 1)
-            vertex(x + 1, y,     z + 1)
             vertex(x + 1, y,     z)
+            vertex(x + 1, y,     z + 1)
+            vertex(x,     y,     z + 1)
         }
         if (Direction.UP in visibleFaces) {
             vertex(x,     y + 1, z)
-            vertex(x + 1, y + 1, z)
-            vertex(x + 1, y + 1, z + 1)
             vertex(x,     y + 1, z + 1)
+            vertex(x + 1, y + 1, z + 1)
+            vertex(x + 1, y + 1, z)
         }
         if (Direction.NORTH in visibleFaces) {
             vertex(x,     y,     z)
-            vertex(x + 1, y,     z)
-            vertex(x + 1, y + 1, z)
             vertex(x,     y + 1, z)
+            vertex(x + 1, y + 1, z)
+            vertex(x + 1, y,     z)
         }
         if (Direction.SOUTH in visibleFaces) {
             vertex(x,     y,     z + 1)
-            vertex(x,     y + 1, z + 1)
-            vertex(x + 1, y + 1, z + 1)
             vertex(x + 1, y,     z + 1)
+            vertex(x + 1, y + 1, z + 1)
+            vertex(x,     y + 1, z + 1)
         }
         if (Direction.WEST in visibleFaces) {
             vertex(x,     y,     z)
-            vertex(x,     y + 1, z)
-            vertex(x,     y + 1, z + 1)
             vertex(x,     y,     z + 1)
+            vertex(x,     y + 1, z + 1)
+            vertex(x,     y + 1, z)
         }
         if (Direction.EAST in visibleFaces) {
             vertex(x + 1, y,     z)
-            vertex(x + 1, y,     z + 1)
-            vertex(x + 1, y + 1, z + 1)
             vertex(x + 1, y + 1, z)
+            vertex(x + 1, y + 1, z + 1)
+            vertex(x + 1, y,     z + 1)
         }
     }
 }

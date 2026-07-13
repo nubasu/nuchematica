@@ -144,12 +144,7 @@ public class MissingBlockRender {
     ) {
         positions.forEach { pos ->
             // Only draw the faces that are not hidden by an adjacent schematic block.
-            val visibleFaces = mutableSetOf<Direction>()
-            for (dir in Direction.values()) {
-                if (!schematicBlocks.containsKey(pos.relative(dir))) {
-                    visibleFaces.add(dir)
-                }
-            }
+            val visibleFaces = selectMissingOverlayFaces(pos, schematicBlocks)
             if (visibleFaces.isEmpty()) return@forEach
 
             poseStack.pushPose()
@@ -186,4 +181,17 @@ public class MissingBlockRender {
             }
         }
     }
+}
+
+internal fun selectMissingOverlayFaces(
+    pos: BlockPos,
+    schematicBlocks: Map<BlockPos, *>,
+): Set<Direction> {
+    val visibleFaces = mutableSetOf<Direction>()
+    for (direction in Direction.values()) {
+        if (!schematicBlocks.containsKey(pos.relative(direction))) {
+            visibleFaces.add(direction)
+        }
+    }
+    return visibleFaces
 }
