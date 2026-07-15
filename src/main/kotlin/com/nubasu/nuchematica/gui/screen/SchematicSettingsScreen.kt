@@ -34,6 +34,7 @@ public class SchematicSettingsScreen(
         addFilterSettingButton()
         addHeightControl()
         addDisplayFlagToggles()
+        addAutomodeToggle()
         addMoveHere()
         addPresetControls()
 
@@ -183,7 +184,6 @@ public class SchematicSettingsScreen(
                 DirectionSetting.CLOCKWISE_270 -> DirectionSetting.CLOCKWISE_0
             }
             Minecraft.getInstance().setScreen(this)
-            SchematicEditor.rotate(settings.rotation)
             notifySettingsChanged()
         }
         rotationButton.message = TextComponent(settings.rotation.name)
@@ -223,6 +223,22 @@ public class SchematicSettingsScreen(
             notifySettingsChanged()
         }
         button.message = TextComponent(settings.displayFlags.name)
+        addRenderableWidget(button)
+    }
+
+    private fun addAutomodeToggle() {
+        val button = Button(
+            AUTOMODE_BUTTON_X,
+            AUTOMODE_BUTTON_Y,
+            NUMBER_TEXT_WIDTH,
+            NUMBER_TEXT_HEIGHT,
+            TextComponent(if (settings.automode) "ON" else "OFF"),
+        ) {
+            settings.automode = !settings.automode
+            Minecraft.getInstance().setScreen(this)
+            notifySettingsChanged()
+        }
+        button.message = TextComponent(if (settings.automode) "ON" else "OFF")
         addRenderableWidget(button)
     }
 
@@ -267,6 +283,7 @@ public class SchematicSettingsScreen(
         drawText(poseStack, "Rotation: ", ROTATION_HEADER_X, ROTATION_HEADER_Y)
         drawText(poseStack, "Display Height: ", DISPLAY_HEIGHT_HEADER_X, DISPLAY_HEIGHT_HEADER_Y)
         drawText(poseStack, "Display Type: ", DISPLAY_TYPE_HEADER_X, DISPLAY_TYPE_HEADER_Y)
+        drawText(poseStack, "Automode: ", AUTOMODE_HEADER_X, AUTOMODE_HEADER_Y)
         drawText(poseStack, "Save/Load a Setting: ", SETTING_HEADER_X, SETTING_HEADER_Y)
 
         super.render(poseStack, mouseX, mouseY, partialTicks)
@@ -369,8 +386,13 @@ public class SchematicSettingsScreen(
     private var DISPLAY_TYPE_BUTTON_X = SECOND_LINE_BASELINE
     private var DISPLAY_TYPE_BUTTON_Y = DISPLAY_TYPE_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
 
+    private var AUTOMODE_HEADER_X = SECOND_LINE_BASELINE
+    private var AUTOMODE_HEADER_Y = DISPLAY_TYPE_BUTTON_Y + BUTTON_HEIGHT + PADDING
+    private var AUTOMODE_BUTTON_X = SECOND_LINE_BASELINE
+    private var AUTOMODE_BUTTON_Y = AUTOMODE_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
+
     private var MOVE_HERE_HEADER_X = SECOND_LINE_BASELINE
-    private var MOVE_HERE_HEADER_Y = DISPLAY_TYPE_BUTTON_Y + BUTTON_HEIGHT + PADDING
+    private var MOVE_HERE_HEADER_Y = AUTOMODE_BUTTON_Y + BUTTON_HEIGHT + PADDING
     private var MOVE_HERE_BUTTON_X = SECOND_LINE_BASELINE
     private var MOVE_HERE_BUTTON_Y = MOVE_HERE_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
 
@@ -392,8 +414,13 @@ public class SchematicSettingsScreen(
         DISPLAY_TYPE_BUTTON_X = SECOND_LINE_BASELINE
         DISPLAY_TYPE_BUTTON_Y = DISPLAY_TYPE_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
 
+        AUTOMODE_HEADER_X = SECOND_LINE_BASELINE
+        AUTOMODE_HEADER_Y = DISPLAY_TYPE_BUTTON_Y + BUTTON_HEIGHT + PADDING
+        AUTOMODE_BUTTON_X = SECOND_LINE_BASELINE
+        AUTOMODE_BUTTON_Y = AUTOMODE_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
+
         MOVE_HERE_HEADER_X = SECOND_LINE_BASELINE
-        MOVE_HERE_HEADER_Y = DISPLAY_TYPE_BUTTON_Y + BUTTON_HEIGHT + PADDING
+        MOVE_HERE_HEADER_Y = AUTOMODE_BUTTON_Y + BUTTON_HEIGHT + PADDING
         MOVE_HERE_BUTTON_X = SECOND_LINE_BASELINE
         MOVE_HERE_BUTTON_Y = MOVE_HERE_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
     }

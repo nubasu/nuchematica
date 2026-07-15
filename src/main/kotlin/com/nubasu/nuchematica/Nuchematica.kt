@@ -10,12 +10,16 @@ import com.nubasu.nuchematica.renderer.SelectedRegionManager
 import com.nubasu.nuchematica.schematic.MissingBlockHolder
 import com.nubasu.nuchematica.utils.ChatSender
 import net.minecraft.client.Minecraft
+import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.commands.Commands
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener
+import net.minecraftforge.client.event.RegisterClientReloadListenersEvent
 import net.minecraftforge.client.event.RenderLevelStageEvent
 import net.minecraftforge.client.event.RenderLevelStageEvent.Stage
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.event.RegisterCommandsEvent
 import net.minecraftforge.event.TickEvent
+import net.minecraftforge.event.world.WorldEvent
 import net.minecraftforge.eventbus.api.SubscribeEvent
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext
@@ -31,6 +35,7 @@ public class Nuchematica {
         // mod-bus event and never fires for listeners registered on the Forge bus).
         modEventBus.addListener(keyManager::keyRegister)
         modEventBus.addListener(NuchematicaShaders::registerShaders)
+        modEventBus.addListener(this::registerClientReloadListeners)
 
         MinecraftForge.EVENT_BUS.register(this)
         MinecraftForge.EVENT_BUS.register(keyManager)
@@ -70,6 +75,24 @@ public class Nuchematica {
         event.dispatcher.register(blocksBuilder)
     }
 
+    public fun registerClientReloadListeners(event: RegisterClientReloadListenersEvent): Unit {
+        event.registerReloadListener(
+            ResourceManagerReloadListener {
+                SchematicRenderManager.resourceReloaded()
+            },
+        )
+    }
+
+    @SubscribeEvent
+    public fun onWorldLoad(event: WorldEvent.Load): Unit {
+        (event.world as? ClientLevel)?.let(SchematicRenderManager::worldLoaded)
+    }
+
+    @SubscribeEvent
+    public fun onWorldUnload(event: WorldEvent.Unload): Unit {
+        (event.world as? ClientLevel)?.let(SchematicRenderManager::worldUnloaded)
+    }
+
     @SubscribeEvent
     public fun onWorldRenderLast(event: RenderLevelStageEvent) {
         // A5 adopted pair: draw after particles and target that stage's active output.
@@ -95,10 +118,7 @@ public class Nuchematica {
             val currentState = world.getBlockState(pos)
             if (currentState.isAir) {
                 // The block was broken by the player
-                val needUpdating = MissingBlockHolder.removed(pos)
-                if (needUpdating) {
-                    SchematicRenderManager.updatePlacedBlocks()
-                }
+                MissingBlockHolder.removed(pos)?.let(SchematicRenderManager::onMissingBlockChange)
                 breakIter.remove()
             }
             // (Optional: remove after a timeout to avoid stuck entries if not broken)
@@ -111,10 +131,8 @@ public class Nuchematica {
             val currentState = world.getBlockState(pos)
             if (!currentState.isAir) {
                 // A block was placed by the player
-                val needUpdating = MissingBlockHolder.placed(pos, currentState)
-                if (needUpdating) {
-                    SchematicRenderManager.updatePlacedBlocks()
-                }
+                MissingBlockHolder.placed(pos, currentState)
+                    ?.let(SchematicRenderManager::onMissingBlockChange)
                 placeIter.remove()
             }
         }

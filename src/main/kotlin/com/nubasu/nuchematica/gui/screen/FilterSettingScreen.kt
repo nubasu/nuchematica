@@ -3,7 +3,6 @@ package com.nubasu.nuchematica.gui.screen
 import com.mojang.blaze3d.vertex.PoseStack
 import com.nubasu.nuchematica.common.PlacedBlockMap
 import com.nubasu.nuchematica.gui.RenderSettings
-import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import com.nubasu.nuchematica.utils.BlockToString.getBlockId
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.Button
@@ -105,8 +104,7 @@ class FilterSettingScreen(
         })
 
         addRenderableWidget(Button(REPLACE_BUTTON_X, height - 30, 80, 20, TextComponent("Apply")) {
-            SchematicRenderManager.applyFilterBlock()
-            SchematicRenderManager.rerender()
+            onSettingsChanged()
         })
 
         // items

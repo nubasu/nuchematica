@@ -45,3 +45,1191 @@ bin/
 .claude/state/
 
 internal_doc/
+/session-summaries/00-1st-survey.md
+/run/config/fml.toml
+/run/config/forge-client.toml
+/run/config/forge-common.toml
+/run/crash-reports/crash-2025-05-06_14.00.05-client.txt
+/run/crash-reports/crash-2025-05-06_14.03.10-client.txt
+/run/crash-reports/crash-2025-05-06_14.04.11-client.txt
+/run/crash-reports/crash-2025-05-06_14.06.00-client.txt
+/run/crash-reports/crash-2025-05-06_14.07.54-client.txt
+/run/crash-reports/crash-2025-05-06_14.08.09-client.txt
+/run/crash-reports/crash-2025-05-06_14.08.51-client.txt
+/run/crash-reports/crash-2025-05-06_14.09.23-client.txt
+/run/crash-reports/crash-2025-05-06_14.14.05-client.txt
+/run/crash-reports/crash-2025-05-17_23.56.00-client.txt
+/run/crash-reports/crash-2025-05-18_01.54.27-client.txt
+/run/crash-reports/crash-2025-05-18_14.39.20-client.txt
+/run/crash-reports/crash-2025-05-18_19.55.22-client.txt
+/run/crash-reports/crash-2025-05-19_00.08.29-fml.txt
+/run/crash-reports/crash-2025-05-19_00.10.10-fml.txt
+/run/crash-reports/crash-2025-05-21_00.39.30-client.txt
+/run/crash-reports/crash-2025-05-21_01.58.54-fml.txt
+/run/crash-reports/crash-2025-05-21_02.01.03-fml.txt
+/run/crash-reports/crash-2025-05-21_21.19.01-client.txt
+/run/crash-reports/crash-2025-05-21_21.35.59-client.txt
+/run/crash-reports/crash-2025-05-21_21.39.34-client.txt
+/run/crash-reports/crash-2025-05-21_23.01.36-client.txt
+/run/crash-reports/crash-2025-05-21_23.10.59-client.txt
+/run/crash-reports/crash-2025-05-21_23.16.07-client.txt
+/run/crash-reports/crash-2025-05-21_23.24.17-fml.txt
+/run/crash-reports/crash-2025-05-21_23.25.07-client.txt
+/run/crash-reports/crash-2025-05-21_23.35.10-client.txt
+/run/crash-reports/crash-2025-05-23_20.48.41-client.txt
+/run/crash-reports/crash-2025-05-23_22.39.14-client.txt
+/run/crash-reports/crash-2025-06-01_18.27.24-client.txt
+/run/crash-reports/crash-2025-06-01_18.36.27-client.txt
+/run/crash-reports/crash-2025-06-01_18.42.57-client.txt
+/run/crash-reports/crash-2025-06-01_23.35.19-client.txt
+/run/crash-reports/crash-2025-06-02_00.01.29-client.txt
+/run/crash-reports/crash-2025-06-03_00.28.16-fml.txt
+/run/crash-reports/crash-2025-06-03_00.31.13-fml.txt
+/run/crash-reports/crash-2025-06-03_00.35.31-client.txt
+/run/crash-reports/crash-2025-06-03_01.50.03-fml.txt
+/run/crash-reports/crash-2025-06-03_01.50.51-fml.txt
+/run/crash-reports/crash-2025-06-03_02.41.38-fml.txt
+/run/crash-reports/crash-2025-06-05_23.56.06-fml.txt
+/run/crash-reports/crash-2025-06-05_23.58.42-fml.txt
+/run/crash-reports/crash-2025-06-06_00.01.29-fml.txt
+/run/crash-reports/crash-2025-06-06_00.03.55-fml.txt
+/run/crash-reports/crash-2025-06-06_00.05.10-fml.txt
+/run/crash-reports/crash-2025-06-06_20.46.11-client.txt
+/run/crash-reports/crash-2025-06-06_21.27.06-client.txt
+/run/crash-reports/crash-2025-06-06_21.31.06-client.txt
+/run/crash-reports/crash-2025-06-07_17.20.46-client.txt
+/run/crash-reports/crash-2025-06-08_15.54.30-client.txt
+/run/crash-reports/crash-2026-07-15_22.21.42-client.txt
+/run/logs/2025-05-06-2.log.gz
+/run/logs/2025-05-06-3.log.gz
+/run/logs/2025-05-06-4.log.gz
+/run/logs/2025-05-06-5.log.gz
+/run/logs/2025-05-06-6.log.gz
+/run/logs/2025-05-06-7.log.gz
+/run/logs/2025-05-06-8.log.gz
+/run/logs/2025-05-06-9.log.gz
+/run/logs/2025-05-06-10.log.gz
+/run/logs/2025-05-06-11.log.gz
+/run/logs/2025-05-06-12.log.gz
+/run/logs/2025-05-06-13.log.gz
+/run/logs/2025-05-06-14.log.gz
+/run/logs/2025-05-06-15.log.gz
+/run/logs/2025-05-06-16.log.gz
+/run/logs/2025-05-06-17.log.gz
+/run/logs/2025-05-06-18.log.gz
+/run/logs/2025-05-06-19.log.gz
+/run/logs/2025-05-06-20.log.gz
+/run/logs/2025-05-06-21.log.gz
+/run/logs/2025-05-06-22.log.gz
+/run/logs/2025-05-06-23.log.gz
+/run/logs/2025-05-06-24.log.gz
+/run/logs/2025-05-06-25.log.gz
+/run/logs/2025-05-06-26.log.gz
+/run/logs/2025-05-06-27.log.gz
+/run/logs/2025-05-06-28.log.gz
+/run/logs/2025-05-06-29.log.gz
+/run/logs/2025-05-06-30.log.gz
+/run/logs/2025-05-06-31.log.gz
+/run/logs/2025-05-06-32.log.gz
+/run/logs/2025-05-17-2.log.gz
+/run/logs/2025-05-17-3.log.gz
+/run/logs/2025-05-17-4.log.gz
+/run/logs/2025-05-17-5.log.gz
+/run/logs/2025-05-17-6.log.gz
+/run/logs/2025-05-17-7.log.gz
+/run/logs/2025-05-17-8.log.gz
+/run/logs/2025-05-17-9.log.gz
+/run/logs/2025-05-17-10.log.gz
+/run/logs/2025-05-17-11.log.gz
+/run/logs/2025-05-17-12.log.gz
+/run/logs/2025-05-17-13.log.gz
+/run/logs/2025-05-17-14.log.gz
+/run/logs/2025-05-17-15.log.gz
+/run/logs/2025-05-17-16.log.gz
+/run/logs/2025-05-17-17.log.gz
+/run/logs/2025-05-17-18.log.gz
+/run/logs/2025-05-17-19.log.gz
+/run/logs/2025-05-17-20.log.gz
+/run/logs/2025-05-17-21.log.gz
+/run/logs/2025-05-17-22.log.gz
+/run/logs/2025-05-17-23.log.gz
+/run/logs/2025-05-17-24.log.gz
+/run/logs/2025-05-17-25.log.gz
+/run/logs/2025-05-17-26.log.gz
+/run/logs/2025-05-18-2.log.gz
+/run/logs/2025-05-18-3.log.gz
+/run/logs/2025-05-18-4.log.gz
+/run/logs/2025-05-18-5.log.gz
+/run/logs/2025-05-18-6.log.gz
+/run/logs/2025-05-18-7.log.gz
+/run/logs/2025-05-18-8.log.gz
+/run/logs/2025-05-18-9.log.gz
+/run/logs/2025-05-18-10.log.gz
+/run/logs/2025-05-18-11.log.gz
+/run/logs/2025-05-18-12.log.gz
+/run/logs/2025-05-18-13.log.gz
+/run/logs/2025-05-18-14.log.gz
+/run/logs/2025-05-18-15.log.gz
+/run/logs/2025-05-18-16.log.gz
+/run/logs/2025-05-18-17.log.gz
+/run/logs/2025-05-18-18.log.gz
+/run/logs/2025-05-18-19.log.gz
+/run/logs/2025-05-18-20.log.gz
+/run/logs/2025-05-18-21.log.gz
+/run/logs/2025-05-18-22.log.gz
+/run/logs/2025-05-18-23.log.gz
+/run/logs/2025-05-18-24.log.gz
+/run/logs/2025-05-18-25.log.gz
+/run/logs/2025-05-18-26.log.gz
+/run/logs/2025-05-18-27.log.gz
+/run/logs/2025-05-18-28.log.gz
+/run/logs/2025-05-18-29.log.gz
+/run/logs/2025-05-18-30.log.gz
+/run/logs/2025-05-18-31.log.gz
+/run/logs/2025-05-18-32.log.gz
+/run/logs/2025-05-18-33.log.gz
+/run/logs/2025-05-18-34.log.gz
+/run/logs/2025-05-18-35.log.gz
+/run/logs/2025-05-18-36.log.gz
+/run/logs/2025-05-18-37.log.gz
+/run/logs/2025-05-18-38.log.gz
+/run/logs/2025-05-18-39.log.gz
+/run/logs/2025-05-18-40.log.gz
+/run/logs/2025-05-18-41.log.gz
+/run/logs/2025-05-18-42.log.gz
+/run/logs/2025-05-18-43.log.gz
+/run/logs/2025-05-18-44.log.gz
+/run/logs/2025-05-18-45.log.gz
+/run/logs/2025-05-18-46.log.gz
+/run/logs/2025-05-18-47.log.gz
+/run/logs/2025-05-18-48.log.gz
+/run/logs/2025-05-18-49.log.gz
+/run/logs/2025-05-18-50.log.gz
+/run/logs/2025-05-18-51.log.gz
+/run/logs/2025-05-18-52.log.gz
+/run/logs/2025-05-18-53.log.gz
+/run/logs/2025-05-18-54.log.gz
+/run/logs/2025-05-18-55.log.gz
+/run/logs/2025-05-18-56.log.gz
+/run/logs/2025-05-18-57.log.gz
+/run/logs/2025-05-18-58.log.gz
+/run/logs/2025-05-18-59.log.gz
+/run/logs/2025-05-18-60.log.gz
+/run/logs/2025-05-18-61.log.gz
+/run/logs/2025-05-18-62.log.gz
+/run/logs/2025-05-18-63.log.gz
+/run/logs/2025-05-18-64.log.gz
+/run/logs/2025-05-18-65.log.gz
+/run/logs/2025-05-18-66.log.gz
+/run/logs/2025-05-18-67.log.gz
+/run/logs/2025-05-18-68.log.gz
+/run/logs/2025-05-18-69.log.gz
+/run/logs/2025-05-18-70.log.gz
+/run/logs/2025-05-18-71.log.gz
+/run/logs/2025-05-18-72.log.gz
+/run/logs/2025-05-18-73.log.gz
+/run/logs/2025-05-18-74.log.gz
+/run/logs/2025-05-18-75.log.gz
+/run/logs/2025-05-18-76.log.gz
+/run/logs/2025-05-18-77.log.gz
+/run/logs/2025-05-18-78.log.gz
+/run/logs/2025-05-18-79.log.gz
+/run/logs/2025-05-18-80.log.gz
+/run/logs/2025-05-18-81.log.gz
+/run/logs/2025-05-18-82.log.gz
+/run/logs/2025-05-18-83.log.gz
+/run/logs/2025-05-18-84.log.gz
+/run/logs/2025-05-18-85.log.gz
+/run/logs/2025-05-18-86.log.gz
+/run/logs/2025-05-18-87.log.gz
+/run/logs/2025-05-18-88.log.gz
+/run/logs/2025-05-18-89.log.gz
+/run/logs/2025-05-18-90.log.gz
+/run/logs/2025-05-18-91.log.gz
+/run/logs/2025-05-18-92.log.gz
+/run/logs/2025-05-18-93.log.gz
+/run/logs/2025-05-18-94.log.gz
+/run/logs/2025-05-18-95.log.gz
+/run/logs/2025-05-18-96.log.gz
+/run/logs/2025-05-18-97.log.gz
+/run/logs/2025-05-18-98.log.gz
+/run/logs/2025-05-18-99.log.gz
+/run/logs/2025-05-19-2.log.gz
+/run/logs/2025-05-19-3.log.gz
+/run/logs/2025-05-19-4.log.gz
+/run/logs/2025-05-19-5.log.gz
+/run/logs/2025-05-19-6.log.gz
+/run/logs/2025-05-19-7.log.gz
+/run/logs/2025-05-19-8.log.gz
+/run/logs/2025-05-19-9.log.gz
+/run/logs/2025-05-19-10.log.gz
+/run/logs/2025-05-19-11.log.gz
+/run/logs/2025-05-19-12.log.gz
+/run/logs/2025-05-19-13.log.gz
+/run/logs/2025-05-19-14.log.gz
+/run/logs/2025-05-19-15.log.gz
+/run/logs/2025-05-19-16.log.gz
+/run/logs/2025-05-19-17.log.gz
+/run/logs/2025-05-19-18.log.gz
+/run/logs/2025-05-19-19.log.gz
+/run/logs/2025-05-19-20.log.gz
+/run/logs/2025-05-19-21.log.gz
+/run/logs/2025-05-19-22.log.gz
+/run/logs/2025-05-19-23.log.gz
+/run/logs/2025-05-19-24.log.gz
+/run/logs/2025-05-19-25.log.gz
+/run/logs/2025-05-19-26.log.gz
+/run/logs/2025-05-19-27.log.gz
+/run/logs/2025-05-19-28.log.gz
+/run/logs/2025-05-19-29.log.gz
+/run/logs/2025-05-19-30.log.gz
+/run/logs/2025-05-19-31.log.gz
+/run/logs/2025-05-19-32.log.gz
+/run/logs/2025-05-19-33.log.gz
+/run/logs/2025-05-19-34.log.gz
+/run/logs/2025-05-19-35.log.gz
+/run/logs/2025-05-21-2.log.gz
+/run/logs/2025-05-21-3.log.gz
+/run/logs/2025-05-21-4.log.gz
+/run/logs/2025-05-21-5.log.gz
+/run/logs/2025-05-21-6.log.gz
+/run/logs/2025-05-21-7.log.gz
+/run/logs/2025-05-21-8.log.gz
+/run/logs/2025-05-21-9.log.gz
+/run/logs/2025-05-21-10.log.gz
+/run/logs/2025-05-21-11.log.gz
+/run/logs/2025-05-21-12.log.gz
+/run/logs/2025-05-21-13.log.gz
+/run/logs/2025-05-21-14.log.gz
+/run/logs/2025-05-21-15.log.gz
+/run/logs/2025-05-21-16.log.gz
+/run/logs/2025-05-21-17.log.gz
+/run/logs/2025-05-21-18.log.gz
+/run/logs/2025-05-21-19.log.gz
+/run/logs/2025-05-21-20.log.gz
+/run/logs/2025-05-21-21.log.gz
+/run/logs/2025-05-21-22.log.gz
+/run/logs/2025-05-21-23.log.gz
+/run/logs/2025-05-21-24.log.gz
+/run/logs/2025-05-21-25.log.gz
+/run/logs/2025-05-21-26.log.gz
+/run/logs/2025-05-21-27.log.gz
+/run/logs/2025-05-21-28.log.gz
+/run/logs/2025-05-21-29.log.gz
+/run/logs/2025-05-21-30.log.gz
+/run/logs/2025-05-21-31.log.gz
+/run/logs/2025-05-21-32.log.gz
+/run/logs/2025-05-21-33.log.gz
+/run/logs/2025-05-21-34.log.gz
+/run/logs/2025-05-21-35.log.gz
+/run/logs/2025-05-21-36.log.gz
+/run/logs/2025-05-21-37.log.gz
+/run/logs/2025-05-21-38.log.gz
+/run/logs/2025-05-21-39.log.gz
+/run/logs/2025-05-21-40.log.gz
+/run/logs/2025-05-21-41.log.gz
+/run/logs/2025-05-21-42.log.gz
+/run/logs/2025-05-21-43.log.gz
+/run/logs/2025-05-21-44.log.gz
+/run/logs/2025-05-21-45.log.gz
+/run/logs/2025-05-21-46.log.gz
+/run/logs/2025-05-21-47.log.gz
+/run/logs/2025-05-21-48.log.gz
+/run/logs/2025-05-21-49.log.gz
+/run/logs/2025-05-21-50.log.gz
+/run/logs/2025-05-21-51.log.gz
+/run/logs/2025-05-21-52.log.gz
+/run/logs/2025-05-21-53.log.gz
+/run/logs/2025-05-21-54.log.gz
+/run/logs/2025-05-21-55.log.gz
+/run/logs/2025-05-21-56.log.gz
+/run/logs/2025-05-21-57.log.gz
+/run/logs/2025-05-21-58.log.gz
+/run/logs/2025-05-21-59.log.gz
+/run/logs/2025-05-21-60.log.gz
+/run/logs/2025-05-21-61.log.gz
+/run/logs/2025-05-21-62.log.gz
+/run/logs/2025-05-21-63.log.gz
+/run/logs/2025-05-21-64.log.gz
+/run/logs/2025-05-21-65.log.gz
+/run/logs/2025-05-21-66.log.gz
+/run/logs/2025-05-21-67.log.gz
+/run/logs/2025-05-21-68.log.gz
+/run/logs/2025-05-21-69.log.gz
+/run/logs/2025-05-21-70.log.gz
+/run/logs/2025-05-21-71.log.gz
+/run/logs/2025-05-21-72.log.gz
+/run/logs/2025-05-21-73.log.gz
+/run/logs/2025-05-21-74.log.gz
+/run/logs/2025-05-21-75.log.gz
+/run/logs/2025-05-21-76.log.gz
+/run/logs/2025-05-21-77.log.gz
+/run/logs/2025-05-21-78.log.gz
+/run/logs/2025-05-21-79.log.gz
+/run/logs/2025-05-21-80.log.gz
+/run/logs/2025-05-21-81.log.gz
+/run/logs/2025-05-21-82.log.gz
+/run/logs/2025-05-21-83.log.gz
+/run/logs/2025-05-21-84.log.gz
+/run/logs/2025-05-21-85.log.gz
+/run/logs/2025-05-21-86.log.gz
+/run/logs/2025-05-21-87.log.gz
+/run/logs/2025-05-21-88.log.gz
+/run/logs/2025-05-21-89.log.gz
+/run/logs/2025-05-22-2.log.gz
+/run/logs/2025-05-22-3.log.gz
+/run/logs/2025-05-22-4.log.gz
+/run/logs/2025-05-22-5.log.gz
+/run/logs/2025-05-22-6.log.gz
+/run/logs/2025-05-22-7.log.gz
+/run/logs/2025-05-22-8.log.gz
+/run/logs/2025-05-22-9.log.gz
+/run/logs/2025-05-23-2.log.gz
+/run/logs/2025-05-23-3.log.gz
+/run/logs/2025-05-23-4.log.gz
+/run/logs/2025-05-23-5.log.gz
+/run/logs/2025-05-23-6.log.gz
+/run/logs/2025-05-23-7.log.gz
+/run/logs/2025-05-23-8.log.gz
+/run/logs/2025-05-23-9.log.gz
+/run/logs/2025-05-23-10.log.gz
+/run/logs/2025-05-23-11.log.gz
+/run/logs/2025-05-23-12.log.gz
+/run/logs/2025-05-23-13.log.gz
+/run/logs/2025-05-23-14.log.gz
+/run/logs/2025-05-23-15.log.gz
+/run/logs/2025-05-23-16.log.gz
+/run/logs/2025-05-23-17.log.gz
+/run/logs/2025-05-23-18.log.gz
+/run/logs/2025-05-23-19.log.gz
+/run/logs/2025-05-23-20.log.gz
+/run/logs/2025-05-23-21.log.gz
+/run/logs/2025-05-23-22.log.gz
+/run/logs/2025-05-23-23.log.gz
+/run/logs/2025-05-23-24.log.gz
+/run/logs/2025-05-23-25.log.gz
+/run/logs/2025-05-23-26.log.gz
+/run/logs/2025-05-23-27.log.gz
+/run/logs/2025-05-23-28.log.gz
+/run/logs/2025-05-23-29.log.gz
+/run/logs/2025-05-23-30.log.gz
+/run/logs/2025-05-23-31.log.gz
+/run/logs/2025-05-23-32.log.gz
+/run/logs/2025-05-23-33.log.gz
+/run/logs/2025-05-23-34.log.gz
+/run/logs/2025-05-23-35.log.gz
+/run/logs/2025-05-23-36.log.gz
+/run/logs/2025-05-23-37.log.gz
+/run/logs/2025-05-24-2.log.gz
+/run/logs/2025-05-24-3.log.gz
+/run/logs/2025-05-24-4.log.gz
+/run/logs/2025-05-24-5.log.gz
+/run/logs/2025-05-24-6.log.gz
+/run/logs/2025-05-25-2.log.gz
+/run/logs/2025-05-25-3.log.gz
+/run/logs/2025-05-25-4.log.gz
+/run/logs/2025-05-25-5.log.gz
+/run/logs/2025-05-25-6.log.gz
+/run/logs/2025-05-25-7.log.gz
+/run/logs/2025-05-25-8.log.gz
+/run/logs/2025-05-25-9.log.gz
+/run/logs/2025-05-25-10.log.gz
+/run/logs/2025-05-25-11.log.gz
+/run/logs/2025-05-25-12.log.gz
+/run/logs/2025-05-25-13.log.gz
+/run/logs/2025-05-25-14.log.gz
+/run/logs/2025-05-25-15.log.gz
+/run/logs/2025-05-25-16.log.gz
+/run/logs/2025-05-25-17.log.gz
+/run/logs/2025-05-25-18.log.gz
+/run/logs/2025-05-25-19.log.gz
+/run/logs/2025-05-25-20.log.gz
+/run/logs/2025-05-25-21.log.gz
+/run/logs/2025-05-25-22.log.gz
+/run/logs/2025-05-25-23.log.gz
+/run/logs/2025-05-25-24.log.gz
+/run/logs/2025-05-25-25.log.gz
+/run/logs/2025-05-25-26.log.gz
+/run/logs/2025-05-25-27.log.gz
+/run/logs/2025-05-25-28.log.gz
+/run/logs/2025-05-25-29.log.gz
+/run/logs/2025-05-25-30.log.gz
+/run/logs/2025-05-25-31.log.gz
+/run/logs/2025-05-25-32.log.gz
+/run/logs/2025-05-25-33.log.gz
+/run/logs/2025-05-25-34.log.gz
+/run/logs/2025-05-25-35.log.gz
+/run/logs/2025-05-25-36.log.gz
+/run/logs/2025-05-25-37.log.gz
+/run/logs/2025-05-25-38.log.gz
+/run/logs/2025-05-25-39.log.gz
+/run/logs/2025-05-25-40.log.gz
+/run/logs/2025-05-25-41.log.gz
+/run/logs/2025-05-25-42.log.gz
+/run/logs/2025-05-25-43.log.gz
+/run/logs/2025-05-25-44.log.gz
+/run/logs/2025-05-25-45.log.gz
+/run/logs/2025-05-25-46.log.gz
+/run/logs/2025-05-25-47.log.gz
+/run/logs/2025-05-25-48.log.gz
+/run/logs/2025-05-25-49.log.gz
+/run/logs/2025-05-25-50.log.gz
+/run/logs/2025-05-25-51.log.gz
+/run/logs/2025-05-25-52.log.gz
+/run/logs/2025-05-25-53.log.gz
+/run/logs/2025-05-25-54.log.gz
+/run/logs/2025-05-25-55.log.gz
+/run/logs/2025-05-25-56.log.gz
+/run/logs/2025-05-25-57.log.gz
+/run/logs/2025-05-25-58.log.gz
+/run/logs/2025-05-25-59.log.gz
+/run/logs/2025-05-25-60.log.gz
+/run/logs/2025-05-25-61.log.gz
+/run/logs/2025-05-25-62.log.gz
+/run/logs/2025-05-25-63.log.gz
+/run/logs/2025-05-25-64.log.gz
+/run/logs/2025-05-25-65.log.gz
+/run/logs/2025-05-25-66.log.gz
+/run/logs/2025-05-25-67.log.gz
+/run/logs/2025-05-25-68.log.gz
+/run/logs/2025-05-25-69.log.gz
+/run/logs/2025-05-25-70.log.gz
+/run/logs/2025-05-25-71.log.gz
+/run/logs/2025-05-25-72.log.gz
+/run/logs/2025-05-27-1.log.gz
+/run/logs/2025-05-28-2.log.gz
+/run/logs/2025-05-31-2.log.gz
+/run/logs/2025-05-31-3.log.gz
+/run/logs/2025-05-31-4.log.gz
+/run/logs/2025-05-31-5.log.gz
+/run/logs/2025-05-31-6.log.gz
+/run/logs/2025-05-31-7.log.gz
+/run/logs/2025-05-31-8.log.gz
+/run/logs/2025-05-31-9.log.gz
+/run/logs/2025-05-31-10.log.gz
+/run/logs/2025-05-31-11.log.gz
+/run/logs/2025-05-31-12.log.gz
+/run/logs/2025-05-31-13.log.gz
+/run/logs/2025-05-31-14.log.gz
+/run/logs/2025-05-31-15.log.gz
+/run/logs/2025-05-31-16.log.gz
+/run/logs/2025-05-31-17.log.gz
+/run/logs/2025-05-31-18.log.gz
+/run/logs/2025-05-31-19.log.gz
+/run/logs/2025-05-31-20.log.gz
+/run/logs/2025-05-31-21.log.gz
+/run/logs/2025-05-31-22.log.gz
+/run/logs/2025-05-31-23.log.gz
+/run/logs/2025-05-31-24.log.gz
+/run/logs/2025-05-31-25.log.gz
+/run/logs/2025-06-01-1.log.gz
+/run/logs/2025-06-01-2.log.gz
+/run/logs/2025-06-01-3.log.gz
+/run/logs/2025-06-01-4.log.gz
+/run/logs/2025-06-01-5.log.gz
+/run/logs/2025-06-01-6.log.gz
+/run/logs/2025-06-01-7.log.gz
+/run/logs/2025-06-01-8.log.gz
+/run/logs/2025-06-01-9.log.gz
+/run/logs/2025-06-01-10.log.gz
+/run/logs/2025-06-01-11.log.gz
+/run/logs/2025-06-01-12.log.gz
+/run/logs/2025-06-01-13.log.gz
+/run/logs/2025-06-01-14.log.gz
+/run/logs/2025-06-01-15.log.gz
+/run/logs/2025-06-01-16.log.gz
+/run/logs/2025-06-01-17.log.gz
+/run/logs/2025-06-01-18.log.gz
+/run/logs/2025-06-01-19.log.gz
+/run/logs/2025-06-01-20.log.gz
+/run/logs/2025-06-01-21.log.gz
+/run/logs/2025-06-01-22.log.gz
+/run/logs/2025-06-01-23.log.gz
+/run/logs/2025-06-01-24.log.gz
+/run/logs/2025-06-01-25.log.gz
+/run/logs/2025-06-01-26.log.gz
+/run/logs/2025-06-01-27.log.gz
+/run/logs/2025-06-01-28.log.gz
+/run/logs/2025-06-01-29.log.gz
+/run/logs/2025-06-01-30.log.gz
+/run/logs/2025-06-01-31.log.gz
+/run/logs/2025-06-01-32.log.gz
+/run/logs/2025-06-01-33.log.gz
+/run/logs/2025-06-01-34.log.gz
+/run/logs/2025-06-01-35.log.gz
+/run/logs/2025-06-01-36.log.gz
+/run/logs/2025-06-01-37.log.gz
+/run/logs/2025-06-01-38.log.gz
+/run/logs/2025-06-01-39.log.gz
+/run/logs/2025-06-01-40.log.gz
+/run/logs/2025-06-01-41.log.gz
+/run/logs/2025-06-01-42.log.gz
+/run/logs/2025-06-01-43.log.gz
+/run/logs/2025-06-01-44.log.gz
+/run/logs/2025-06-01-45.log.gz
+/run/logs/2025-06-01-46.log.gz
+/run/logs/2025-06-01-47.log.gz
+/run/logs/2025-06-01-48.log.gz
+/run/logs/2025-06-01-49.log.gz
+/run/logs/2025-06-01-50.log.gz
+/run/logs/2025-06-01-51.log.gz
+/run/logs/2025-06-01-52.log.gz
+/run/logs/2025-06-01-53.log.gz
+/run/logs/2025-06-01-54.log.gz
+/run/logs/2025-06-01-55.log.gz
+/run/logs/2025-06-01-56.log.gz
+/run/logs/2025-06-01-57.log.gz
+/run/logs/2025-06-01-58.log.gz
+/run/logs/2025-06-01-59.log.gz
+/run/logs/2025-06-01-60.log.gz
+/run/logs/2025-06-01-61.log.gz
+/run/logs/2025-06-01-62.log.gz
+/run/logs/2025-06-01-63.log.gz
+/run/logs/2025-06-01-64.log.gz
+/run/logs/2025-06-01-65.log.gz
+/run/logs/2025-06-01-66.log.gz
+/run/logs/2025-06-01-67.log.gz
+/run/logs/2025-06-02-2.log.gz
+/run/logs/2025-06-02-3.log.gz
+/run/logs/2025-06-02-4.log.gz
+/run/logs/2025-06-02-5.log.gz
+/run/logs/2025-06-02-6.log.gz
+/run/logs/2025-06-02-7.log.gz
+/run/logs/2025-06-02-8.log.gz
+/run/logs/2025-06-02-9.log.gz
+/run/logs/2025-06-02-10.log.gz
+/run/logs/2025-06-02-11.log.gz
+/run/logs/2025-06-02-12.log.gz
+/run/logs/2025-06-02-13.log.gz
+/run/logs/2025-06-02-14.log.gz
+/run/logs/2025-06-02-15.log.gz
+/run/logs/2025-06-02-16.log.gz
+/run/logs/2025-06-02-17.log.gz
+/run/logs/2025-06-02-18.log.gz
+/run/logs/2025-06-02-19.log.gz
+/run/logs/2025-06-02-20.log.gz
+/run/logs/2025-06-02-21.log.gz
+/run/logs/2025-06-02-22.log.gz
+/run/logs/2025-06-02-23.log.gz
+/run/logs/2025-06-02-24.log.gz
+/run/logs/2025-06-02-25.log.gz
+/run/logs/2025-06-02-26.log.gz
+/run/logs/2025-06-02-27.log.gz
+/run/logs/2025-06-02-28.log.gz
+/run/logs/2025-06-02-29.log.gz
+/run/logs/2025-06-02-30.log.gz
+/run/logs/2025-06-02-31.log.gz
+/run/logs/2025-06-02-32.log.gz
+/run/logs/2025-06-02-33.log.gz
+/run/logs/2025-06-02-34.log.gz
+/run/logs/2025-06-02-35.log.gz
+/run/logs/2025-06-02-36.log.gz
+/run/logs/2025-06-02-37.log.gz
+/run/logs/2025-06-02-38.log.gz
+/run/logs/2025-06-02-39.log.gz
+/run/logs/2025-06-02-40.log.gz
+/run/logs/2025-06-02-41.log.gz
+/run/logs/2025-06-02-42.log.gz
+/run/logs/2025-06-02-43.log.gz
+/run/logs/2025-06-03-2.log.gz
+/run/logs/2025-06-03-3.log.gz
+/run/logs/2025-06-03-4.log.gz
+/run/logs/2025-06-03-5.log.gz
+/run/logs/2025-06-03-6.log.gz
+/run/logs/2025-06-03-7.log.gz
+/run/logs/2025-06-03-8.log.gz
+/run/logs/2025-06-03-9.log.gz
+/run/logs/2025-06-03-10.log.gz
+/run/logs/2025-06-03-11.log.gz
+/run/logs/2025-06-05-2.log.gz
+/run/logs/2025-06-05-3.log.gz
+/run/logs/2025-06-06-1.log.gz
+/run/logs/2025-06-06-2.log.gz
+/run/logs/2025-06-06-3.log.gz
+/run/logs/2025-06-06-4.log.gz
+/run/logs/2025-06-06-5.log.gz
+/run/logs/2025-06-06-6.log.gz
+/run/logs/2025-06-06-7.log.gz
+/run/logs/2025-06-06-8.log.gz
+/run/logs/2025-06-06-9.log.gz
+/run/logs/2025-06-06-10.log.gz
+/run/logs/2025-06-06-11.log.gz
+/run/logs/2025-06-06-12.log.gz
+/run/logs/2025-06-06-13.log.gz
+/run/logs/2025-06-06-14.log.gz
+/run/logs/2025-06-06-15.log.gz
+/run/logs/2025-06-06-16.log.gz
+/run/logs/2025-06-06-17.log.gz
+/run/logs/2025-06-06-18.log.gz
+/run/logs/2025-06-06-19.log.gz
+/run/logs/2025-06-06-20.log.gz
+/run/logs/2025-06-06-21.log.gz
+/run/logs/2025-06-06-22.log.gz
+/run/logs/2025-06-06-23.log.gz
+/run/logs/2025-06-06-24.log.gz
+/run/logs/2025-06-06-25.log.gz
+/run/logs/2025-06-06-26.log.gz
+/run/logs/2025-06-06-27.log.gz
+/run/logs/2025-06-06-28.log.gz
+/run/logs/2025-06-06-29.log.gz
+/run/logs/2025-06-06-30.log.gz
+/run/logs/2025-06-06-31.log.gz
+/run/logs/2025-06-06-32.log.gz
+/run/logs/2025-06-06-33.log.gz
+/run/logs/2025-06-06-34.log.gz
+/run/logs/2025-06-06-35.log.gz
+/run/logs/2025-06-06-36.log.gz
+/run/logs/2025-06-06-37.log.gz
+/run/logs/2025-06-06-38.log.gz
+/run/logs/2025-06-06-39.log.gz
+/run/logs/2025-06-07-1.log.gz
+/run/logs/2025-06-07-2.log.gz
+/run/logs/2025-06-07-3.log.gz
+/run/logs/2025-06-07-4.log.gz
+/run/logs/2025-06-07-5.log.gz
+/run/logs/2025-06-07-6.log.gz
+/run/logs/2025-06-07-7.log.gz
+/run/logs/2025-06-07-8.log.gz
+/run/logs/2025-06-07-9.log.gz
+/run/logs/2025-06-07-10.log.gz
+/run/logs/2025-06-07-11.log.gz
+/run/logs/2025-06-07-12.log.gz
+/run/logs/2025-06-07-13.log.gz
+/run/logs/2025-06-07-14.log.gz
+/run/logs/2025-06-07-15.log.gz
+/run/logs/2025-06-07-16.log.gz
+/run/logs/2025-06-07-17.log.gz
+/run/logs/2025-06-07-18.log.gz
+/run/logs/2025-06-07-19.log.gz
+/run/logs/2025-06-07-20.log.gz
+/run/logs/2025-06-07-21.log.gz
+/run/logs/2025-06-07-22.log.gz
+/run/logs/2025-06-07-23.log.gz
+/run/logs/2025-06-07-24.log.gz
+/run/logs/2025-06-07-25.log.gz
+/run/logs/2025-06-07-26.log.gz
+/run/logs/2025-06-07-27.log.gz
+/run/logs/2025-06-07-28.log.gz
+/run/logs/2025-06-07-29.log.gz
+/run/logs/2025-06-07-30.log.gz
+/run/logs/2025-06-07-31.log.gz
+/run/logs/2025-06-07-32.log.gz
+/run/logs/2025-06-07-33.log.gz
+/run/logs/2025-06-07-34.log.gz
+/run/logs/2025-06-07-35.log.gz
+/run/logs/2025-06-07-36.log.gz
+/run/logs/2025-06-07-37.log.gz
+/run/logs/2025-06-07-38.log.gz
+/run/logs/2025-06-07-39.log.gz
+/run/logs/2025-06-07-40.log.gz
+/run/logs/2025-06-07-41.log.gz
+/run/logs/2025-06-07-42.log.gz
+/run/logs/2025-06-07-43.log.gz
+/run/logs/2025-06-07-44.log.gz
+/run/logs/2025-06-07-45.log.gz
+/run/logs/2025-06-07-46.log.gz
+/run/logs/2025-06-07-47.log.gz
+/run/logs/2025-06-07-48.log.gz
+/run/logs/2025-06-07-49.log.gz
+/run/logs/2025-06-07-50.log.gz
+/run/logs/2025-06-07-51.log.gz
+/run/logs/2025-06-07-52.log.gz
+/run/logs/2025-06-07-53.log.gz
+/run/logs/2025-06-07-54.log.gz
+/run/logs/2025-06-07-55.log.gz
+/run/logs/2025-06-07-56.log.gz
+/run/logs/2025-06-07-57.log.gz
+/run/logs/2025-06-07-58.log.gz
+/run/logs/2025-06-07-59.log.gz
+/run/logs/2025-06-07-60.log.gz
+/run/logs/2025-06-07-61.log.gz
+/run/logs/2025-06-07-62.log.gz
+/run/logs/2025-06-07-63.log.gz
+/run/logs/2025-06-07-64.log.gz
+/run/logs/2025-06-07-65.log.gz
+/run/logs/2025-06-07-66.log.gz
+/run/logs/2025-06-07-67.log.gz
+/run/logs/2025-06-07-68.log.gz
+/run/logs/2025-06-07-69.log.gz
+/run/logs/2025-06-07-70.log.gz
+/run/logs/2025-06-07-71.log.gz
+/run/logs/2025-06-07-72.log.gz
+/run/logs/2025-06-07-73.log.gz
+/run/logs/2025-06-07-74.log.gz
+/run/logs/2025-06-07-75.log.gz
+/run/logs/2025-06-07-76.log.gz
+/run/logs/2025-06-07-77.log.gz
+/run/logs/2025-06-07-78.log.gz
+/run/logs/2025-06-07-79.log.gz
+/run/logs/2025-06-07-80.log.gz
+/run/logs/2025-06-07-81.log.gz
+/run/logs/2025-06-07-82.log.gz
+/run/logs/2025-06-07-83.log.gz
+/run/logs/2025-06-07-84.log.gz
+/run/logs/2025-06-07-85.log.gz
+/run/logs/2025-06-07-86.log.gz
+/run/logs/2025-06-07-87.log.gz
+/run/logs/2025-06-07-88.log.gz
+/run/logs/2025-06-08-2.log.gz
+/run/logs/2025-06-08-3.log.gz
+/run/logs/2025-06-08-4.log.gz
+/run/logs/2025-06-08-5.log.gz
+/run/logs/2025-06-08-6.log.gz
+/run/logs/2025-06-08-7.log.gz
+/run/logs/2025-06-08-8.log.gz
+/run/logs/2025-06-08-9.log.gz
+/run/logs/2025-06-08-10.log.gz
+/run/logs/2025-06-08-11.log.gz
+/run/logs/2025-06-08-12.log.gz
+/run/logs/2025-06-08-13.log.gz
+/run/logs/2025-06-08-14.log.gz
+/run/logs/2025-06-08-15.log.gz
+/run/logs/2025-06-08-16.log.gz
+/run/logs/2025-06-08-17.log.gz
+/run/logs/2025-06-08-18.log.gz
+/run/logs/2025-06-08-19.log.gz
+/run/logs/2025-06-08-20.log.gz
+/run/logs/2025-06-08-21.log.gz
+/run/logs/2025-06-08-22.log.gz
+/run/logs/2025-06-08-23.log.gz
+/run/logs/2025-06-08-24.log.gz
+/run/logs/2025-06-08-25.log.gz
+/run/logs/2025-06-08-26.log.gz
+/run/logs/2025-06-08-27.log.gz
+/run/logs/2025-06-08-28.log.gz
+/run/logs/2025-06-08-29.log.gz
+/run/logs/2025-06-08-30.log.gz
+/run/logs/2025-06-08-31.log.gz
+/run/logs/2025-06-08-32.log.gz
+/run/logs/2025-06-08-33.log.gz
+/run/logs/2025-06-08-34.log.gz
+/run/logs/2025-06-08-35.log.gz
+/run/logs/2025-06-08-36.log.gz
+/run/logs/2025-06-08-37.log.gz
+/run/logs/2025-06-08-38.log.gz
+/run/logs/2025-06-14-2.log.gz
+/run/logs/2025-06-14-3.log.gz
+/run/logs/2025-06-14-4.log.gz
+/run/logs/2025-06-14-5.log.gz
+/run/logs/2025-06-14-6.log.gz
+/run/logs/2025-06-14-7.log.gz
+/run/logs/2025-06-15-2.log.gz
+/run/logs/2025-06-15-3.log.gz
+/run/logs/2025-06-15-4.log.gz
+/run/logs/2025-06-15-5.log.gz
+/run/logs/2025-06-15-6.log.gz
+/run/logs/2025-06-15-7.log.gz
+/run/logs/2025-06-15-8.log.gz
+/run/logs/2025-06-15-9.log.gz
+/run/logs/2025-06-15-10.log.gz
+/run/logs/2025-06-15-11.log.gz
+/run/logs/2025-06-15-12.log.gz
+/run/logs/2025-06-15-13.log.gz
+/run/logs/2025-06-15-14.log.gz
+/run/logs/2025-06-15-15.log.gz
+/run/logs/2025-06-15-16.log.gz
+/run/logs/2025-06-15-17.log.gz
+/run/logs/2025-06-15-18.log.gz
+/run/logs/2025-06-15-19.log.gz
+/run/logs/2025-06-15-20.log.gz
+/run/logs/2025-06-15-21.log.gz
+/run/logs/2025-06-15-22.log.gz
+/run/logs/2025-06-15-23.log.gz
+/run/logs/2025-06-15-24.log.gz
+/run/logs/2025-06-15-25.log.gz
+/run/logs/2025-06-15-26.log.gz
+/run/logs/2026-07-12-2.log.gz
+/run/logs/2026-07-12-3.log.gz
+/run/logs/2026-07-12-4.log.gz
+/run/logs/2026-07-12-5.log.gz
+/run/logs/2026-07-13-2.log.gz
+/run/logs/2026-07-13-3.log.gz
+/run/logs/2026-07-13-4.log.gz
+/run/logs/2026-07-13-5.log.gz
+/run/logs/2026-07-13-6.log.gz
+/run/logs/2026-07-13-7.log.gz
+/run/logs/2026-07-13-8.log.gz
+/run/logs/2026-07-13-9.log.gz
+/run/logs/2026-07-13-10.log.gz
+/run/logs/2026-07-13-11.log.gz
+/run/logs/2026-07-13-12.log.gz
+/run/logs/2026-07-13-13.log.gz
+/run/logs/2026-07-13-14.log.gz
+/run/logs/2026-07-14-2.log.gz
+/run/logs/2026-07-15-2.log.gz
+/run/logs/2026-07-15-3.log.gz
+/run/logs/2026-07-15-4.log.gz
+/run/logs/2026-07-16-1.log.gz
+/run/logs/debug.log
+/run/logs/debug-1.log.gz
+/run/logs/debug-2.log.gz
+/run/logs/debug-3.log.gz
+/run/logs/debug-4.log.gz
+/run/logs/debug-5.log.gz
+/run/logs/latest.log
+/run/nuchematica_settings/nuchematica_render_setting.json
+/run/saves/New World/advancements/380df991-f603-344c-a090-369bad2a924a.json
+/run/saves/New World/data/capabilities.dat
+/run/saves/New World/data/raids.dat
+/run/saves/New World/DIM1/data/capabilities.dat
+/run/saves/New World/DIM1/data/raids_end.dat
+/run/saves/New World/DIM-1/data/capabilities.dat
+/run/saves/New World/DIM-1/data/raids.dat
+/run/saves/New World/entities/r.0.0.mca
+/run/saves/New World/entities/r.0.1.mca
+/run/saves/New World/entities/r.0.-1.mca
+/run/saves/New World/entities/r.0.-2.mca
+/run/saves/New World/entities/r.1.0.mca
+/run/saves/New World/entities/r.1.1.mca
+/run/saves/New World/entities/r.1.2.mca
+/run/saves/New World/entities/r.1.19.mca
+/run/saves/New World/entities/r.1.-1.mca
+/run/saves/New World/entities/r.1.-2.mca
+/run/saves/New World/entities/r.2.0.mca
+/run/saves/New World/entities/r.2.1.mca
+/run/saves/New World/entities/r.2.2.mca
+/run/saves/New World/entities/r.2.19.mca
+/run/saves/New World/entities/r.2.-1.mca
+/run/saves/New World/entities/r.19.1.mca
+/run/saves/New World/entities/r.19.2.mca
+/run/saves/New World/entities/r.19.3.mca
+/run/saves/New World/entities/r.19.19.mca
+/run/saves/New World/entities/r.19.20.mca
+/run/saves/New World/entities/r.20.1.mca
+/run/saves/New World/entities/r.20.2.mca
+/run/saves/New World/entities/r.20.3.mca
+/run/saves/New World/entities/r.20.19.mca
+/run/saves/New World/entities/r.20.20.mca
+/run/saves/New World/entities/r.-1.0.mca
+/run/saves/New World/entities/r.-1.1.mca
+/run/saves/New World/entities/r.-1.-1.mca
+/run/saves/New World/entities/r.-1.-2.mca
+/run/saves/New World/playerdata/380df991-f603-344c-a090-369bad2a924a.dat
+/run/saves/New World/playerdata/380df991-f603-344c-a090-369bad2a924a.dat_old
+/run/saves/New World/poi/r.0.0.mca
+/run/saves/New World/poi/r.0.1.mca
+/run/saves/New World/poi/r.0.-1.mca
+/run/saves/New World/poi/r.0.-2.mca
+/run/saves/New World/poi/r.1.0.mca
+/run/saves/New World/poi/r.1.1.mca
+/run/saves/New World/poi/r.1.2.mca
+/run/saves/New World/poi/r.1.18.mca
+/run/saves/New World/poi/r.1.19.mca
+/run/saves/New World/poi/r.1.20.mca
+/run/saves/New World/poi/r.1.-1.mca
+/run/saves/New World/poi/r.1.-2.mca
+/run/saves/New World/poi/r.2.0.mca
+/run/saves/New World/poi/r.2.1.mca
+/run/saves/New World/poi/r.2.2.mca
+/run/saves/New World/poi/r.2.19.mca
+/run/saves/New World/poi/r.2.-1.mca
+/run/saves/New World/poi/r.18.1.mca
+/run/saves/New World/poi/r.18.2.mca
+/run/saves/New World/poi/r.18.18.mca
+/run/saves/New World/poi/r.18.19.mca
+/run/saves/New World/poi/r.18.20.mca
+/run/saves/New World/poi/r.19.1.mca
+/run/saves/New World/poi/r.19.2.mca
+/run/saves/New World/poi/r.19.3.mca
+/run/saves/New World/poi/r.19.18.mca
+/run/saves/New World/poi/r.19.19.mca
+/run/saves/New World/poi/r.19.20.mca
+/run/saves/New World/poi/r.20.1.mca
+/run/saves/New World/poi/r.20.2.mca
+/run/saves/New World/poi/r.20.3.mca
+/run/saves/New World/poi/r.20.18.mca
+/run/saves/New World/poi/r.20.19.mca
+/run/saves/New World/poi/r.20.20.mca
+/run/saves/New World/poi/r.-1.0.mca
+/run/saves/New World/poi/r.-1.1.mca
+/run/saves/New World/poi/r.-1.-1.mca
+/run/saves/New World/poi/r.-1.-2.mca
+/run/saves/New World/poi/r.-2.0.mca
+/run/saves/New World/poi/r.-2.-1.mca
+/run/saves/New World/region/r.0.0.mca
+/run/saves/New World/region/r.0.1.mca
+/run/saves/New World/region/r.0.-1.mca
+/run/saves/New World/region/r.0.-2.mca
+/run/saves/New World/region/r.1.0.mca
+/run/saves/New World/region/r.1.1.mca
+/run/saves/New World/region/r.1.2.mca
+/run/saves/New World/region/r.1.3.mca
+/run/saves/New World/region/r.1.18.mca
+/run/saves/New World/region/r.1.19.mca
+/run/saves/New World/region/r.1.20.mca
+/run/saves/New World/region/r.1.-1.mca
+/run/saves/New World/region/r.1.-2.mca
+/run/saves/New World/region/r.2.0.mca
+/run/saves/New World/region/r.2.1.mca
+/run/saves/New World/region/r.2.2.mca
+/run/saves/New World/region/r.2.3.mca
+/run/saves/New World/region/r.2.18.mca
+/run/saves/New World/region/r.2.19.mca
+/run/saves/New World/region/r.2.20.mca
+/run/saves/New World/region/r.2.-1.mca
+/run/saves/New World/region/r.2.-2.mca
+/run/saves/New World/region/r.18.1.mca
+/run/saves/New World/region/r.18.2.mca
+/run/saves/New World/region/r.18.18.mca
+/run/saves/New World/region/r.18.19.mca
+/run/saves/New World/region/r.18.20.mca
+/run/saves/New World/region/r.19.1.mca
+/run/saves/New World/region/r.19.2.mca
+/run/saves/New World/region/r.19.3.mca
+/run/saves/New World/region/r.19.18.mca
+/run/saves/New World/region/r.19.19.mca
+/run/saves/New World/region/r.19.20.mca
+/run/saves/New World/region/r.20.1.mca
+/run/saves/New World/region/r.20.2.mca
+/run/saves/New World/region/r.20.3.mca
+/run/saves/New World/region/r.20.18.mca
+/run/saves/New World/region/r.20.19.mca
+/run/saves/New World/region/r.20.20.mca
+/run/saves/New World/region/r.21.2.mca
+/run/saves/New World/region/r.21.3.mca
+/run/saves/New World/region/r.-1.0.mca
+/run/saves/New World/region/r.-1.1.mca
+/run/saves/New World/region/r.-1.-1.mca
+/run/saves/New World/region/r.-1.-2.mca
+/run/saves/New World/region/r.-2.0.mca
+/run/saves/New World/region/r.-2.1.mca
+/run/saves/New World/region/r.-2.-1.mca
+/run/saves/New World/serverconfig/forge-server.toml
+/run/saves/New World/stats/380df991-f603-344c-a090-369bad2a924a.json
+/run/saves/New World/icon.png
+/run/saves/New World/level.dat
+/run/saves/New World/level.dat_old
+/run/saves/New World/session.lock
+/run/saves/New World (1)/advancements/380df991-f603-344c-a090-369bad2a924a.json
+/run/saves/New World (1)/data/capabilities.dat
+/run/saves/New World (1)/data/raids.dat
+/run/saves/New World (1)/DIM1/data/capabilities.dat
+/run/saves/New World (1)/DIM1/data/raids_end.dat
+/run/saves/New World (1)/DIM-1/data/capabilities.dat
+/run/saves/New World (1)/DIM-1/data/raids.dat
+/run/saves/New World (1)/entities/r.0.0.mca
+/run/saves/New World (1)/entities/r.0.1.mca
+/run/saves/New World (1)/entities/r.0.-1.mca
+/run/saves/New World (1)/entities/r.1.0.mca
+/run/saves/New World (1)/entities/r.1.1.mca
+/run/saves/New World (1)/entities/r.-1.0.mca
+/run/saves/New World (1)/entities/r.-1.1.mca
+/run/saves/New World (1)/entities/r.-1.-1.mca
+/run/saves/New World (1)/entities/r.-2.0.mca
+/run/saves/New World (1)/entities/r.-2.1.mca
+/run/saves/New World (1)/playerdata/380df991-f603-344c-a090-369bad2a924a.dat
+/run/saves/New World (1)/playerdata/380df991-f603-344c-a090-369bad2a924a.dat_old
+/run/saves/New World (1)/poi/r.0.0.mca
+/run/saves/New World (1)/poi/r.0.1.mca
+/run/saves/New World (1)/poi/r.0.2.mca
+/run/saves/New World (1)/poi/r.0.-1.mca
+/run/saves/New World (1)/poi/r.1.0.mca
+/run/saves/New World (1)/poi/r.1.1.mca
+/run/saves/New World (1)/poi/r.1.2.mca
+/run/saves/New World (1)/poi/r.1.-1.mca
+/run/saves/New World (1)/poi/r.-1.0.mca
+/run/saves/New World (1)/poi/r.-1.1.mca
+/run/saves/New World (1)/poi/r.-1.2.mca
+/run/saves/New World (1)/poi/r.-1.-1.mca
+/run/saves/New World (1)/poi/r.-2.0.mca
+/run/saves/New World (1)/poi/r.-2.1.mca
+/run/saves/New World (1)/poi/r.-2.2.mca
+/run/saves/New World (1)/poi/r.-2.-1.mca
+/run/saves/New World (1)/region/r.0.0.mca
+/run/saves/New World (1)/region/r.0.1.mca
+/run/saves/New World (1)/region/r.0.2.mca
+/run/saves/New World (1)/region/r.0.-1.mca
+/run/saves/New World (1)/region/r.0.-2.mca
+/run/saves/New World (1)/region/r.1.0.mca
+/run/saves/New World (1)/region/r.1.1.mca
+/run/saves/New World (1)/region/r.1.2.mca
+/run/saves/New World (1)/region/r.1.-1.mca
+/run/saves/New World (1)/region/r.-1.0.mca
+/run/saves/New World (1)/region/r.-1.1.mca
+/run/saves/New World (1)/region/r.-1.2.mca
+/run/saves/New World (1)/region/r.-1.-1.mca
+/run/saves/New World (1)/region/r.-1.-2.mca
+/run/saves/New World (1)/region/r.-2.0.mca
+/run/saves/New World (1)/region/r.-2.1.mca
+/run/saves/New World (1)/region/r.-2.2.mca
+/run/saves/New World (1)/region/r.-2.-1.mca
+/run/saves/New World (1)/region/r.-2.-2.mca
+/run/saves/New World (1)/region/r.-3.0.mca
+/run/saves/New World (1)/region/r.-3.1.mca
+/run/saves/New World (1)/region/r.-3.2.mca
+/run/saves/New World (1)/serverconfig/forge-server.toml
+/run/saves/New World (1)/stats/380df991-f603-344c-a090-369bad2a924a.json
+/run/saves/New World (1)/icon.png
+/run/saves/New World (1)/level.dat
+/run/saves/New World (1)/level.dat_old
+/run/saves/New World (1)/session.lock
+/run/schematics/0_a.schematic
+/run/schematics/0_all.schematic
+/run/schematics/18812936.schematic
+/run/schematics/ACACIA1.schematic
+/run/schematics/Bakery.schematic
+/run/schematics/blacksmith-tower.schematic
+/run/schematics/Blacksmith_Forge By DemonSyborg.schematic
+/run/schematics/brickhouse2.schematic
+/run/schematics/brickhouse3.schematic
+/run/schematics/Butcher.schematic
+/run/schematics/CharmarlonRedfurt.schematic
+/run/schematics/Church.schematic
+/run/schematics/Fantasy_BigHouse1.schematic
+/run/schematics/Fantasy_BigHouse2.schematic
+/run/schematics/Fantasy_BigHouse3.schematic
+/run/schematics/Fantasy_BigHouse4.schematic
+/run/schematics/Fantasy_house1.schematic
+/run/schematics/Fantasy_house4.schematic
+/run/schematics/Fantasy_Markethouse.schematic
+/run/schematics/Fantasy_Tower.schematic
+/run/schematics/FANTASYPINES1.schematic
+/run/schematics/Farm Shed.schematic
+/run/schematics/Fishing House.schematic
+/run/schematics/HORRORTREE1.schematic
+/run/schematics/house1.schematic
+/run/schematics/house18.schematic
+/run/schematics/house20.schematic
+/run/schematics/housemedieval-modern-3-1566339964.schematic
+/run/schematics/hune_mini1.schematic
+/run/schematics/hunsui.schematic
+/run/schematics/icedragonlobby.schematic
+/run/schematics/ie.schematic
+/run/schematics/Lumberjack House.schematic
+/run/schematics/M.House1.schematic
+/run/schematics/M.House2.schematic
+/run/schematics/M.House3.schematic
+/run/schematics/M.House4.schematic
+/run/schematics/M.House5.schematic
+/run/schematics/M.House6.schematic
+/run/schematics/M.House7.schematic
+/run/schematics/M.House8.schematic
+/run/schematics/M.House9.schematic
+/run/schematics/M.House10.schematic
+/run/schematics/M.House11.schematic
+/run/schematics/M.House12.schematic
+/run/schematics/M.Kiosk.schematic
+/run/schematics/m-big-house2.schematic
+/run/schematics/m-bounty-hunter-house.schematic
+/run/schematics/m-carpenter-house.schematic
+/run/schematics/m-red-corporation-factory.schematic
+/run/schematics/m-small-house1.schematic
+/run/schematics/m-small-house2.schematic
+/run/schematics/mini1.schematic
+/run/schematics/mini2.schematic
+/run/schematics/mini_house_wood.schematic
+/run/schematics/Mining House.schematic
+/run/schematics/momiji1.schematic
+/run/schematics/momiji2.schematic
+/run/schematics/nature_town.schematic
+/run/schematics/NTREE1.schematic
+/run/schematics/ono_road.schematic
+/run/schematics/PINES1.schematic
+/run/schematics/PKSForge.schematic
+/run/schematics/PKSGate1.schematic
+/run/schematics/PKSGlassF.schematic
+/run/schematics/PKSHouse1.schematic
+/run/schematics/PKSHouse2.schematic
+/run/schematics/PKSHouse3.schematic
+/run/schematics/PKSInn.schematic
+/run/schematics/PKSJewelry.schematic
+/run/schematics/PKSTower1.schematic
+/run/schematics/PKSTower2.schematic
+/run/schematics/PKSWeaver.schematic
+/run/schematics/render_matrix.schem
+/run/schematics/sorazima.schematic
+/run/schematics/steampunk-island.schematic
+/run/schematics/stonehouse2.schematic
+/run/schematics/stonehouse3.schematic
+/run/schematics/test.schem
+/run/schematics/test2.schem
+/run/schematics/test_v2.schem
+/run/schematics/test_v3.schem
+/run/schematics/The Inn.schematic
+/run/schematics/tmp_smallhouse1.schematic
+/run/schematics/tmp_smallhouse2.schematic
+/run/schematics/tmp_smallhouse3.schematic
+/run/schematics/tmp_store2.schematic
+/run/schematics/tmp_trees.schematic
+/run/schematics/trydar-s-roman-nether-portal.schematic
+/run/schematics/v3_sign.schem
+/run/schematics/Watch Tower.schematic
+/run/schematics/Water_Wheel.schematic
+/run/schematics/watermill.schematic
+/run/schematics/wepon_shop.schematic
+/run/schematics/woodenhouse1.schematic
+/run/screenshots/2026-07-13_10.35.09.png
+/run/screenshots/2026-07-13_10.35.11.png
+/run/screenshots/2026-07-13_12.59.37.png
+/run/screenshots/2026-07-13_13.00.16.png
+/run/screenshots/2026-07-13_13.00.33.png
+/run/screenshots/2026-07-13_13.00.47.png
+/run/screenshots/2026-07-13_13.01.25.png
+/run/screenshots/2026-07-13_13.01.41.png
+/run/screenshots/2026-07-13_13.01.52.png
+/run/screenshots/2026-07-13_13.06.36.png
+/run/screenshots/2026-07-13_13.18.59.png
+/run/screenshots/2026-07-13_13.19.11.png
+/run/screenshots/2026-07-13_13.19.19.png
+/run/screenshots/2026-07-13_13.24.22.png
+/run/screenshots/2026-07-13_13.24.36.png
+/run/screenshots/2026-07-13_13.24.47.png
+/run/screenshots/2026-07-13_13.37.15.png
+/run/screenshots/2026-07-13_13.37.31.png
+/run/screenshots/2026-07-13_13.37.38.png
+/run/screenshots/2026-07-13_13.43.59.png
+/run/screenshots/2026-07-13_13.44.09.png
+/run/screenshots/2026-07-13_13.44.13.png
+/run/screenshots/2026-07-13_14.33.57.png
+/run/screenshots/2026-07-13_14.34.07.png
+/run/screenshots/2026-07-13_14.34.31.png
+/run/screenshots/2026-07-13_14.34.45.png
+/run/screenshots/2026-07-13_14.34.56.png
+/run/screenshots/2026-07-13_14.41.14.png
+/run/screenshots/2026-07-13_14.41.19.png
+/run/screenshots/2026-07-13_14.41.37.png
+/run/screenshots/2026-07-13_14.41.45.png
+/run/options.txt
+/run/usercache.json
+/run/usernamecache.json
+/logs/2025-06-03-1.log.gz
+/logs/codex_render_cleanup_build.log
+/logs/codex_render_diagnostic_build.log
+/logs/codex_render_diagnostic_runclient.log
+/logs/codex_render_fix_build.log
+/logs/codex_render_fix_runclient.log
+/logs/codex_sort_origin_fix_build.log
+/logs/codex_sort_origin_fix_runclient.log
+/logs/debug.log
+/logs/debug-1.log.gz
+/logs/debug-2.log.gz
+/logs/debug-3.log.gz
+/logs/debug-4.log.gz
+/logs/debug-5.log.gz
+/logs/latest.log
+/.idea/codeStyles/codeStyleConfig.xml
+/.idea/codeStyles/Project.xml
+/.idea/.gitignore
+/.idea/AndroidProjectSystem.xml
+/.idea/gradle.xml
+/.idea/kotlinc.xml
+/.idea/misc.xml
+/.idea/vcs.xml
+/.claude/hooks/posttool-accept-work.ps1
+/.claude/hooks/posttool-accept-work.sh
+/.claude/hooks/sessionstart-bootstrap.ps1
+/.claude/hooks/sessionstart-bootstrap.sh
+/.claude/hooks/stop-finish-gate.ps1
+/.claude/hooks/stop-finish-gate.sh
+/.claude/hooks/stop-verify.ps1
+/.claude/hooks/stop-verify.sh
+/.claude/skills/accept-work/SKILL.md
+/.claude/skills/deep-plan/SKILL.md
+/.claude/skills/delegate/SKILL.md
+/.claude/skills/finish-gate/SKILL.md
+/.claude/skills/long-task-state/SKILL.md
+/.claude/skills/retro/SKILL.md
+/.claude/skills/root-cause-debug/SKILL.md
+/.claude/skills/session-bootstrap/SKILL.md
+/.claude/skills/test-protocol/SKILL.md
+/.claude/settings.json

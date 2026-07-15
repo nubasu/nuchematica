@@ -32,6 +32,7 @@ public enum class DirectionSetting {
 @Serializable
 public data class RenderSettings(
     var opacity: Float = 0.5f,
+    public var automode: Boolean = false,
     var offsetX: Int = 0,
     var offsetY: Int = 0,
     var offsetZ: Int = 0,
@@ -47,6 +48,7 @@ public data class RenderSettings(
 ) {
     public fun applyFrom(other: RenderSettings) {
         this.opacity = other.opacity
+        this.automode = other.automode
         this.offsetX = other.offsetX
         this.offsetY = other.offsetY
         this.offsetZ = other.offsetZ
