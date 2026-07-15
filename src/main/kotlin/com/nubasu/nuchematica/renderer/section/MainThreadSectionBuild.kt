@@ -215,6 +215,7 @@ internal class MainThreadSectionBuildCursor(
 internal class MainThreadSectionBuildRequest internal constructor(
     internal val key: SectionKey,
     internal val content: SchematicContentSnapshot,
+    suppressed: Set<BlockPos>,
     internal val transform: RenderTransform,
     internal val sortOrigin: Vec3,
     internal val meshEpoch: Long,
@@ -227,7 +228,10 @@ internal class MainThreadSectionBuildRequest internal constructor(
         MainThreadSchematicRenderView(content, transform, world, threadGuard)
 
     internal val cursor: MainThreadSectionBuildCursor =
-        MainThreadSectionBuildCursor(content.blocksInSection(key), threadGuard)
+        MainThreadSectionBuildCursor(
+            content.blocksInSection(key).filterKeys { it !in suppressed },
+            threadGuard,
+        )
 }
 
 internal class MainThreadSectionBuildRequestFactory(
@@ -242,12 +246,14 @@ internal class MainThreadSectionBuildRequestFactory(
         meshEpoch: Long,
         sectionGeometryGeneration: Long,
         cameraSortRevision: Long,
+        suppressed: Set<BlockPos> = emptySet(),
     ): MainThreadSectionBuildRequest {
         threadGuard.checkOwnerThread()
         return create(
             world = ClientLevelWorldAccess(level, threadGuard),
             key = key,
             content = content,
+            suppressed = suppressed,
             transform = transform,
             sortOrigin = sortOrigin,
             meshEpoch = meshEpoch,
@@ -265,11 +271,13 @@ internal class MainThreadSectionBuildRequestFactory(
         meshEpoch: Long,
         sectionGeometryGeneration: Long,
         cameraSortRevision: Long,
+        suppressed: Set<BlockPos> = emptySet(),
     ): MainThreadSectionBuildRequest {
         threadGuard.checkOwnerThread()
         return MainThreadSectionBuildRequest(
             key = key,
             content = content,
+            suppressed = suppressed,
             transform = transform,
             sortOrigin = sortOrigin,
             meshEpoch = meshEpoch,

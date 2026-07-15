@@ -166,6 +166,12 @@ internal class SectionMeshState<H, S>(
         }
     }
 
+    internal fun markSectionDirty(key: SectionKey): Unit {
+        if (closed) return
+        val section = sections[key] ?: return
+        invalidateGeometry(section)
+    }
+
     internal fun clear(): Unit {
         if (closed) return
         meshEpoch++

@@ -10,6 +10,7 @@ import com.mojang.math.Vector3f.YP
 import com.nubasu.nuchematica.renderer.NuchematicaRenderTypes
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.RenderType
+import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.minecraftforge.client.event.RenderLevelStageEvent
@@ -35,6 +36,13 @@ private data class SectionSortWorkerInput(
 private data class PendingSectionSort(
     internal val token: SectionJobToken,
     internal val completion: WorkerCompletion<BufferBuilder>,
+)
+
+internal data class SectionMeshRuntimeSnapshot(
+    internal val geometryJobs: Int,
+    internal val sortJobs: Int,
+    internal val liveCpuBuffers: Int,
+    internal val completionQueue: Int,
 )
 
 internal interface SectionGpuHandle {
@@ -146,6 +154,7 @@ internal class SectionedSchematicMesh(
         operation = ::runSortJob,
         discard = bufferPool::discardSort,
     )
+    private val suppressedPositions: HashSet<BlockPos> = HashSet()
 
     private var level: ClientLevel? = null
     private var content: SchematicContentSnapshot? = null
@@ -185,12 +194,14 @@ internal class SectionedSchematicMesh(
         content: SchematicContentSnapshot,
         meshingService: SectionMeshingService,
         transform: RenderTransform,
+        suppressed: Set<BlockPos> = emptySet(),
     ): Unit {
         threadGuard.checkOwnerThread()
         if (state.isClosed) return
 
         val worldChanged = !worldIdentity.isCurrent(level)
         val resourceChanged = resourceEpoch != null && resourceEpoch != meshingService.resourceEpoch
+        suppressedPositions.clear()
         cancelCpuWork()
         if (worldChanged || resourceChanged) {
             state.clear()
@@ -201,6 +212,9 @@ internal class SectionedSchematicMesh(
         this.meshingService = meshingService
         this.transform = transform
         resourceEpoch = meshingService.resourceEpoch
+        if (!resourceChanged) {
+            suppressedPositions.addAll(suppressed)
+        }
         lastSortCamera = null
         state.replaceSections(worldAabbs(content, transform))
         metrics.beginContent(nanoTime())
@@ -212,6 +226,7 @@ internal class SectionedSchematicMesh(
     ): Unit {
         threadGuard.checkOwnerThread()
         if (state.isClosed) return
+        suppressedPositions.clear()
         val currentContent = content ?: return
         cancelCpuWork()
 
@@ -232,6 +247,19 @@ internal class SectionedSchematicMesh(
         threadGuard.checkOwnerThread()
         if (state.isClosed) return
         releaseContent()
+    }
+
+    internal fun setBlockSuppressed(localPos: BlockPos, suppressed: Boolean): Boolean {
+        threadGuard.checkOwnerThread()
+        if (state.isClosed) return false
+        val changed = if (suppressed) {
+            suppressedPositions.add(localPos)
+        } else {
+            suppressedPositions.remove(localPos)
+        }
+        if (!changed) return false
+        state.markSectionDirty(SectionKey.of(localPos))
+        return true
     }
 
     internal fun render(
@@ -284,6 +312,11 @@ internal class SectionedSchematicMesh(
         return state.residentSnapshot()
     }
 
+    internal fun runtimeSnapshot(): SectionMeshRuntimeSnapshot {
+        threadGuard.checkOwnerThread()
+        return currentRuntimeSnapshot()
+    }
+
     override fun close(): Unit {
         threadGuard.checkOwnerThread()
         if (state.isClosed) return
@@ -302,6 +335,7 @@ internal class SectionedSchematicMesh(
                     meshingService = null
                     transform = null
                     resourceEpoch = null
+                    suppressedPositions.clear()
                     lastSortCamera = null
                 }
             }
@@ -319,6 +353,7 @@ internal class SectionedSchematicMesh(
                 meshingService = null
                 transform = null
                 resourceEpoch = null
+                suppressedPositions.clear()
                 lastSortCamera = null
             }
         }
@@ -554,6 +589,8 @@ internal class SectionedSchematicMesh(
                 level = currentLevel,
                 key = key,
                 content = currentContent,
+                suppressed = suppressedPositions
+                    .filterTo(HashSet()) { SectionKey.of(it) == key },
                 transform = currentTransform,
                 sortOrigin = cameraLocal,
                 meshEpoch = token.meshEpoch,
@@ -803,6 +840,17 @@ internal class SectionedSchematicMesh(
     }
 
     private fun recordFrameMetrics(): Unit {
+        val runtime = currentRuntimeSnapshot()
+        metrics.recordFrame(
+            inFlight = sortWorker.inFlightCount,
+            submissions = frameLimits.submissions,
+            uploads = frameLimits.uploads,
+            liveCpuBuffers = runtime.liveCpuBuffers,
+            completionQueue = runtime.completionQueue,
+        )
+    }
+
+    private fun currentRuntimeSnapshot(): SectionMeshRuntimeSnapshot {
         val liveGeometryBuffers = when {
             pendingGeometry?.geometry == null && pendingGeometry != null -> 0
             pendingGeometry != null ->
@@ -816,10 +864,11 @@ internal class SectionedSchematicMesh(
             sortWorker.inFlightCount > 0 -> 1
             else -> 0
         }
-        metrics.recordFrame(
-            inFlight = sortWorker.inFlightCount,
-            submissions = frameLimits.submissions,
-            uploads = frameLimits.uploads,
+        return SectionMeshRuntimeSnapshot(
+            geometryJobs = (if (activeGeometry == null) 0 else 1) +
+                (if (pendingGeometry == null) 0 else 1),
+            sortJobs = sortWorker.inFlightCount +
+                (if (pendingSort == null) 0 else 1),
             liveCpuBuffers = liveGeometryBuffers + liveSortBuffers,
             completionQueue = (if (pendingGeometry == null) 0 else 1) +
                 (if (pendingSort == null) 0 else 1) + sortWorker.pendingCompletionCount,
