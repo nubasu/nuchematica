@@ -5,6 +5,8 @@ import com.mojang.logging.LogUtils
 import com.nubasu.nuchematica.gui.RenderSettingHolder
 import com.nubasu.nuchematica.gui.screen.SchematicListScreen
 import com.nubasu.nuchematica.gui.screen.SchematicSettingsScreen
+import com.nubasu.nuchematica.printer.PrinterActivationEvent
+import com.nubasu.nuchematica.printer.SchematicPrinter
 import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import com.nubasu.nuchematica.renderer.SelectedRegionManager
 import com.nubasu.nuchematica.schematic.reader.SchematicFormatDetector
@@ -68,6 +70,14 @@ public class KeyManager {
         "key.nuchematica.category"
     )
 
+    private val printerKey: KeyMapping = KeyMapping(
+        "key.nuchematica.printer",
+        KeyConflictContext.IN_GAME,
+        InputConstants.Type.KEYSYM,
+        'P'.code,
+        "key.nuchematica.category"
+    )
+
     // Registered on the MOD event bus from the Nuchematica constructor.
     public fun keyRegister(event: FMLClientSetupEvent) {
         ClientRegistry.registerKeyBinding(settingKey)
@@ -76,6 +86,7 @@ public class KeyManager {
         ClientRegistry.registerKeyBinding(saveKey)
         ClientRegistry.registerKeyBinding(shemaKey)
         ClientRegistry.registerKeyBinding(toggleDisplayKey)
+        ClientRegistry.registerKeyBinding(printerKey)
     }
 
     @SubscribeEvent
@@ -103,6 +114,17 @@ public class KeyManager {
         }
         if (toggleDisplayKey.consumeClick()) {
             SchematicRenderManager.isRendering = !SchematicRenderManager.isRendering
+        }
+        if (printerKey.consumeClick()) {
+            val isCreative = Minecraft.getInstance().gameMode?.playerMode?.isCreative == true
+            when (SchematicPrinter.toggleRequested(isCreative)) {
+                PrinterActivationEvent.ENABLED -> ChatSender.send("[nuchematica] printer: ON")
+                PrinterActivationEvent.DISABLED -> ChatSender.send("[nuchematica] printer: OFF")
+                PrinterActivationEvent.REQUIRES_CREATIVE -> {
+                    ChatSender.send("[nuchematica] printer requires creative mode")
+                }
+                PrinterActivationEvent.AUTO_DISABLED -> Unit
+            }
         }
     }
 

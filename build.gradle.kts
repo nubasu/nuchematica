@@ -28,6 +28,7 @@ java {
 jarJar.enable()
 
 minecraft {
+    accessTransformer(file("src/main/resources/META-INF/accesstransformer.cfg"))
     mappings("official", mcVersion)
 //    copyIdeResources.set(true)
 

@@ -6,6 +6,9 @@ import com.nubasu.nuchematica.gui.DirectionSetting
 import com.nubasu.nuchematica.gui.DisplayFlag
 import com.nubasu.nuchematica.gui.RenderSettings
 import com.nubasu.nuchematica.gui.RenderSettingsIO
+import com.nubasu.nuchematica.printer.PrinterSettings
+import com.nubasu.nuchematica.printer.PrinterSettingsHolder
+import com.nubasu.nuchematica.printer.PrinterSettingsIO
 import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import com.nubasu.nuchematica.schematic.SchematicEditor
 import net.minecraft.client.Minecraft
@@ -33,6 +36,7 @@ public class SchematicSettingsScreen(
         addSelectSchematicButton()
         addFilterSettingButton()
         addHeightControl()
+        addPrinterControls()
         addDisplayFlagToggles()
         addAutomodeToggle()
         addMoveHere()
@@ -250,6 +254,125 @@ public class SchematicSettingsScreen(
         addRenderableWidget(button)
     }
 
+    private fun addPrinterControls() {
+        val printerSettings = PrinterSettingsHolder.printerSettings
+        val attemptsInput = EditBox(
+            font,
+            PRINTER_ATTEMPTS_TEXT_X,
+            PRINTER_ATTEMPTS_TEXT_Y,
+            NUMBER_TEXT_WIDTH,
+            NUMBER_TEXT_HEIGHT,
+            TextComponent("Attempts per Tick"),
+        ).apply {
+            value = printerSettings.attemptsPerTick.toString()
+            setResponder {
+                it.toIntOrNull()?.let { value ->
+                    printerSettings.attemptsPerTick = value.coerceIn(
+                        MIN_PRINTER_ATTEMPTS_PER_TICK,
+                        MAX_PRINTER_ATTEMPTS_PER_TICK,
+                    )
+                    savePrinterSettings(printerSettings)
+                }
+            }
+        }
+        val attemptsPlus = Button(
+            PRINTER_ATTEMPTS_PLUS_X,
+            PRINTER_ATTEMPTS_PLUS_Y,
+            MINI_BUTTON_SIZE,
+            MINI_BUTTON_SIZE,
+            TextComponent("+"),
+        ) {
+            printerSettings.attemptsPerTick = (printerSettings.attemptsPerTick + 1).coerceIn(
+                MIN_PRINTER_ATTEMPTS_PER_TICK,
+                MAX_PRINTER_ATTEMPTS_PER_TICK,
+            )
+            attemptsInput.value = printerSettings.attemptsPerTick.toString()
+            savePrinterSettings(printerSettings)
+        }
+        val attemptsMinus = Button(
+            PRINTER_ATTEMPTS_MINUS_X,
+            PRINTER_ATTEMPTS_MINUS_Y,
+            MINI_BUTTON_SIZE,
+            MINI_BUTTON_SIZE,
+            TextComponent("-"),
+        ) {
+            printerSettings.attemptsPerTick = (printerSettings.attemptsPerTick - 1).coerceIn(
+                MIN_PRINTER_ATTEMPTS_PER_TICK,
+                MAX_PRINTER_ATTEMPTS_PER_TICK,
+            )
+            attemptsInput.value = printerSettings.attemptsPerTick.toString()
+            savePrinterSettings(printerSettings)
+        }
+
+        val reachInput = EditBox(
+            font,
+            PRINTER_REACH_TEXT_X,
+            PRINTER_REACH_TEXT_Y,
+            NUMBER_TEXT_WIDTH,
+            NUMBER_TEXT_HEIGHT,
+            TextComponent("Reach"),
+        ).apply {
+            value = printerSettings.reach.toString()
+            setResponder {
+                it.toDoubleOrNull()?.let { value ->
+                    printerSettings.reach = value.coerceIn(MIN_PRINTER_REACH, MAX_PRINTER_REACH)
+                    savePrinterSettings(printerSettings)
+                }
+            }
+        }
+        val reachPlus = Button(
+            PRINTER_REACH_PLUS_X,
+            PRINTER_REACH_PLUS_Y,
+            MINI_BUTTON_SIZE,
+            MINI_BUTTON_SIZE,
+            TextComponent("+"),
+        ) {
+            printerSettings.reach = (printerSettings.reach + PRINTER_REACH_STEP)
+                .coerceIn(MIN_PRINTER_REACH, MAX_PRINTER_REACH)
+            reachInput.value = printerSettings.reach.toString()
+            savePrinterSettings(printerSettings)
+        }
+        val reachMinus = Button(
+            PRINTER_REACH_MINUS_X,
+            PRINTER_REACH_MINUS_Y,
+            MINI_BUTTON_SIZE,
+            MINI_BUTTON_SIZE,
+            TextComponent("-"),
+        ) {
+            printerSettings.reach = (printerSettings.reach - PRINTER_REACH_STEP)
+                .coerceIn(MIN_PRINTER_REACH, MAX_PRINTER_REACH)
+            reachInput.value = printerSettings.reach.toString()
+            savePrinterSettings(printerSettings)
+        }
+        val waterlogDryButton = Button(
+            PRINTER_WATERLOG_DRY_BUTTON_X,
+            PRINTER_WATERLOG_DRY_BUTTON_Y,
+            NUMBER_TEXT_WIDTH,
+            NUMBER_TEXT_HEIGHT,
+            TextComponent(if (printerSettings.placeWaterloggedDry) "ON" else "OFF"),
+        ) {
+            printerSettings.placeWaterloggedDry = !printerSettings.placeWaterloggedDry
+            Minecraft.getInstance().setScreen(this)
+            savePrinterSettings(printerSettings)
+        }
+        waterlogDryButton.message = TextComponent(
+            if (printerSettings.placeWaterloggedDry) "ON" else "OFF",
+        )
+
+        addRenderableWidget(attemptsInput)
+        addRenderableWidget(attemptsPlus)
+        addRenderableWidget(attemptsMinus)
+        addRenderableWidget(reachInput)
+        addRenderableWidget(reachPlus)
+        addRenderableWidget(reachMinus)
+        addRenderableWidget(waterlogDryButton)
+    }
+
+    private fun savePrinterSettings(printerSettings: PrinterSettings): Unit {
+        PrinterSettingsHolder.printerSettings = printerSettings
+        PrinterSettingsIO.save(printerSettings)
+    }
+
 
     private fun addPresetControls() {
         val saveButton = Button(SETTING_SAVE_BUTTON_X, SETTING_SAVE_BUTTON_Y, SETTING_BUTTON_WIDTH, NUMBER_TEXT_HEIGHT, TextComponent( "Save")) {
@@ -282,6 +405,15 @@ public class SchematicSettingsScreen(
         drawText(poseStack, "z: ", OFFSET_Z_HEADER_X, OFFSET_Z_HEADER_Y)
         drawText(poseStack, "Rotation: ", ROTATION_HEADER_X, ROTATION_HEADER_Y)
         drawText(poseStack, "Display Height: ", DISPLAY_HEIGHT_HEADER_X, DISPLAY_HEIGHT_HEADER_Y)
+        drawText(poseStack, "Printer: ", PRINTER_HEADER_X, PRINTER_HEADER_Y)
+        drawText(poseStack, "Attempts: ", PRINTER_ATTEMPTS_HEADER_X, PRINTER_ATTEMPTS_HEADER_Y)
+        drawText(poseStack, "Reach: ", PRINTER_REACH_HEADER_X, PRINTER_REACH_HEADER_Y)
+        drawText(
+            poseStack,
+            "Waterlog dry: ",
+            PRINTER_WATERLOG_DRY_HEADER_X,
+            PRINTER_WATERLOG_DRY_HEADER_Y,
+        )
         drawText(poseStack, "Display Type: ", DISPLAY_TYPE_HEADER_X, DISPLAY_TYPE_HEADER_Y)
         drawText(poseStack, "Automode: ", AUTOMODE_HEADER_X, AUTOMODE_HEADER_Y)
         drawText(poseStack, "Save/Load a Setting: ", SETTING_HEADER_X, SETTING_HEADER_Y)
@@ -306,6 +438,12 @@ public class SchematicSettingsScreen(
         private const val FIRST_LINE_BASELINE = 10
 
         private const val SETTING_BUTTON_WIDTH = 40
+        private const val PRINTER_LABEL_WIDTH = 55
+        private const val MIN_PRINTER_ATTEMPTS_PER_TICK = 1
+        private const val MAX_PRINTER_ATTEMPTS_PER_TICK = 8
+        private const val MIN_PRINTER_REACH = 1.0
+        private const val MAX_PRINTER_REACH = 5.0
+        private const val PRINTER_REACH_STEP = 0.5
 
         private const val ALPHA_HEADER_X = FIRST_LINE_BASELINE
         private const val ALPHA_HEADER_Y = 10
@@ -355,12 +493,41 @@ public class SchematicSettingsScreen(
         private const val DISPLAY_HEIGHT_PLUS_X = DISPLAY_HEIGHT_TEXT_X + NUMBER_TEXT_WIDTH + PADDING
         private const val DISPLAY_HEIGHT_PLUS_Y = DISPLAY_HEIGHT_TEXT_Y
 
-        private var SETTING_HEADER_X = FIRST_LINE_BASELINE
-        private var SETTING_HEADER_Y = DISPLAY_HEIGHT_PLUS_Y + NUMBER_TEXT_HEIGHT + PADDING
-        private var SETTING_SAVE_BUTTON_X = FIRST_LINE_BASELINE
-        private var SETTING_SAVE_BUTTON_Y = SETTING_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
-        private var SETTING_LOAD_BUTTON_X = SETTING_SAVE_BUTTON_X + SETTING_BUTTON_WIDTH + PADDING
-        private var SETTING_LOAD_BUTTON_Y = SETTING_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
+        private const val PRINTER_HEADER_X = FIRST_LINE_BASELINE
+        private const val PRINTER_HEADER_Y = DISPLAY_HEIGHT_PLUS_Y + NUMBER_TEXT_HEIGHT + PADDING
+
+        private const val PRINTER_ATTEMPTS_HEADER_X = FIRST_LINE_BASELINE
+        private const val PRINTER_ATTEMPTS_HEADER_Y = PRINTER_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
+        private const val PRINTER_ATTEMPTS_MINUS_X = PRINTER_ATTEMPTS_HEADER_X + PRINTER_LABEL_WIDTH
+        private const val PRINTER_ATTEMPTS_MINUS_Y = PRINTER_ATTEMPTS_HEADER_Y
+        private const val PRINTER_ATTEMPTS_TEXT_X = PRINTER_ATTEMPTS_MINUS_X + MINI_BUTTON_SIZE + PADDING
+        private const val PRINTER_ATTEMPTS_TEXT_Y = PRINTER_ATTEMPTS_MINUS_Y
+        private const val PRINTER_ATTEMPTS_PLUS_X = PRINTER_ATTEMPTS_TEXT_X + NUMBER_TEXT_WIDTH + PADDING
+        private const val PRINTER_ATTEMPTS_PLUS_Y = PRINTER_ATTEMPTS_TEXT_Y
+
+        private const val PRINTER_REACH_HEADER_X = FIRST_LINE_BASELINE
+        private const val PRINTER_REACH_HEADER_Y = PRINTER_ATTEMPTS_PLUS_Y + NUMBER_TEXT_HEIGHT + PADDING
+        private const val PRINTER_REACH_MINUS_X = PRINTER_REACH_HEADER_X + PRINTER_LABEL_WIDTH
+        private const val PRINTER_REACH_MINUS_Y = PRINTER_REACH_HEADER_Y
+        private const val PRINTER_REACH_TEXT_X = PRINTER_REACH_MINUS_X + MINI_BUTTON_SIZE + PADDING
+        private const val PRINTER_REACH_TEXT_Y = PRINTER_REACH_MINUS_Y
+        private const val PRINTER_REACH_PLUS_X = PRINTER_REACH_TEXT_X + NUMBER_TEXT_WIDTH + PADDING
+        private const val PRINTER_REACH_PLUS_Y = PRINTER_REACH_TEXT_Y
+
+        private const val PRINTER_WATERLOG_DRY_HEADER_X = FIRST_LINE_BASELINE
+        private const val PRINTER_WATERLOG_DRY_HEADER_Y =
+            PRINTER_REACH_PLUS_Y + NUMBER_TEXT_HEIGHT + PADDING
+        private const val PRINTER_WATERLOG_DRY_BUTTON_X =
+            PRINTER_WATERLOG_DRY_HEADER_X + NUMBER_TEXT_WIDTH
+        private const val PRINTER_WATERLOG_DRY_BUTTON_Y = PRINTER_WATERLOG_DRY_HEADER_Y
+
+        private const val SETTING_HEADER_X = FIRST_LINE_BASELINE
+        private const val SETTING_HEADER_Y =
+            PRINTER_WATERLOG_DRY_BUTTON_Y + NUMBER_TEXT_HEIGHT + PADDING
+        private const val SETTING_SAVE_BUTTON_X = FIRST_LINE_BASELINE
+        private const val SETTING_SAVE_BUTTON_Y = SETTING_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
+        private const val SETTING_LOAD_BUTTON_X = SETTING_SAVE_BUTTON_X + SETTING_BUTTON_WIDTH + PADDING
+        private const val SETTING_LOAD_BUTTON_Y = SETTING_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
 
     }
 

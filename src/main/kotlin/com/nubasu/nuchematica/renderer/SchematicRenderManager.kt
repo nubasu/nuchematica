@@ -183,6 +183,10 @@ public object SchematicRenderManager {
         return currentTransform().localBlockToWorld(pos)
     }
 
+    internal fun currentTransformRevision(): Long {
+        return transformRevision
+    }
+
     public fun initialize(): Unit {
         settingsApplyPending = false
         resetTransformToPlayer()

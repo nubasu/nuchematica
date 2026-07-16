@@ -1,9 +1,11 @@
 package com.nubasu.nuchematica.schematic
 
+import com.nubasu.nuchematica.printer.MissingSnapshot
 import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.block.state.BlockState
+import java.util.Collections
 
 public data class MissingBlockChange(
     public val localPos: BlockPos,
@@ -15,8 +17,11 @@ public data class MissingBlockChange(
 object MissingBlockHolder {
     val blockPos = arrayListOf<BlockPos>()
     val airPos = arrayListOf<BlockPos>()
+    private var revision: Long = 0L
 
     public fun initialize(): Unit {
+        val previousBlockPos = blockPos.toList()
+        val previousAirPos = airPos.toList()
         blockPos.clear()
         airPos.clear()
         val mc = Minecraft.getInstance()
@@ -26,7 +31,7 @@ object MissingBlockHolder {
         for ((pos, expectedState) in dummy.blocks) {
             val worldPos = SchematicRenderManager.localBlockToWorld(pos)
             val actualState = world.getBlockState(worldPos)
-            if (expectedState == actualState) continue
+            if (BlockStateEquivalence.matches(expectedState, actualState)) continue
 
             if (actualState.isAir) {
                 airPos.add(pos)
@@ -34,13 +39,17 @@ object MissingBlockHolder {
                 blockPos.add(pos)
             }
         }
+
+        if (blockPos != previousBlockPos || airPos != previousAirPos) {
+            revision++
+        }
     }
 
     public fun placed(pos: BlockPos, actualState: BlockState): MissingBlockChange? {
         val localPos = SchematicRenderManager.worldBlockToLocal(pos)
         val dummy = SchematicHolder.renderingBlocks
         val expectedState = dummy.blocks[localPos] ?: return null
-        val satisfied = expectedState == actualState
+        val satisfied = BlockStateEquivalence.matches(expectedState, actualState)
         return applyStatus(
             localPos = localPos,
             airMissing = !satisfied && actualState.isAir,
@@ -67,6 +76,16 @@ object MissingBlockHolder {
         }
     }
 
+    internal fun missingSnapshot(): MissingSnapshot {
+        val missing = ArrayList<BlockPos>(airPos.size + blockPos.size)
+        missing.addAll(airPos)
+        missing.addAll(blockPos)
+        return MissingSnapshot(
+            revision = revision,
+            missingLocal = Collections.unmodifiableList(missing),
+        )
+    }
+
     private fun applyStatus(
         localPos: BlockPos,
         airMissing: Boolean,
@@ -88,9 +107,13 @@ object MissingBlockHolder {
         }
 
         val satisfied = !airMissing && !blockMissing
+        val overlayChanged = wasAirMissing != airMissing || wasBlockMissing != blockMissing
+        if (overlayChanged) {
+            revision++
+        }
         return MissingBlockChange(
             localPos = localPos,
-            overlayChanged = wasAirMissing != airMissing || wasBlockMissing != blockMissing,
+            overlayChanged = overlayChanged,
             satisfiedChanged = wasSatisfied != satisfied,
             satisfied = satisfied,
         )

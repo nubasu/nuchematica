@@ -2,7 +2,11 @@ package com.nubasu.nuchematica
 
 import com.mojang.brigadier.Command
 import com.nubasu.nuchematica.gui.MainGui
+import com.nubasu.nuchematica.gui.PrinterHudOverlay
 import com.nubasu.nuchematica.keysetting.KeyManager
+import com.nubasu.nuchematica.printer.PrinterSettingsHolder
+import com.nubasu.nuchematica.printer.PrinterSettingsIO
+import com.nubasu.nuchematica.printer.SchematicPrinter
 import com.nubasu.nuchematica.renderer.ClientBlockInteractHandler
 import com.nubasu.nuchematica.renderer.NuchematicaShaders
 import com.nubasu.nuchematica.renderer.SchematicRenderManager
@@ -30,6 +34,7 @@ public class Nuchematica {
     init {
         val modEventBus = FMLJavaModLoadingContext.get().modEventBus
         val keyManager = KeyManager()
+        PrinterSettingsHolder.printerSettings = PrinterSettingsIO.load()
 
         // Key bindings must be registered on the MOD event bus (FMLClientSetupEvent is a
         // mod-bus event and never fires for listeners registered on the Forge bus).
@@ -40,6 +45,7 @@ public class Nuchematica {
         MinecraftForge.EVENT_BUS.register(this)
         MinecraftForge.EVENT_BUS.register(keyManager)
         MinecraftForge.EVENT_BUS.register(MainGui())
+        MinecraftForge.EVENT_BUS.register(PrinterHudOverlay())
         MinecraftForge.EVENT_BUS.register(ClientBlockInteractHandler())
     }
 
@@ -107,9 +113,13 @@ public class Nuchematica {
     public fun onClientTick(event: TickEvent.ClientTickEvent ) {
         if (event.phase != TickEvent.Phase.END) return  // run at end of tick
         val world = Minecraft.getInstance().level
-        if (world == null) return
+        if (world == null) {
+            SchematicPrinter.tick()
+            return
+        }
 
         SchematicRenderManager.tickPendingSettings()
+        SchematicPrinter.tick()
 
         // Check pending breaks
         val breakIter = ClientBlockInteractHandler.pendingBreakPositions.iterator()

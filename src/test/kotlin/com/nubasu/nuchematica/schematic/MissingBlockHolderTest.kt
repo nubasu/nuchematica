@@ -4,16 +4,22 @@ import com.nubasu.nuchematica.common.SchematicCache
 import com.nubasu.nuchematica.common.Vector3
 import com.nubasu.nuchematica.gui.DirectionSetting
 import com.nubasu.nuchematica.renderer.SchematicRenderManager
+import io.mockk.every
+import io.mockk.mockk
 import net.minecraft.SharedConstants
+import net.minecraft.client.Minecraft
+import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.Bootstrap
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.phys.Vec3
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
@@ -98,6 +104,25 @@ public class MissingBlockHolderTest {
     }
 
     @Test
+    public fun equivalentPlacedLeavesAreSatisfied(): Unit {
+        val localPos = BlockPos.ZERO
+        val naturalLeaves = Blocks.OAK_LEAVES.defaultBlockState()
+            .setValue(BlockStateProperties.PERSISTENT, false)
+            .setValue(BlockStateProperties.DISTANCE, 7)
+        val placedLeaves = Blocks.OAK_LEAVES.defaultBlockState()
+            .setValue(BlockStateProperties.PERSISTENT, true)
+            .setValue(BlockStateProperties.DISTANCE, 1)
+        SchematicHolder.renderingBlocks = SchematicCache(mapOf(localPos to naturalLeaves), emptyMap())
+        MissingBlockHolder.airPos += localPos
+
+        val change = MissingBlockHolder.placed(localPos, placedLeaves)
+
+        assertTrue(change?.satisfied == true)
+        assertTrue(MissingBlockHolder.airPos.isEmpty())
+        assertTrue(MissingBlockHolder.blockPos.isEmpty())
+    }
+
+    @Test
     public fun repeatedWrongPlacementIsANoopAndSatisfiedSnapshotIsIndependent(): Unit {
         val satisfiedPos = BlockPos.ZERO
         val wrongPos = BlockPos(1, 0, 0)
@@ -139,6 +164,76 @@ public class MissingBlockHolderTest {
         assertEquals(expectedWorldPos, SchematicRenderManager.localBlockToWorld(localPos))
         assertEquals(localPos, SchematicRenderManager.worldBlockToLocal(expectedWorldPos))
         assertEquals(localPos, MissingBlockHolder.placed(expectedWorldPos, expected)?.localPos)
+    }
+
+    @Test
+    public fun revisionChangesOnlyWhenApplyStatusChangesMissingState(): Unit {
+        val localPos = BlockPos.ZERO
+        val outsidePos = BlockPos(10, 0, 0)
+        val expected = Blocks.STONE.defaultBlockState()
+        SchematicHolder.renderingBlocks = SchematicCache(mapOf(localPos to expected), emptyMap())
+        val initialRevision = MissingBlockHolder.missingSnapshot().revision
+
+        assertNull(MissingBlockHolder.removed(outsidePos))
+        assertEquals(initialRevision, MissingBlockHolder.missingSnapshot().revision)
+
+        MissingBlockHolder.removed(localPos)
+        val firstMissing = MissingBlockHolder.missingSnapshot()
+        assertEquals(initialRevision + 1L, firstMissing.revision)
+        assertEquals(listOf(localPos), firstMissing.missingLocal)
+
+        MissingBlockHolder.removed(localPos)
+        assertEquals(firstMissing.revision, MissingBlockHolder.missingSnapshot().revision)
+
+        MissingBlockHolder.placed(localPos, Blocks.DIRT.defaultBlockState())
+        val wrongBlock = MissingBlockHolder.missingSnapshot()
+        assertEquals(firstMissing.revision + 1L, wrongBlock.revision)
+
+        MissingBlockHolder.placed(localPos, Blocks.DIRT.defaultBlockState())
+        assertEquals(wrongBlock.revision, MissingBlockHolder.missingSnapshot().revision)
+
+        MissingBlockHolder.placed(localPos, expected)
+        assertEquals(wrongBlock.revision + 1L, MissingBlockHolder.missingSnapshot().revision)
+        assertEquals(listOf(localPos), firstMissing.missingLocal)
+        assertThrows(UnsupportedOperationException::class.java) {
+            (firstMissing.missingLocal as MutableList<BlockPos>).add(outsidePos)
+        }
+    }
+
+    @Test
+    public fun initializeIncrementsRevisionOnlyWhenScanResultChanges(): Unit {
+        val localPos = BlockPos.ZERO
+        val expected = Blocks.STONE.defaultBlockState()
+        var actualState = Blocks.AIR.defaultBlockState()
+        val level = mockk<ClientLevel>()
+        every { level.getBlockState(any()) } answers { actualState }
+        val minecraft = mockk<Minecraft>(relaxed = true)
+        val instanceField = Minecraft::class.java.getDeclaredField("instance")
+        val levelField = Minecraft::class.java.getField("level")
+        instanceField.isAccessible = true
+        val previousMinecraft = instanceField.get(null)
+        levelField.set(minecraft, level)
+        instanceField.set(null, minecraft)
+        SchematicHolder.renderingBlocks = SchematicCache(mapOf(localPos to expected), emptyMap())
+        val initialRevision = MissingBlockHolder.missingSnapshot().revision
+
+        try {
+            MissingBlockHolder.initialize()
+            val firstScan = MissingBlockHolder.missingSnapshot()
+            assertEquals(initialRevision + 1L, firstScan.revision)
+            assertEquals(listOf(localPos), firstScan.missingLocal)
+
+            MissingBlockHolder.initialize()
+            assertEquals(firstScan.revision, MissingBlockHolder.missingSnapshot().revision)
+
+            actualState = expected
+            MissingBlockHolder.initialize()
+            val satisfiedScan = MissingBlockHolder.missingSnapshot()
+            assertEquals(firstScan.revision + 1L, satisfiedScan.revision)
+            assertTrue(satisfiedScan.missingLocal.isEmpty())
+        } finally {
+            instanceField.set(null, previousMinecraft)
+        }
     }
 
     public companion object {
