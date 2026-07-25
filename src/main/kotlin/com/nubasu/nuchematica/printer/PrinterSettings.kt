@@ -10,8 +10,16 @@ import java.io.File
 @Serializable
 public data class PrinterSettings(
     public var attemptsPerTick: Int = 1,
-    public var reach: Double = 4.5,
+    public var placementIntervalTicks: Int = 1,
+    public var reach: Double = 4.0,
+    public var facePlacement: Boolean = true,
     public var placeWaterloggedDry: Boolean = false,
+    public var substituteLookalikes: Boolean = true,
+    // Flag-gated v4 plan-first execution path (PlanExecutionCursor/PlanRuntimeAdapter);
+    // false keeps the printer on its existing v3 per-tick classification/placement path
+    // byte-for-byte unchanged. No GUI toggle yet -- opt in by editing the saved settings
+    // file directly.
+    public var planFirstMode: Boolean = false,
 )
 
 public object PrinterSettingsHolder {
@@ -29,15 +37,24 @@ public object PrinterSettingsCodec {
         } ?: PrinterSettings()
         return PrinterSettings(
             attemptsPerTick = decoded.attemptsPerTick.coerceIn(MIN_ATTEMPTS_PER_TICK, MAX_ATTEMPTS_PER_TICK),
+            placementIntervalTicks = decoded.placementIntervalTicks.coerceIn(
+                MIN_PLACEMENT_INTERVAL_TICKS,
+                MAX_PLACEMENT_INTERVAL_TICKS,
+            ),
             reach = decoded.reach.coerceIn(MIN_REACH, MAX_REACH),
+            facePlacement = decoded.facePlacement,
             placeWaterloggedDry = decoded.placeWaterloggedDry,
+            substituteLookalikes = decoded.substituteLookalikes,
+            planFirstMode = decoded.planFirstMode,
         )
     }
 
     private const val MIN_ATTEMPTS_PER_TICK: Int = 1
     private const val MAX_ATTEMPTS_PER_TICK: Int = 8
+    private const val MIN_PLACEMENT_INTERVAL_TICKS: Int = 1
+    private const val MAX_PLACEMENT_INTERVAL_TICKS: Int = 40
     private const val MIN_REACH: Double = 1.0
-    private const val MAX_REACH: Double = 5.0
+    private const val MAX_REACH: Double = 4.0
 }
 
 public object PrinterSettingsIO {

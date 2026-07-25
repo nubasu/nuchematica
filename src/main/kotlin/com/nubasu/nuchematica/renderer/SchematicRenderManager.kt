@@ -7,6 +7,7 @@ import com.nubasu.nuchematica.gui.DisplayFlag
 import com.nubasu.nuchematica.gui.RenderSettingHolder
 import com.nubasu.nuchematica.gui.RenderSettings
 import com.nubasu.nuchematica.io.SchematicFileLoader
+import com.nubasu.nuchematica.printer.PrintWorldModel
 import com.nubasu.nuchematica.renderer.section.RenderTransform
 import com.nubasu.nuchematica.renderer.section.SchematicContentSnapshot
 import com.nubasu.nuchematica.schematic.MissingBlockChange
@@ -138,7 +139,9 @@ public object SchematicRenderManager {
     public var initialPosition: Vec3 = Vec3.ZERO
     public var initialDirection: Direction = Direction.NORTH
 
-    private val schematicRenderer: SectionedSchematicRenderer = SectionedSchematicRenderer()
+    // Lazy so the mesh thread guard captures the thread of first renderer use (always the
+    // client main thread) even if this object is class-initialized on a modloading worker.
+    private val schematicRenderer: SectionedSchematicRenderer by lazy { SectionedSchematicRenderer() }
     private val missingBlockRenderer: MissingBlockRender = MissingBlockRender()
     private var offset: Vec3 = Vec3.ZERO
     private var rotate: Float = 0.0f
@@ -151,6 +154,12 @@ public object SchematicRenderManager {
     private var settingsApplyPending: Boolean = false
     private var ticksSinceSettingsChange: Int = 0
     private var missingRefreshPending: Boolean = false
+    // Set while PrintWorldModel is still budgeting its capture --
+    // MissingBlockHolder.initialize (and the suppressed-position sync that follows it) is
+    // deferred until the capture completes, pumped from tickPendingSettings every client
+    // tick instead of blocking the call that requested it.
+    private var missingInitializePending: Boolean = false
+    private var pendingMissingInitSettings: RenderSettingsSnapshot? = null
 
     public fun getRenderBase(): Vec3 {
         return Vec3(
@@ -224,6 +233,7 @@ public object SchematicRenderManager {
 
     internal fun tickPendingSettings(): Unit {
         refreshMissingBlocksAfterWorldLoad()
+        pumpPrintWorldModelCapture()
         if (!settingsApplyPending) return
         if (++ticksSinceSettingsChange >= SETTINGS_APPLY_DELAY_TICKS) {
             flushPendingSettings()
@@ -259,6 +269,12 @@ public object SchematicRenderManager {
             attachedLevel = null
             currentRenderSnapshot = null
             missingRefreshPending = false
+            // World unload is one of the "abort" paths that must
+            // cancel an in-progress capture cleanly rather than leave it pointed at a
+            // level that no longer exists.
+            missingInitializePending = false
+            pendingMissingInitSettings = null
+            PrintWorldModel.cancel()
         }
     }
 
@@ -359,8 +375,12 @@ public object SchematicRenderManager {
             schematicRenderer.updateTransform(updated)
         }
         if (Minecraft.getInstance().level != null) {
-            initMissingBlock()
-            syncSatisfiedPositions(settings)
+            // initMissingBlock returns false while PrintWorldModel
+            // is still budgeting its capture -- syncSatisfiedPositions must wait for the
+            // same completion pumpPrintWorldModelCapture (tickPendingSettings) applies.
+            if (initMissingBlock(settings)) {
+                syncSatisfiedPositions(settings)
+            }
         }
     }
 
@@ -370,9 +390,15 @@ public object SchematicRenderManager {
         val level = ensureAttachedLevel()
         val suppressedPositions = if (Minecraft.getInstance().level == null) {
             emptySet()
-        } else {
-            initMissingBlock()
+        } else if (initMissingBlock(settings)) {
             initialSuppressedPositions(settings)
+        } else {
+            // Capture still in progress: build the mesh with nothing suppressed for now
+            // -- pumpPrintWorldModelCapture re-applies suppression per position (the same
+            // path onMissingBlockChange already uses) once the capture completes, so any
+            // already-satisfied ghost briefly showing is a one-time, self-correcting
+            // artifact of the budgeted scan, not a lasting inconsistency.
+            emptySet()
         }
         if (level != null) {
             replaceCurrentContent(level, suppressedPositions)
@@ -469,14 +495,81 @@ public object SchematicRenderManager {
         val level = attachedLevel ?: return
         if (Minecraft.getInstance().level !== level) return
         missingRefreshPending = false
-        initMissingBlock()
-        appliedSettings?.let(::syncSatisfiedPositions)
+        val settings = appliedSettings ?: return
+        if (initMissingBlock(settings)) {
+            syncSatisfiedPositions(settings)
+        }
     }
 
-    private fun initMissingBlock(): Unit {
-        if (Minecraft.getInstance().level == null) return
+    // Kicks off (or resumes) the PrintWorldModel capture for the
+    // current schematic content/transform/level, then pumps it once synchronously so a
+    // schematic small enough to fit in one CAPTURE_CELLS_PER_TICK budget still initializes
+    // instantly. Once the capture
+    // settles, MissingBlockHolder.initialize() itself is budgeted too -- this is the
+    // single call site that ever STARTS a classification pass (every later tick only ever
+    // continues it via pumpPrintWorldModelCapture's pump() call, see that function's doc).
+    // Returns true only if BOTH the capture and the classification actually settled this
+    // call; false means one of the two is still running and pumpPrintWorldModelCapture
+    // (tickPendingSettings) finishes the job on a later tick.
+    private fun initMissingBlock(settings: RenderSettingsSnapshot): Boolean {
+        val level = Minecraft.getInstance().level ?: return false
+        val content = SchematicHolder.renderingBlocks
+        var status = PrintWorldModel.ensureCapture(
+            level = level,
+            contentIdentity = content,
+            transformRevision = transformRevision,
+            localPositions = content.blocks.keys,
+            localToWorld = ::localBlockToWorld,
+        )
+        if (status == PrintWorldModel.Status.CAPTURING) {
+            status = PrintWorldModel.pump(level)
+        }
+        if (status == PrintWorldModel.Status.CAPTURING) {
+            missingInitializePending = true
+            pendingMissingInitSettings = settings
+            return false
+        }
         MissingBlockHolder.initialize()
+        if (MissingBlockHolder.isInitializing()) {
+            missingInitializePending = true
+            pendingMissingInitSettings = settings
+            return false
+        }
+        missingInitializePending = false
+        pendingMissingInitSettings = null
         missingBlockRenderer.initialize()
+        return true
+    }
+
+    // Continues an in-progress capture by CAPTURE_CELLS_PER_TICK cells; once it settles,
+    // continues (or starts, on the first tick it observes the settled capture)
+    // MissingBlockHolder's own budgeted classification pass, then finishes exactly what
+    // the deferred initMissingBlock call above could not: the retroactive per-position
+    // suppression sync (for content invalidation callers, which passed an empty
+    // suppressed set). isInitializing() tells "just settled, not started yet" (initialize()
+    // starts it) apart from "already mid-pass from an earlier tick" (pump() continues it)
+    // -- initMissingBlock is the only OTHER call site that ever starts a pass, so by the
+    // time missingInitializePending stays true into a later tick, a pass already in
+    // progress can only mean "continue", never "restart from zero".
+    private fun pumpPrintWorldModelCapture(): Unit {
+        if (!missingInitializePending) return
+        val level = attachedLevel ?: Minecraft.getInstance().level ?: return
+        if (PrintWorldModel.pump(level) == PrintWorldModel.Status.CAPTURING) return
+        if (MissingBlockHolder.isInitializing()) {
+            MissingBlockHolder.pump()
+        } else {
+            MissingBlockHolder.initialize()
+        }
+        if (MissingBlockHolder.isInitializing()) return
+        missingInitializePending = false
+        missingBlockRenderer.initialize()
+        val settings = pendingMissingInitSettings
+        pendingMissingInitSettings = null
+        if (settings?.automode == true) {
+            for (pos in MissingBlockHolder.satisfiedPositions()) {
+                schematicRenderer.setBlockSuppressed(pos, true)
+            }
+        }
     }
 
     private fun initialSuppressedPositions(settings: RenderSettingsSnapshot): Set<BlockPos> {

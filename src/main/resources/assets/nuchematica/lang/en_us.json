@@ -5,11 +5,16 @@
   "key.nuchematica.minus": "Key minus",
   "key.nuchematica.save": "Key save",
   "key.nuchematica.printer": "Toggle printer",
+  "key.nuchematica.mover": "Toggle auto-move",
 
   "screen.nuchematica.setting": "Example screen",
   "screen.nuchematica.sub": "Sub screen",
   "button.nuchematica.next": "Next",
   "button.nuchematica.close": "Close",
   "button.nuchematica.plus": "+",
-  "button.nuchematica.minus": "-"
+  "button.nuchematica.minus": "-",
+  "screen.nuchematica.printer.interval_ticks": "Interval (ticks)",
+  "screen.nuchematica.printer.substitute_lookalikes": "Look-alikes",
+  "screen.nuchematica.printer.face_placement": "Face placement",
+  "screen.nuchematica.printer.plan_first_mode": "Plan mode"
 }

@@ -101,6 +101,16 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // C3-fix-32: Gradle's unconfigured test-worker default (512m) is no longer enough
+    // for this suite -- 54+ classes each bootstrapping Minecraft's SharedConstants/
+    // Bootstrap, plus MockK/kotlin-reflect's own per-mock metadata bootstrap (a known
+    // cost, see PrintWorldModelTest.mockClientLevel's root-cause note), cumulatively
+    // exhausted 512m mid-run (OutOfMemoryError inside kotlin-reflect's ProtoBuf parsing)
+    // even with every individual test's own data kept small. Raised, not the individual
+    // tests shrunk further, since the tests were already at the "tens of thousands, not
+    // hundreds of thousands" per-mock-invocation ceiling that class's investigation
+    // established as the practical floor.
+    maxHeapSize = "2g"
 }
 
 val processResources by tasks.getting(Copy::class) {

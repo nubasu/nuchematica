@@ -55,8 +55,16 @@ public object SchematicFileLoader {
         SchematicHolder.schematicSize = Vector3(
             maxX - minX, maxY - minY, maxZ - minZ
         )
+        // Scale guard: a one-time warning per file load, not tied to filter/content-
+        // invalidation churn (which can re-fire for the same file), so this is the
+        // single natural place a fresh load is known.
+        if (blocks.size > LARGE_SCHEMATIC_BLOCK_THRESHOLD) {
+            ChatSender.send("[nuchematica] large schematic: experimental")
+        }
         return true
     }
+
+    private const val LARGE_SCHEMATIC_BLOCK_THRESHOLD: Int = 500_000
 
     private fun readClipboard(file: File): Clipboard {
         val root = SchematicFormatDetector.readRootTag(file)

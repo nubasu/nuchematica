@@ -82,18 +82,40 @@ public class PrinterAttemptTrackerTest {
         var completed = emptyList<PrinterAttemptResult>()
 
         for (tick in 1L..PrinterAttemptTracker.DEADLINE_TICKS) {
-            completed = tracker.observe(tick) {
-                if (tick % 2L == 0L) {
-                    Blocks.DIRT.defaultBlockState()
-                } else {
-                    Blocks.COBBLESTONE.defaultBlockState()
-                }
-            }
+            completed = tracker.observe(
+                tick,
+                {
+                    if (tick % 2L == 0L) {
+                        Blocks.DIRT.defaultBlockState()
+                    } else {
+                        Blocks.COBBLESTONE.defaultBlockState()
+                    }
+                },
+            )
         }
 
         assertEquals(1, completed.size)
         assertEquals(PrinterAttemptOutcome.TIMEOUT, completed.single().outcome)
         assertEquals(PrinterAttemptTracker.DEADLINE_TICKS, completed.single().completedTick)
+    }
+
+    // Contract: observe's trailing matcher parameter overrides the default no-arg
+    // BlockStateEquivalence delegation -- a settings-bound caller (PlanRuntimeAdapter) must be
+    // able to decide ACCEPTED on its own terms without this tracker ever touching the live
+    // settings holder itself.
+    @Test
+    public fun customMatcherOverridesDefaultEquivalence(): Unit {
+        val tracker = trackedAttempt()
+        val differentBlock = Blocks.DIRT.defaultBlockState()
+        val alwaysMatches: (BlockState, BlockState) -> Boolean = { _, _ -> true }
+
+        var result: PrinterAttemptResult? = null
+        for (tick in 1L..PrinterAttemptTracker.SETTLE_TICKS.toLong()) {
+            val completed = tracker.observe(tick, { differentBlock }, alwaysMatches)
+            if (completed.isNotEmpty()) result = completed.single()
+        }
+
+        assertEquals(PrinterAttemptOutcome.ACCEPTED, result?.outcome)
     }
 
     @Test
@@ -115,7 +137,7 @@ public class PrinterAttemptTrackerTest {
 
         tracker.cancelAll()
 
-        assertTrue(tracker.observe(5L) { expectedState }.isEmpty())
+        assertTrue(tracker.observe(5L, { expectedState }).isEmpty())
         assertTrue(tracker.activeAttempts().isEmpty())
     }
 
@@ -132,9 +154,9 @@ public class PrinterAttemptTrackerTest {
         state: BlockState,
     ): PrinterAttemptResult {
         for (tick in 1L until PrinterAttemptTracker.SETTLE_TICKS.toLong()) {
-            assertTrue(tracker.observe(tick) { state }.isEmpty())
+            assertTrue(tracker.observe(tick, { state }).isEmpty())
         }
-        return tracker.observe(PrinterAttemptTracker.SETTLE_TICKS.toLong()) { state }.single()
+        return tracker.observe(PrinterAttemptTracker.SETTLE_TICKS.toLong(), { state }).single()
     }
 
     public companion object {

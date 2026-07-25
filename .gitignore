@@ -1233,3 +1233,4 @@ internal_doc/
 /.claude/skills/session-bootstrap/SKILL.md
 /.claude/skills/test-protocol/SKILL.md
 /.claude/settings.json
+dev_server/

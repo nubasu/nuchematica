@@ -4,6 +4,8 @@ import com.mojang.brigadier.Command
 import com.nubasu.nuchematica.gui.MainGui
 import com.nubasu.nuchematica.gui.PrinterHudOverlay
 import com.nubasu.nuchematica.keysetting.KeyManager
+import com.nubasu.nuchematica.mover.SchematicMover
+import com.nubasu.nuchematica.printer.PrintWorldModel
 import com.nubasu.nuchematica.printer.PrinterSettingsHolder
 import com.nubasu.nuchematica.printer.PrinterSettingsIO
 import com.nubasu.nuchematica.printer.SchematicPrinter
@@ -15,8 +17,10 @@ import com.nubasu.nuchematica.schematic.MissingBlockHolder
 import com.nubasu.nuchematica.utils.ChatSender
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.core.BlockPos
 import net.minecraft.commands.Commands
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraftforge.client.event.RegisterClientReloadListenersEvent
 import net.minecraftforge.client.event.RenderLevelStageEvent
 import net.minecraftforge.client.event.RenderLevelStageEvent.Stage
@@ -46,6 +50,7 @@ public class Nuchematica {
         MinecraftForge.EVENT_BUS.register(keyManager)
         MinecraftForge.EVENT_BUS.register(MainGui())
         MinecraftForge.EVENT_BUS.register(PrinterHudOverlay())
+        MinecraftForge.EVENT_BUS.register(SchematicMover)
         MinecraftForge.EVENT_BUS.register(ClientBlockInteractHandler())
     }
 
@@ -96,7 +101,10 @@ public class Nuchematica {
 
     @SubscribeEvent
     public fun onWorldUnload(event: WorldEvent.Unload): Unit {
-        (event.world as? ClientLevel)?.let(SchematicRenderManager::worldUnloaded)
+        (event.world as? ClientLevel)?.let { level ->
+            SchematicMover.worldUnloaded()
+            SchematicRenderManager.worldUnloaded(level)
+        }
     }
 
     @SubscribeEvent
@@ -115,11 +123,13 @@ public class Nuchematica {
         val world = Minecraft.getInstance().level
         if (world == null) {
             SchematicPrinter.tick()
+            SchematicMover.tick()
             return
         }
 
         SchematicRenderManager.tickPendingSettings()
         SchematicPrinter.tick()
+        SchematicMover.tick()
 
         // Check pending breaks
         val breakIter = ClientBlockInteractHandler.pendingBreakPositions.iterator()
@@ -129,6 +139,11 @@ public class Nuchematica {
             if (currentState.isAir) {
                 // The block was broken by the player
                 MissingBlockHolder.removed(pos)?.let(SchematicRenderManager::onMissingBlockChange)
+                // The generic click reconcile path is one of the write-on-ack sites --
+                // a manual player break is just as much a server-confirmed outcome as
+                // a printer-submitted one.
+                PrintWorldModel.recordWrite(pos, currentState)
+                SchematicPrinter.invalidatePlanSession(pos)
                 breakIter.remove()
             }
             // (Optional: remove after a timeout to avoid stuck entries if not broken)
@@ -138,11 +153,19 @@ public class Nuchematica {
         val placeIter = ClientBlockInteractHandler.pendingPlacePositions.iterator()
         while (placeIter.hasNext()) {
             val pos = placeIter.next()
-            val currentState = world.getBlockState(pos)
-            if (!currentState.isAir) {
+            val currentState = pendingPlacementState(
+                pos = pos,
+                isPrinterOwned = SchematicPrinter::ownsPendingPlacement,
+                stateAt = world::getBlockState,
+            )
+            if (currentState != null) {
                 // A block was placed by the player
                 MissingBlockHolder.placed(pos, currentState)
                     ?.let(SchematicRenderManager::onMissingBlockChange)
+                // Write-on-ack for the manual-placement side of the generic click
+                // reconcile path.
+                PrintWorldModel.recordWrite(pos, currentState)
+                SchematicPrinter.invalidatePlanSession(pos)
                 placeIter.remove()
             }
         }
@@ -153,4 +176,14 @@ public class Nuchematica {
         // Define mod id in a common place for everything to reference
         public const val MODID: String = "nuchematica"
     }
+}
+
+internal fun pendingPlacementState(
+    pos: BlockPos,
+    isPrinterOwned: (BlockPos) -> Boolean,
+    stateAt: (BlockPos) -> BlockState,
+): BlockState? {
+    if (isPrinterOwned(pos)) return null
+    val currentState = stateAt(pos)
+    return currentState.takeUnless(BlockState::isAir)
 }

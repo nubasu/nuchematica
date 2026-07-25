@@ -8,6 +8,7 @@ import net.minecraft.world.phys.Vec3
 
 public class PrinterTickContext(
     public val tick: Long,
+    public val queueRevision: Long,
     public val sessionKey: PrinterSessionKey,
     public val missingLocal: List<BlockPos>,
     public val expectedStateAt: (BlockPos) -> BlockState?,
@@ -18,6 +19,17 @@ public class PrinterTickContext(
     public val reach: Double,
     public val itemSupplier: ItemSupplier,
     public val placementGateway: PlacementGateway,
+    // Player feet position, forwarded to the selector's player-column
+    // placement guard. Defaulted so existing construction sites are unaffected.
+    public val playerFeetPos: Vec3? = null,
+    // A pre-resolved scaffold (temporary support block) placement
+    // candidate, computed by SchematicPrinter via ScaffoldPlanner + a throwaway
+    // PrinterCandidateSelector.select call before this context is built. Appended to the
+    // ordinary candidate list below so it flows through the exact same rate limiter/
+    // item supplier/placement gateway/attempt tracker as any other candidate -- "a
+    // normal slime block placement attempt with prediction gate." Null (the default)
+    // leaves every existing construction site unaffected.
+    public val scaffoldCandidate: PrinterCandidate? = null,
 )
 
 public class PrinterRuntime(
@@ -25,11 +37,17 @@ public class PrinterRuntime(
     public val attemptTracker: PrinterAttemptTracker = PrinterAttemptTracker(),
     public val rateLimiter: PrinterRateLimiter = PrinterRateLimiter(),
     public val candidateSelector: PrinterCandidateSelector = PrinterCandidateSelector(skipLog = skipLog),
+    private val isBlocked: (BlockPos) -> Boolean = { false },
+    // Fired when a position exhausts its retries (REJECTED/TIMEOUT x MAX_RETRIES) and
+    // must enter the shared deferral ledger. The injected isBlocked predicate then
+    // filters that ledger state for the runtime as well as the gate and mover.
+    private val onRetryLimitBlocked: (BlockPos) -> Unit = {},
 ) {
     private var sessionKey: PrinterSessionKey? = null
+    private var latestFeedSnapshot: FeedSnapshot? = null
     private val retryCounts: MutableMap<BlockPos, Int> = mutableMapOf()
     private val retryReadyTick: MutableMap<BlockPos, Long> = mutableMapOf()
-    private val blockedPositions: MutableSet<BlockPos> = mutableSetOf()
+    private var lastAcceptedTick: Long? = null
 
     public fun tick(context: PrinterTickContext): List<PrinterAttemptResult> {
         if (!synchronizeSession(context.sessionKey)) return emptyList()
@@ -40,11 +58,11 @@ public class PrinterRuntime(
 
         val selectableMissing = context.missingLocal.filter { localPos ->
             val worldPos = context.localToWorld(localPos)
-            worldPos !in blockedPositions &&
+            !isBlocked(worldPos) &&
                 !attemptTracker.isInFlight(worldPos) &&
                 context.tick >= (retryReadyTick[worldPos] ?: Long.MIN_VALUE)
         }
-        val candidates = candidateSelector.select(
+        val ordinaryCandidates = candidateSelector.select(
             missingLocal = selectableMissing,
             expectedStateAt = context.expectedStateAt,
             localToWorld = context.localToWorld,
@@ -52,24 +70,59 @@ public class PrinterRuntime(
             placementContext = context.placementContext,
             eyePosition = context.eyePosition,
             reach = context.reach,
+            playerFeetPos = context.playerFeetPos,
         )
+        // Appended after ordinary candidates so scaffold-assist never
+        // starves ordinary work the same tick; rate-limited to at most one scaffold in
+        // flight by SchematicPrinter (it only ever supplies a non-null scaffoldCandidate
+        // once the ledger and any prior scaffold attempt are both clear).
+        val candidates = if (context.scaffoldCandidate != null) {
+            ordinaryCandidates + context.scaffoldCandidate
+        } else {
+            ordinaryCandidates
+        }
 
-        for (candidate in candidates) {
-            if (!rateLimiter.tryAcquire()) break
-            if (!context.itemSupplier.ensureHolding(candidate.expectedState)) continue
+        var submittedCount = 0
+        var rateLimitedRemainder = 0
+        for ((index, candidate) in candidates.withIndex()) {
+            if (!rateLimiter.tryAcquire()) {
+                rateLimitedRemainder = candidates.size - index
+                break
+            }
+            if (!context.itemSupplier.ensureHolding(candidate.placementState)) continue
 
             val baselineState = context.stateAt(candidate.worldPos)
-            if (!context.placementGateway.submit(candidate.hit)) continue
+            if (!context.placementGateway.submit(candidate.hit, candidate.requiredRotation)) continue
 
-            attemptTracker.attempt(
+            if (attemptTracker.attempt(
                 worldPos = candidate.worldPos,
                 expectedState = candidate.expectedState,
                 baselineState = baselineState,
                 sentTick = context.tick,
                 retryCount = retryCounts[candidate.worldPos] ?: 0,
-            )
+            )) {
+                submittedCount++
+            }
         }
+        val acceptedThisTick = completed.count { result ->
+            result.outcome == PrinterAttemptOutcome.ACCEPTED
+        }
+        if (acceptedThisTick > 0) lastAcceptedTick = context.tick
+        latestFeedSnapshot = FeedSnapshot(
+            tick = context.tick,
+            queueRevision = context.queueRevision,
+            candidateCount = candidates.size,
+            submittedCount = submittedCount,
+            rateLimitedRemainder = rateLimitedRemainder,
+            inFlightCount = attemptTracker.inFlightCount(),
+            acceptedThisTick = acceptedThisTick,
+            ticksSinceLastAccept = lastAcceptedTick?.let { accepted -> context.tick - accepted },
+        )
         return completed
+    }
+
+    internal fun feedSnapshot(): FeedSnapshot? {
+        return latestFeedSnapshot
     }
 
     public fun sessionMatches(key: PrinterSessionKey): Boolean {
@@ -90,10 +143,11 @@ public class PrinterRuntime(
 
     private fun clearSessionWork(): Unit {
         attemptTracker.cancelAll()
+        latestFeedSnapshot = null
         retryCounts.clear()
         retryReadyTick.clear()
-        blockedPositions.clear()
         skipLog.clear()
+        lastAcceptedTick = null
     }
 
     private fun processCompletion(result: PrinterAttemptResult, tick: Long): Unit {
@@ -102,12 +156,10 @@ public class PrinterRuntime(
             PrinterAttemptOutcome.ACCEPTED -> {
                 retryCounts.remove(worldPos)
                 retryReadyTick.remove(worldPos)
-                blockedPositions.add(worldPos)
             }
             PrinterAttemptOutcome.WRONG_STATE -> {
                 retryCounts.remove(worldPos)
                 retryReadyTick.remove(worldPos)
-                blockedPositions.add(worldPos)
             }
             PrinterAttemptOutcome.REJECTED,
             PrinterAttemptOutcome.TIMEOUT,
@@ -115,8 +167,8 @@ public class PrinterRuntime(
                 if (result.attempt.retryCount >= MAX_RETRIES) {
                     retryCounts.remove(worldPos)
                     retryReadyTick.remove(worldPos)
-                    blockedPositions.add(worldPos)
                     skipLog.record(PrinterSkipReason.RETRY_LIMIT, worldPos)
+                    onRetryLimitBlocked(worldPos)
                 } else {
                     retryCounts[worldPos] = result.attempt.retryCount + 1
                     retryReadyTick[worldPos] = tick + 1L

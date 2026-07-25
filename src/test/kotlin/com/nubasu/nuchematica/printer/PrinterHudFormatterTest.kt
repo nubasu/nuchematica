@@ -40,4 +40,29 @@ public class PrinterHudFormatterTest {
             PrinterHudFormatter.lines(PrinterStatus(0, 0, skips)),
         )
     }
+
+    // v3's own PrinterStatus constructions never pass planPhase, so it defaults to null and the
+    // line above must stay absent -- covered by formatsAllZeroSkipReasonsWithoutDetails already
+    // omitting it. This case covers the v4 opposite: planPhase set must append a last "Plan: ..."
+    // line without disturbing any of the existing lines.
+    @Test
+    public fun appendsPlanPhaseLineLastWhenSet(): Unit {
+        val status = PrinterStatus(
+            remaining = 5,
+            placed = 1,
+            skips = emptyMap(),
+            planPhase = "executing",
+        )
+
+        assertEquals(
+            listOf(
+                "Printer: ACTIVE",
+                "Remaining: 5",
+                "Placed: 1",
+                "Skipped: 0",
+                "Plan: executing",
+            ),
+            PrinterHudFormatter.lines(status),
+        )
+    }
 }

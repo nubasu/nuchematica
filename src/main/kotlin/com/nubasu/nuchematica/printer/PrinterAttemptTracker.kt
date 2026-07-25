@@ -54,6 +54,7 @@ public class PrinterAttemptTracker {
     public fun observe(
         tick: Long,
         stateAt: (BlockPos) -> BlockState,
+        matches: (BlockState, BlockState) -> Boolean = BlockStateEquivalence::matches,
     ): List<PrinterAttemptResult> {
         val completed = mutableListOf<PrinterAttemptResult>()
         val iterator = active.entries.iterator()
@@ -66,7 +67,7 @@ public class PrinterAttemptTracker {
             val observed = stateAt(attempt.worldPos)
             tracked.record(tick, observed)
             val outcome = when {
-                tracked.stableTicks >= SETTLE_TICKS -> classifyStable(attempt, observed)
+                tracked.stableTicks >= SETTLE_TICKS -> classifyStable(attempt, observed, matches)
                 elapsed >= DEADLINE_TICKS -> PrinterAttemptOutcome.TIMEOUT
                 else -> null
             }
@@ -93,6 +94,10 @@ public class PrinterAttemptTracker {
         return active.values.map(ActiveAttempt::attempt)
     }
 
+    public fun inFlightCount(): Int {
+        return active.size
+    }
+
     public fun cancelAll(): Unit {
         active.clear()
     }
@@ -100,10 +105,10 @@ public class PrinterAttemptTracker {
     private fun classifyStable(
         attempt: PrinterAttempt,
         observed: BlockState,
+        matches: (BlockState, BlockState) -> Boolean,
     ): PrinterAttemptOutcome {
         return when {
-            BlockStateEquivalence.matches(attempt.expectedState, observed) ->
-                PrinterAttemptOutcome.ACCEPTED
+            matches(attempt.expectedState, observed) -> PrinterAttemptOutcome.ACCEPTED
             observed == attempt.baselineState -> PrinterAttemptOutcome.REJECTED
             else -> PrinterAttemptOutcome.WRONG_STATE
         }

@@ -5,6 +5,7 @@ import com.mojang.logging.LogUtils
 import com.nubasu.nuchematica.gui.RenderSettingHolder
 import com.nubasu.nuchematica.gui.screen.SchematicListScreen
 import com.nubasu.nuchematica.gui.screen.SchematicSettingsScreen
+import com.nubasu.nuchematica.mover.SchematicMover
 import com.nubasu.nuchematica.printer.PrinterActivationEvent
 import com.nubasu.nuchematica.printer.SchematicPrinter
 import com.nubasu.nuchematica.renderer.SchematicRenderManager
@@ -78,6 +79,14 @@ public class KeyManager {
         "key.nuchematica.category"
     )
 
+    private val moverKey: KeyMapping = KeyMapping(
+        "key.nuchematica.mover",
+        KeyConflictContext.IN_GAME,
+        InputConstants.Type.KEYSYM,
+        'O'.code,
+        "key.nuchematica.category"
+    )
+
     // Registered on the MOD event bus from the Nuchematica constructor.
     public fun keyRegister(event: FMLClientSetupEvent) {
         ClientRegistry.registerKeyBinding(settingKey)
@@ -87,6 +96,7 @@ public class KeyManager {
         ClientRegistry.registerKeyBinding(shemaKey)
         ClientRegistry.registerKeyBinding(toggleDisplayKey)
         ClientRegistry.registerKeyBinding(printerKey)
+        ClientRegistry.registerKeyBinding(moverKey)
     }
 
     @SubscribeEvent
@@ -125,6 +135,9 @@ public class KeyManager {
                 }
                 PrinterActivationEvent.AUTO_DISABLED -> Unit
             }
+        }
+        if (moverKey.consumeClick()) {
+            SchematicMover.toggleRequested()
         }
     }
 

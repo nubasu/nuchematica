@@ -15,18 +15,16 @@ public class PrinterSessionKey(
     public val level: Any,
     public val content: Any,
     public val transformRevision: Long,
-    public val queueRevision: Long,
 ) {
     public fun matches(other: PrinterSessionKey): Boolean {
         return level === other.level &&
             content === other.content &&
-            transformRevision == other.transformRevision &&
-            queueRevision == other.queueRevision
+            transformRevision == other.transformRevision
     }
 }
 
 public fun interface PlacementGateway {
-    public fun submit(hit: BlockHitResult): Boolean
+    public fun submit(hit: BlockHitResult, requiredRotation: PlacementRotation?): Boolean
 }
 
 public fun interface ItemSupplier {
@@ -75,8 +73,11 @@ public class PrinterRateLimiter(
 ) {
     public var attemptsPerTick: Int = attemptsPerTick
         private set
+    public var intervalTicks: Int = DEFAULT_INTERVAL_TICKS
+        private set
 
     private var currentTick: Long = Long.MIN_VALUE
+    private var lastAllowedTick: Long? = null
     private var acquired: Int = 0
 
     init {
@@ -93,8 +94,22 @@ public class PrinterRateLimiter(
         attemptsPerTick = value.coerceIn(1, MAX_ATTEMPTS_PER_TICK)
     }
 
+    public fun updateIntervalTicks(value: Int): Unit {
+        intervalTicks = value.coerceIn(1, MAX_INTERVAL_TICKS)
+    }
+
     public fun tryAcquire(): Boolean {
         if (acquired >= attemptsPerTick) return false
+        val previousAllowedTick = lastAllowedTick
+        if (
+            acquired == 0 &&
+            previousAllowedTick != null &&
+            currentTick >= previousAllowedTick &&
+            currentTick - previousAllowedTick < intervalTicks
+        ) {
+            return false
+        }
+        if (acquired == 0) lastAllowedTick = currentTick
         acquired++
         return true
     }
@@ -102,5 +117,7 @@ public class PrinterRateLimiter(
     public companion object {
         public const val DEFAULT_ATTEMPTS_PER_TICK: Int = 1
         public const val MAX_ATTEMPTS_PER_TICK: Int = 8
+        public const val DEFAULT_INTERVAL_TICKS: Int = 1
+        public const val MAX_INTERVAL_TICKS: Int = 40
     }
 }
