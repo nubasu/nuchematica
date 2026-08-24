@@ -89,7 +89,6 @@ public class SingleSlotWorkerTest {
                         release.await()
                         break
                     } catch (_: InterruptedException) {
-                        // Simulate an operation that observes cancellation only after producing output.
                     }
                 }
                 7
@@ -101,10 +100,6 @@ public class SingleSlotWorkerTest {
                         releaseDiscard.await()
                         break
                     } catch (_: InterruptedException) {
-                        // Tolerate a cancellation interrupt whose flag leaks into the
-                        // discard call: production discard callbacks never block, and
-                        // this latch exists only for test coordination. Without this,
-                        // the interrupt skips discarded++ and the test flakes.
                     }
                 }
                 discarded.incrementAndGet()

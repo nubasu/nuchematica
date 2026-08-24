@@ -10,10 +10,9 @@ import net.minecraftforge.eventbus.api.SubscribeEvent
 public class ClientBlockInteractHandler {
     @SubscribeEvent
     public fun onBlockLeftClick(event: LeftClickBlock) {
-        if (!event.world.isClientSide()) return  // Ensure client side
+        if (!event.world.isClientSide()) return
 
         val targetPos = event.pos
-        // Record this position as a block the player is attempting to break
         pendingBreakPositions.add(targetPos.immutable())
     }
 
@@ -25,7 +24,6 @@ public class ClientBlockInteractHandler {
         if (world == null) return
         val handItem = player.getItemInHand(event.hand)
         if (handItem.item is BlockItem) {
-            // Compute where the block will be placed
             val targetPos = event.pos
             val isReplaceable = world.getBlockState(targetPos).material.isReplaceable
             val placePos = if (isReplaceable)

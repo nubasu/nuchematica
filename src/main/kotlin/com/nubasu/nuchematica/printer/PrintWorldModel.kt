@@ -7,38 +7,16 @@ import net.minecraft.core.BlockPos
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 
-// The frozen-world assumption for v3 (within the print range, only automode
-// itself changes the world during a run). Holds a
-// snapshot of the schematic's world-space AABB (+ margin) as a flat array indexed by
-// (x,y,z) offset -- explicitly NOT a HashMap<BlockPos, BlockState> for the bulk storage,
-// which at 0_all's 27.9M-cell volume would mean 500MB+ of boxed entries and GC pressure
-// this design already ruled out. Positions outside the region fall
-// back to a live world read (rare: support/scaffold neighbors just beyond the margin).
-//
-// Building the snapshot is budgeted across client ticks (CAPTURE_CELLS_PER_TICK per call)
-// instead of one blocking pass, since a live getBlockState per cell over the whole region
-// is exactly the freeze MissingBlockHolder.initialize used to cause. While CAPTURING,
-// SchematicPrinter/SchematicMover stay idle (see their tick() entry guards) -- there is
-// nothing to place or route yet, since the classification pass that derives "missing"
-// itself waits for this capture to finish (see MissingBlockHolder.initialize).
-//
-// Writes are the other half of the frozen-world discipline: this model is updated ONLY
-// from server-confirmed outcomes (a placement's ACCEPTED/WRONG_STATE ack, a confirmed
-// scaffold break, the generic manual-placement click reconcile) -- never speculatively.
-// See SchematicPrinter.tick's completed.forEach, ScaffoldLedger's onBroken callback, and
-// Nuchematica.onClientTick's pending break/place reconcile for the write call sites.
-//
-// Main-thread-only: this object holds no synchronization and must not be touched off the
-// client thread (matches every other piece of per-tick printer/mover state in this repo).
+/**
+ * Main-thread frozen world region updated through explicit observed-write records.
+ *
+ * Reads outside a ready capture fall back to the current client world.
+ */
 internal object PrintWorldModel {
     internal enum class Status { IDLE, CAPTURING, READY, REFUSED }
 
-    // CAPTURE_CELLS_PER_TICK: the per-tick capture budget.
     internal const val CAPTURE_CELLS_PER_TICK: Int = 50_000
 
-    // Region volume cap. Above this, the model refuses to activate at
-    // all (falls back to an always-live-read behavior) rather than allocate an
-    // unbounded flat array; 0_all's 27.9M-cell region sits comfortably under this.
     private const val MAX_REGION_CELLS: Long = 40_000_000L
     private const val REGION_MARGIN: Int = 2
     private const val PROGRESS_STEP_PERCENT: Int = 20
@@ -63,11 +41,6 @@ internal object PrintWorldModel {
     private var captureCursor: Long = 0L
     private var reportedPercent: Int = -1
 
-    // Monotonic write counter, bumped by every recordWrite that actually stores a cell
-    // (including a same-value store) and by every reset() -- cancel(), a failed ensureCapture,
-    // and each new-identity capture restart all route through reset(), so a stale plan
-    // snapshot can always tell it no longer matches the model by comparing against a value it
-    // captured earlier. Never reset back to 0 itself.
     private var writeRevisionCounter: Long = 0L
 
     private var planSnapshotActive: Boolean = false
@@ -79,11 +52,7 @@ internal object PrintWorldModel {
 
     internal fun writeRevision(): Long = writeRevisionCounter
 
-    // Starts a fresh capture whenever the (level, contentIdentity, transformRevision)
-    // identity differs from the one this model was last built/building for -- mirrors the
-    // identity-keyed invalidation every other printer/mover cache in this package already
-    // uses (LayerGateMissingCache, PrinterDeferralLedger, ...). A matching identity is a
-    // no-op: an in-progress capture keeps its cursor, a READY/REFUSED model stays as-is.
+    /** Starts or reuses an identity-matched capture and returns its lifecycle state. */
     internal fun ensureCapture(
         level: ClientLevel,
         contentIdentity: Any,
@@ -106,9 +75,8 @@ internal object PrintWorldModel {
         this.transformRevision = transformRevision
 
         val bounds = schematicWorldBoundingBox(localPositions, localToWorld, REGION_MARGIN)
+        // Empty schematics intentionally fall back to live reads.
         if (bounds == null) {
-            // Nothing to capture (empty schematic): every stateAt query is out-of-region by
-            // construction, so REFUSED (always-live-fallback) is exactly correct here too.
             status = Status.REFUSED
             return status
         }
@@ -141,12 +109,6 @@ internal object PrintWorldModel {
         return status
     }
 
-    // Advances the in-progress capture by at most CAPTURE_CELLS_PER_TICK cells, reading
-    // the live world once per cell (this IS the one-time cost the budgeting spreads across
-    // ticks instead of paying in one freeze). No-op (returns the current status
-    // immediately) unless a capture is actually in progress. onProgress fires at most once
-    // per 20%-multiple crossed (never at 0% or 100%: the caller's own CAPTURING->READY
-    // transition already marks completion).
     internal fun pump(
         level: ClientLevel,
         onProgress: (Int) -> Unit = ::reportProgressToChat,
@@ -173,20 +135,11 @@ internal object PrintWorldModel {
         return status
     }
 
-    // Cancels an in-progress (or completed) capture cleanly, discarding the array/palette
-    // and returning to IDLE. Called on toggles/aborts that must not keep stale capture
-    // state around (world unload; a fresh ensureCapture call for a new identity performs
-    // the same reset internally before rebuilding).
     internal fun cancel(): Unit {
         reset()
     }
 
-    // Inside a READY region: array lookup, no world I/O. Outside the region, or before the
-    // model is READY (CAPTURING/IDLE/REFUSED): a live read, exactly like every call site
-    // would without this model -- deliberately NOT a stored level reference, so this
-    // always reflects whatever ClientLevel is actually current (and so tests that stub
-    // Minecraft.getInstance().level directly keep working against an IDLE/REFUSED model
-    // with zero PrintWorldModel setup).
+    /** Reads the ready capture in-region and the current client world elsewhere. */
     internal fun stateAt(pos: BlockPos): BlockState {
         if (status == Status.READY && inRegion(pos)) {
             return palette[cells[indexFor(pos)]]
@@ -194,22 +147,14 @@ internal object PrintWorldModel {
         return Minecraft.getInstance().level?.getBlockState(pos) ?: AIR_STATE
     }
 
-    // The only mutation path -- callers own the "was this write
-    // actually server-confirmed" decision (see the class doc's write-site list). A no-op
-    // outside the READY region (nothing to update) or before READY (no array to write
-    // into yet -- MissingBlockHolder.initialize hasn't consumed the capture, so nothing
-    // downstream can have observed a stale value yet either).
+    /** Records an observed state only when its position lies in the ready capture. */
     internal fun recordWrite(pos: BlockPos, state: BlockState): Unit {
         if (status != Status.READY || !inRegion(pos)) return
         cells[indexFor(pos)] = paletteIdFor(state)
         writeRevisionCounter++
     }
 
-    // Begins a budgeted copy session of the current READY capture, for a plan classification
-    // pass to run against off the main thread (see PlanCoordinator) -- false when the model is
-    // not READY, since there is nothing consistent to copy yet. Starting a session always
-    // discards whatever the previous session's own buffer held (a fresh allocation), matching
-    // every other identity-keyed restart in this object.
+    /** Starts a budgeted copy of the ready capture, replacing any pending copy. */
     internal fun beginPlanSnapshot(): Boolean {
         if (status != Status.READY) return false
         planSnapshotActive = true
@@ -219,13 +164,7 @@ internal object PrintWorldModel {
         return true
     }
 
-    // Advances the in-progress plan snapshot copy by at most maxCells cells via arraycopy
-    // chunks. If writeRevision changed since this copy pass began -- including partway through
-    // this very call -- the copy silently restarts from cell 0 under the same call's remaining
-    // budget rather than publish a mix of pre- and post-write cells. The palette is only ever
-    // copied once every cell has, immediately before one final revision check, so a write
-    // racing in during that last window still forces a restart instead of shipping a snapshot
-    // whose palette and cells disagree on which revision they belong to.
+    /** Copies up to [maxCells] cells, restarting if the source revision changes. */
     internal fun pumpPlanSnapshot(maxCells: Int): PlanSnapshotPump {
         if (!planSnapshotActive || status != Status.READY) return PlanSnapshotPump.Unavailable
         var budget = maxCells
@@ -260,9 +199,7 @@ internal object PrintWorldModel {
         }
     }
 
-    // Drops an in-progress plan snapshot copy early, freeing its buffer immediately instead of
-    // leaving it to linger until the next beginPlanSnapshot() call overwrites it -- called by
-    // PlanCoordinator's own cancel(); never touches this model's own READY capture.
+    /** Discards only the pending plan copy while preserving the ready capture. */
     internal fun cancelPlanSnapshot(): Unit {
         planSnapshotActive = false
         planSnapshotCursor = 0
@@ -275,11 +212,7 @@ internal object PrintWorldModel {
         object Unavailable : PlanSnapshotPump
     }
 
-    // Immutable, isolated copy of a READY capture's cells/palette/geometry, taken by
-    // pumpPlanSnapshot for a worker thread to classify a plan against. A worker thread must
-    // never fall back to a live world read: planner bounds predicates reject out-of-region
-    // positions before reading, so any out-of-region read reaching this snapshot is a bug to
-    // surface loudly, not to paper over -- hence the throw below rather than a live fallback.
+    /** Immutable in-region snapshot whose [stateAt] rejects out-of-bounds positions. */
     internal class PlanWorldSnapshot internal constructor(
         private val cells: IntArray,
         private val palette: List<BlockState>,
@@ -309,9 +242,6 @@ internal object PrintWorldModel {
         return x in 0 until sizeX && y in 0 until sizeY && z in 0 until sizeZ
     }
 
-    // x fastest, then y, then z slowest -- the exact inverse of worldPosForIndex below.
-    // Boundary correctness (the classic off-by-one risk on AABB edges) is exercised by
-    // PrintWorldModelTest against every face/corner of the captured region.
     private fun indexFor(pos: BlockPos): Int {
         val x = pos.x - minX
         val y = pos.y - minY

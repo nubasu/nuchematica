@@ -19,16 +19,9 @@ public class PrinterTickContext(
     public val reach: Double,
     public val itemSupplier: ItemSupplier,
     public val placementGateway: PlacementGateway,
-    // Player feet position, forwarded to the selector's player-column
-    // placement guard. Defaulted so existing construction sites are unaffected.
+    /** Player feet used by placement collision guards. */
     public val playerFeetPos: Vec3? = null,
-    // A pre-resolved scaffold (temporary support block) placement
-    // candidate, computed by SchematicPrinter via ScaffoldPlanner + a throwaway
-    // PrinterCandidateSelector.select call before this context is built. Appended to the
-    // ordinary candidate list below so it flows through the exact same rate limiter/
-    // item supplier/placement gateway/attempt tracker as any other candidate -- "a
-    // normal slime block placement attempt with prediction gate." Null (the default)
-    // leaves every existing construction site unaffected.
+    /** Pre-resolved scaffold candidate submitted through the ordinary placement pipeline. */
     public val scaffoldCandidate: PrinterCandidate? = null,
 )
 
@@ -38,9 +31,6 @@ public class PrinterRuntime(
     public val rateLimiter: PrinterRateLimiter = PrinterRateLimiter(),
     public val candidateSelector: PrinterCandidateSelector = PrinterCandidateSelector(skipLog = skipLog),
     private val isBlocked: (BlockPos) -> Boolean = { false },
-    // Fired when a position exhausts its retries (REJECTED/TIMEOUT x MAX_RETRIES) and
-    // must enter the shared deferral ledger. The injected isBlocked predicate then
-    // filters that ledger state for the runtime as well as the gate and mover.
     private val onRetryLimitBlocked: (BlockPos) -> Unit = {},
 ) {
     private var sessionKey: PrinterSessionKey? = null
@@ -72,10 +62,6 @@ public class PrinterRuntime(
             reach = context.reach,
             playerFeetPos = context.playerFeetPos,
         )
-        // Appended after ordinary candidates so scaffold-assist never
-        // starves ordinary work the same tick; rate-limited to at most one scaffold in
-        // flight by SchematicPrinter (it only ever supplies a non-null scaffoldCandidate
-        // once the ledger and any prior scaffold attempt are both clear).
         val candidates = if (context.scaffoldCandidate != null) {
             ordinaryCandidates + context.scaffoldCandidate
         } else {

@@ -8,13 +8,10 @@ import com.nubasu.nuchematica.common.Vector3
 import net.minecraft.client.Minecraft
 
 public class SelectedRegionRenderer {
-    // The outline mesh is rebuilt only when the region changes; the vertex buffer is
-    // reused across frames instead of being created and destroyed every draw call.
     private var vertexBuffer: VertexBuffer? = null
     private var cachedPos1: Vector3? = null
     private var cachedPos2: Vector3? = null
 
-    // call only in RenderLevelStageEvent
     public fun renderSelectedRegion(selectRegion: SelectedRegion, poseStack: PoseStack, projectionMatrix: Matrix4f) {
         val view = Minecraft.getInstance().gameRenderer.mainCamera.position
 

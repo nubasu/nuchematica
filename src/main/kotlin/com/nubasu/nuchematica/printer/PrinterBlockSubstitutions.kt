@@ -7,11 +7,6 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.SlabType
 
-// Vanilla 1.18.2 DOUBLE slab models in this table use the same full-cube textures as
-// their targets. The judgment calls are petrified oak (its double model is oak planks)
-// and quartz (the plain quartz block, not a pillar, bricks, or chiseled quartz).
-// Infested blocks likewise use their host block's texture; infested deepslate is the
-// only mapped state whose texture orientation depends on a property, so AXIS is kept.
 internal val placementSubstitutionBlocks: Map<Block, Block> = mapOf(
     Blocks.INFESTED_STONE to Blocks.STONE,
     Blocks.INFESTED_COBBLESTONE to Blocks.COBBLESTONE,
@@ -100,19 +95,11 @@ internal fun substitutePlacement(expected: BlockState): BlockState? {
     }
 }
 
-// Immutable planner input for the two runtime settings substitution/equivalence
-// checking depend on (PrinterSettings.substituteLookalikes/placeWaterloggedDry), so a
-// plan classification never reads the live, mutable PrinterSettingsHolder mid-run --
-// see effectivePlacementState/eligiblePrinterBlockItem/BlockStateEquivalence.matches'
-// own param overloads, all threaded from PrintPlanParams.behavior.
 internal data class PlacementBehaviorSettings(
     internal val substituteLookalikes: Boolean,
     internal val placeWaterloggedDry: Boolean,
 )
 
-// The live, mutable holder's current values as an immutable snapshot -- shared by every
-// no-arg wrapper below (and BlockStateEquivalence's own no-arg matches) so a runtime
-// (non-planner) caller keeps reading whatever the settings GUI currently has configured.
 internal fun currentPlacementBehaviorSettings(): PlacementBehaviorSettings {
     val settings = PrinterSettingsHolder.printerSettings
     return PlacementBehaviorSettings(settings.substituteLookalikes, settings.placeWaterloggedDry)

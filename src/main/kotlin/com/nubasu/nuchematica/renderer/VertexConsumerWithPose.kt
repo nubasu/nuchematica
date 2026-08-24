@@ -4,12 +4,8 @@ import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.core.BlockPos
 
-
 class VertexConsumerWithPose(
     val parent: VertexConsumer, val originPos: BlockPos, val pose: PoseStack,
-    // When non-null ([r, g, b, a] in 0..1), every vertex color is forced to this value. Fluids
-    // rendered at their real (subtle) color are nearly invisible as a translucent ghost, so the
-    // caller passes a recognizable per-fluid tint here.
     private val overrideColor: FloatArray? = null,
 ): VertexConsumer {
 

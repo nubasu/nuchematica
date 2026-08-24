@@ -66,10 +66,15 @@ public class PrinterAttemptTracker {
 
             val observed = stateAt(attempt.worldPos)
             tracked.record(tick, observed)
-            val outcome = when {
-                tracked.stableTicks >= SETTLE_TICKS -> classifyStable(attempt, observed, matches)
-                elapsed >= DEADLINE_TICKS -> PrinterAttemptOutcome.TIMEOUT
-                else -> null
+            val stableOutcome = if (tracked.stableTicks >= SETTLE_TICKS) {
+                classifyStable(attempt, observed, elapsed, matches)
+            } else {
+                null
+            }
+            val outcome = stableOutcome ?: if (elapsed >= DEADLINE_TICKS) {
+                PrinterAttemptOutcome.TIMEOUT
+            } else {
+                null
             }
             if (outcome != null) {
                 completed.add(
@@ -105,10 +110,12 @@ public class PrinterAttemptTracker {
     private fun classifyStable(
         attempt: PrinterAttempt,
         observed: BlockState,
+        elapsed: Long,
         matches: (BlockState, BlockState) -> Boolean,
-    ): PrinterAttemptOutcome {
+    ): PrinterAttemptOutcome? {
         return when {
             matches(attempt.expectedState, observed) -> PrinterAttemptOutcome.ACCEPTED
+            observed == attempt.baselineState && elapsed < DEADLINE_TICKS -> null
             observed == attempt.baselineState -> PrinterAttemptOutcome.REJECTED
             else -> PrinterAttemptOutcome.WRONG_STATE
         }

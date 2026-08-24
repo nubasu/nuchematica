@@ -87,7 +87,6 @@ public class KeyManager {
         "key.nuchematica.category"
     )
 
-    // Registered on the MOD event bus from the Nuchematica constructor.
     public fun keyRegister(event: FMLClientSetupEvent) {
         ClientRegistry.registerKeyBinding(settingKey)
         ClientRegistry.registerKeyBinding(pos1Key)
@@ -141,7 +140,6 @@ public class KeyManager {
         }
     }
 
-    // Dev helper: places a hardcoded test schematic into the world (single player only).
     private fun placeTestSchematic() {
         try {
             val file = File(Minecraft.getInstance().gameDirectory, "schematics/v3_sign.schem")

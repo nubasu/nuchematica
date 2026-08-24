@@ -11,13 +11,6 @@ import net.minecraft.client.renderer.RenderType
 import net.minecraftforge.fml.util.ObfuscationReflectionHelper
 import java.util.IdentityHashMap
 
-/**
- * Isolates block-entity opacity from Minecraft's shared buffers while preserving every requested
- * RenderType. Formats with a color attribute carry opacity in vertex alpha. POSITION-only formats
- * use shader color; the vanilla end portal/gateway shaders get opacity-aware equivalents because
- * they do not declare ColorModulator. Every requested type is wrapped so its opaque state cannot
- * disable blending immediately before the buffered vertices are drawn.
- */
 internal class BlockEntityOpacityBufferSource : MultiBufferSource {
     private val delegate = MultiBufferSource.immediate(BufferBuilder(RenderType.BIG_BUFFER_SIZE))
     private val opacityRenderTypes = IdentityHashMap<RenderType, RenderType>()
@@ -68,9 +61,6 @@ internal class BlockEntityOpacityBufferSource : MultiBufferSource {
                     RenderType.endGateway() -> RenderSystem.setShader(NuchematicaShaders::endGatewayOpacity)
                 }
 
-                // BufferUploader applies the shader again immediately before drawing. Applying it
-                // here first synchronizes BlendMode's cache; the second apply then preserves this
-                // explicit translucent state instead of restoring the shader's opaque default.
                 checkNotNull(RenderSystem.getShader()) {
                     "block-entity RenderType did not select a shader: $parent"
                 }.apply()
@@ -107,8 +97,7 @@ internal class BlockEntityOpacityBufferSource : MultiBufferSource {
         }
     }
 
-    // RenderType has no accessor for this private flag in 1.18.2. Forge remaps the SRG field name
-    // in both development and production, preserving the parent type's upload-time sorting.
+    /** Reads Forge's remapped private sort-on-upload field. */
     private fun sortOnUpload(parent: RenderType): Boolean =
         checkNotNull(
             ObfuscationReflectionHelper.getPrivateValue(RenderType::class.java, parent, SORT_ON_UPLOAD_FIELD)

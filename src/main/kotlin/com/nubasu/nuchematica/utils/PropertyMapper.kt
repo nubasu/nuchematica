@@ -18,7 +18,7 @@ public object PropertyMapper {
             "level" -> {
                 when (id) {
                     Blocks.WATER.name.toString() -> blockState.setValue(BlockStateProperties.LEVEL, value.toInt())
-                    Blocks.CAULDRON.name.toString() -> blockState //blockState.setValue(BlockStateProperties.LEVEL_CAULDRON, value.toInt())
+                    Blocks.CAULDRON.name.toString() -> blockState
                     Blocks.COMPOSTER.name.toString() -> blockState.setValue(BlockStateProperties.LEVEL_COMPOSTER, value.toInt())
                     else -> blockState.setValue(BlockStateProperties.LEVEL, value.toInt())
                 }
@@ -201,7 +201,7 @@ public object PropertyMapper {
                 }
             }
             "shape" -> {
-                if (id !in railList) { // TODO: fix here
+                if (id !in railList) {
                     when (value) {
                         "north_south" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.NORTH_SOUTH)
                         "east_west" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.EAST_WEST)
@@ -341,7 +341,6 @@ public object PropertyMapper {
         Blocks.GRANITE_WALL.name.toString(),
         Blocks.MOSSY_COBBLESTONE_WALL.name.toString(),
         Blocks.MOSSY_STONE_BRICK_WALL.name.toString(),
-//        Blocks.MUD_BRICK_WALL.name.toString(),
         Blocks.NETHER_BRICK_WALL.name.toString(),
         Blocks.POLISHED_BLACKSTONE_BRICK_WALL.name.toString(),
         Blocks.POLISHED_BLACKSTONE_WALL.name.toString(),
@@ -354,7 +353,6 @@ public object PropertyMapper {
     )
 
     private val railList = listOf(
-//        Blocks.RAIL.name.toString(),
         Blocks.POWERED_RAIL.name.toString(),
         Blocks.ACTIVATOR_RAIL.name.toString(),
         Blocks.DETECTOR_RAIL.name.toString(),

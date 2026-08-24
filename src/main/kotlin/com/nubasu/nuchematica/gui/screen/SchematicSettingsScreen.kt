@@ -48,7 +48,6 @@ public class SchematicSettingsScreen(
         listeners += listener
     }
 
-    // The manager owns the debounce so pending changes survive transitions to child screens.
     private fun notifySettingsChanged() {
         listeners.forEach { it() }
         SchematicRenderManager.scheduleSettingsApply()
@@ -368,8 +367,6 @@ public class SchematicSettingsScreen(
         private const val DISPLAY_HEIGHT_PLUS_X = DISPLAY_HEIGHT_TEXT_X + NUMBER_TEXT_WIDTH + PADDING
         private const val DISPLAY_HEIGHT_PLUS_Y = DISPLAY_HEIGHT_TEXT_Y
 
-        // Opens the dedicated printer settings screen; the printer controls
-        // themselves now live there so they always fit the minimum GUI height.
         private const val PRINTER_SETTINGS_BUTTON_X = FIRST_LINE_BASELINE
         private const val PRINTER_SETTINGS_BUTTON_Y = DISPLAY_HEIGHT_PLUS_Y + NUMBER_TEXT_HEIGHT + PADDING
 
@@ -383,8 +380,6 @@ public class SchematicSettingsScreen(
 
     }
 
-
-    // based on width
     private var BUTTON_WIDTH = 100
     private var BUTTON_HEIGHT = 20
     private var SECOND_LINE_BASELINE = width - 130

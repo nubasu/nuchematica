@@ -18,6 +18,7 @@ import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.phys.Vec3
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent
 import net.minecraftforge.client.event.MovementInputUpdateEvent
@@ -29,6 +30,41 @@ import kotlin.math.floor
 import kotlin.math.sin
 
 internal const val MOVER_MINIMUM_REACH: Double = 4.0
+
+/** Exposes only each orphan scaffold column's top cell, nearest first. */
+internal fun exposedStartupOrphansNearestFirst(
+    positions: Collection<BlockPos>,
+    playerPosition: Vec3,
+): List<BlockPos> {
+    val distinct = positions.mapTo(LinkedHashSet()) { pos -> pos.immutable() }
+    return distinct.asSequence()
+        .filter { pos -> pos.above() !in distinct }
+        .sortedWith(
+            compareBy(
+                { pos -> Vec3.atCenterOf(pos).distanceToSqr(playerPosition) },
+                { pos -> pos.x },
+                { pos -> pos.y },
+                { pos -> pos.z },
+            ),
+        )
+        .toList()
+}
+
+/** Applies stop and velocity-reset flags without altering non-flying motion. */
+internal fun controlledMoverVelocity(
+    currentVelocity: Vec3,
+    command: MoverCommand,
+    flying: Boolean,
+): Vec3 {
+    if (command.stopMovement) return Vec3.ZERO
+    if (!flying) return currentVelocity
+    if (!command.resetHorizontalVelocity && currentVelocity.y == 0.0) return currentVelocity
+    return Vec3(
+        if (command.resetHorizontalVelocity) 0.0 else currentVelocity.x,
+        0.0,
+        if (command.resetHorizontalVelocity) 0.0 else currentVelocity.z,
+    )
+}
 
 public object SchematicMover {
     private val INACTIVE_COMMAND = MoverCommand(
@@ -44,10 +80,6 @@ public object SchematicMover {
     internal val core: MoverCore = MoverCore()
     private val planTravelBoundsCache = PlanTravelBoundsCache()
     private val missingWorldCache = MoverMissingWorldCache(
-        // Lambda, not a bound reference: SchematicMover is class-initialized during mod
-        // construction on a modloading worker thread, and a bound reference would
-        // class-init SchematicRenderManager there too (its mesh thread guard must
-        // capture the client main thread).
         localToWorld = { pos -> SchematicRenderManager.localBlockToWorld(pos) },
     )
     private val placeabilityMemo = MoverPlaceabilityMemo()
@@ -60,53 +92,6 @@ public object SchematicMover {
     private var latestCommand: MoverCommand = INACTIVE_COMMAND
     private var stopMovementApplied: Boolean = false
 
-    // TEMP C3MOV (remove after the vertical-travel investigation): event-only movement
-    // trace so the dominant source of vertical motion (layer dives / candidate
-    // rebuilds / flight-loss bounces) can be measured from latest.log instead of
-    // guessed.
-    private var debugPreviousState: MoverState? = null
-    private var debugPreviousTarget: Vec3? = null
-    private var debugPreviousFlying: Boolean? = null
-    private var debugPreviousGateY: Int? = null
-
-    private fun debugTraceMovement(
-        tick: Long,
-        beforeState: MoverState,
-        player: LocalPlayer,
-        gateY: Int?,
-    ): Unit {
-        val logger = com.mojang.logging.LogUtils.getLogger()
-        val status = latestStatus ?: return
-        val playerY = String.format("%.1f", player.y)
-        if (debugPreviousState != status.state) {
-            logger.info(
-                "C3MOV t={} state {}->{} playerY={}", tick, beforeState, status.state, playerY,
-            )
-            debugPreviousState = status.state
-        }
-        val target = status.target
-        if (target != debugPreviousTarget && target != null) {
-            val verticalDelta = String.format("%.1f", target.y - player.y)
-            logger.info(
-                "C3MOV t={} target -> ({}, {}, {}) playerY={} dy={}",
-                tick, target.x, target.y, target.z, playerY, verticalDelta,
-            )
-            debugPreviousTarget = target
-        }
-        val flying = player.abilities.flying
-        if (debugPreviousFlying == true && !flying && status.state.let {
-                it == MoverState.CRUISE || it == MoverState.HOLD
-            }
-        ) {
-            logger.info("C3MOV t={} flightLost playerY={}", tick, playerY)
-        }
-        debugPreviousFlying = flying
-        if (gateY != debugPreviousGateY) {
-            logger.info("C3MOV t={} gate {}->{}", tick, debugPreviousGateY, gateY)
-            debugPreviousGateY = gateY
-        }
-    }
-
     internal fun toggleRequested(): Unit {
         val minecraft = Minecraft.getInstance()
         if (core.status().state.isActive()) {
@@ -116,8 +101,6 @@ public object SchematicMover {
             latestCommand = STOP_COMMAND
             minecraft.player?.let { player -> applyCommand(player, STOP_COMMAND) }
             MoverConnectionObserver.remove()
-            // Manual auto-move toggle-off is a mandatory scaffold
-            // cleanup trigger -- never leave the scaffold material in the world.
             SchematicPrinter.cleanupScaffolds()
             ChatSender.send("[nuchematica] auto-move: OFF")
             return
@@ -134,9 +117,6 @@ public object SchematicMover {
             player != null &&
             gameMode?.playerMode?.isCreative == true
         val mayfly = player?.abilities?.mayfly == true
-        // This toggle check only ever needed a presence test, not
-        // the full missing list a missingSnapshot() call used to have to copy to answer
-        // it (a 3.5M-entry missing set made even this one-shot check freeze).
         val hasMissing = MissingBlockHolder.hasMissing()
         val effectiveReach = gameMode?.let { currentGameMode ->
             minOf(
@@ -164,10 +144,6 @@ public object SchematicMover {
                 runTelemetry.reset()
                 terminalSummaryLogged = false
                 SchematicPrinter.clearMoverCauses()
-                // Reclaim any slime scaffold stranded by a disconnect/rejoin
-                // (the old ClientLevel was gone before cleanupScaffolds could run against
-                // it) before this run starts, so the mover never bounces off it into an
-                // instant SERVER_CORRECTION abort.
                 SchematicPrinter.sweepOrphanScaffolds()
                 latestCommand = INACTIVE_COMMAND
                 stopMovementApplied = false
@@ -194,28 +170,21 @@ public object SchematicMover {
             deactivateWithoutChat(player)
             return
         }
-        // While PrintWorldModel is still building its snapshot, the
-        // mover stays idle too -- the missing/gate state it would route against has not
-        // consumed the capture yet either (see SchematicPrinter.tick's matching guard).
-        // Leaves the previously applied command in effect rather than issuing STOP_COMMAND,
-        // same as any other tick this function returns from early without a fresh command.
-        // Same idle window extended to MissingBlockHolder's own
-        // budgeted classification pass (see SchematicPrinter.tick's matching guard for why).
         if (
             PrintWorldModel.status() == PrintWorldModel.Status.CAPTURING ||
             MissingBlockHolder.isInitializing()
         ) {
             return
         }
-        // Printer.tick runs first and auto-disables on creative loss. Let MoverCore
-        // observe that loss before treating a disabled printer as a manual toggle.
+        // The printer ticks first and may disable itself after creative mode is lost.
         if (!SchematicPrinter.enabled && gameMode.playerMode.isCreative) {
             stopForPrinterOff(player)
             return
         }
-
+        val startupOrphans = SchematicPrinter.pendingStartupOrphanScaffolds()
         val gateY = SchematicPrinter.currentLayerGateY()
-        val planModeActive = PrinterSettingsHolder.printerSettings.planFirstMode && SchematicPrinter.enabled
+        val planModeActive = startupOrphans.isNotEmpty() ||
+            (PrinterSettingsHolder.printerSettings.planFirstMode && SchematicPrinter.enabled)
         MoverConnectionObserver.install(player.connection.connection)
         val content = SchematicHolder.renderingBlocks
         val missing = MissingBlockHolder.missingSnapshot()
@@ -231,11 +200,41 @@ public object SchematicMover {
             sessionKey = printerSessionKey,
             queueRevision = missing.revision,
         )
+        val correctionPacket = MoverConnectionObserver.consumeCorrection()
+        if (correctionPacket != null) {
+            val collisionDiagnostic = if (correctionPacket.relativeArguments.isEmpty()) {
+                val serverPosition = Vec3(correctionPacket.x, correctionPacket.y, correctionPacket.z)
+                val attemptedDelta = player.position().subtract(serverPosition)
+                val serverBox = player.boundingBox.move(serverPosition.subtract(player.position()))
+                attemptedDelta to Entity.collideBoundingBox(
+                    player,
+                    attemptedDelta,
+                    serverBox,
+                    level,
+                    emptyList(),
+                )
+            } else {
+                null
+            }
+            com.mojang.logging.LogUtils.getLogger().info(
+                "C3MOV correction-packet raw=({}, {}, {}) relative={} player={} velocity={} " +
+                    "previousCommand=[x={},z={},vertical={},resetHorizontal={}] " +
+                    "collisionAttempted={} collisionAllowed={}",
+                correctionPacket.x,
+                correctionPacket.y,
+                correctionPacket.z,
+                correctionPacket.relativeArguments,
+                player.position(),
+                player.deltaMovement,
+                latestCommand.horizontalX,
+                latestCommand.horizontalZ,
+                latestCommand.vertical,
+                latestCommand.resetHorizontalVelocity,
+                collisionDiagnostic?.first,
+                collisionDiagnostic?.second,
+            )
+        }
         runTelemetry.record(beforeState, latestFeedSnapshot)
-        // Incremental sync -- an ordinary placement only bumps
-        // missing.revision (contentIdentity/transformRevision unchanged), which applies
-        // MissingBlockHolder's changesSince delta instead of rescanning every missing
-        // position; only a reload/transform change does the O(all-missing) rebuild.
         val missingWorld = missingWorldCache.sync(
             missingRevision = missing.revision,
             transformRevision = transformRevision,
@@ -243,14 +242,6 @@ public object SchematicMover {
             missingLocal = missing.missingLocal,
             changesSince = MissingBlockHolder::changesSince,
         )
-        // A structural change (fresh auto-move-on for a just-loaded large schematic is
-        // the common case: contentIdentity starts null, so this is always true the first
-        // tick) can span several ticks of budgeted work -- the sync() call above already
-        // advanced it as far as this tick's budget allows, but missingWorld is still the
-        // PREVIOUS complete result (see isRebuilding's doc for why a stale-but-untorn
-        // snapshot is not good enough to act on), so the mover stays idle for the rest of
-        // this rebuild, leaving the previously applied command in effect exactly like the
-        // idle-window guard earlier in this function.
         if (missingWorldCache.isRebuilding()) return
         placeabilityMemo.synchronize(
             missingRevision = missing.revision,
@@ -273,23 +264,16 @@ public object SchematicMover {
                 guiOpen = minecraft.screen != null,
                 hurt = player.hurtTime > 0,
                 manualInput = manualInput(minecraft),
-                correctionReceived = MoverConnectionObserver.consumeCorrection(),
+                correctionReceived = correctionPacket != null,
                 queueRevision = missing.revision,
                 feedSnapshot = freshFeedSnapshot,
                 gateY = gateY,
                 gatePhase = SchematicPrinter.currentLayerGatePhase(),
                 missingWorld = missingWorld,
                 isPlaceable = { worldPos ->
-                    // A scaffold-plannable position is placeable
-                    // here too (ASCENT lanes included, not just RECOVERY/final-sweep --
-                    // the printer's own scaffoldAssistActive gate is gone), routed
-                    // through the exact same isScaffoldAssistable the gate and
-                    // classifyMissing use rather than a mover-local reimplementation.
                     val categoryAndSupport = placeabilityMemo.isPlaceable(worldPos) {
                         val localPos = missingWorldCache.localPosition(worldPos)
                         val expectedState = localPos?.let { local -> content.blocks[local] }
-                        // Mover isPlaceable memo reads the
-                        // frozen-world model instead of a live level read.
                         expectedState != null && isActionableMissing(
                             worldPos,
                             expectedState,
@@ -313,8 +297,6 @@ public object SchematicMover {
                         !SchematicPrinter.isDeferredWorldPos(worldPos, missing.revision) &&
                         (gateY == null || worldPos.y <= gateY)
                 },
-                // Lets the batch planner score coverage against the
-                // selector-aligned hit envelope instead of block-center distance.
                 expectedStateAt = { worldPos ->
                     missingWorldCache.localPosition(worldPos)?.let { local -> content.blocks[local] }
                 },
@@ -328,7 +310,6 @@ public object SchematicMover {
                     gameMode.pickRange.toDouble(),
                 ),
                 pathProbe = { from, to -> pathProbe(player, level, from, to) },
-                // Candidate abandonment is diagnostic until every candidate is spent.
                 onWorkPositionAbandoned = { _ -> Unit },
                 onWorkPositionUnproductive = { _, deferPositions ->
                     SchematicPrinter.deferNoProgress(deferPositions)
@@ -341,7 +322,12 @@ public object SchematicMover {
                             SchematicPrinter.deferNoProgress(positions)
                     }
                 },
-                canComplete = { SchematicPrinter.canAutoMoveComplete() },
+                onPlanPositionUnreachable = { worldPos ->
+                    if (startupOrphans.isEmpty()) SchematicPrinter.requestPlanPositionUnreachable(worldPos)
+                },
+                canComplete = {
+                    startupOrphans.isEmpty() && SchematicPrinter.canAutoMoveComplete()
+                },
                 onFinalSweepBackoffBypass = {
                     SchematicPrinter.grantFinalSweepBackoffBypass()
                 },
@@ -355,36 +341,52 @@ public object SchematicMover {
                 },
                 planMode = planModeActive,
                 planStateAt = if (planModeActive) level::getBlockState else null,
+                planSupportStateAt = if (planModeActive) level::getBlockState else null,
+                planBreakTargets = if (startupOrphans.isNotEmpty()) {
+                    startupOrphans.mapTo(LinkedHashSet()) { pos -> pos.immutable() }
+                } else {
+                    emptySet()
+                },
                 planTravelBounds = if (planModeActive) {
                     planTravelBoundsCache.get(content, transformRevision)
                 } else {
                     null
                 },
-                planFrontier = SchematicPrinter.planFrontierSnapshot()?.let { snapshot ->
+                planFrontier = if (startupOrphans.isNotEmpty()) {
+                    val inFlight = startupOrphans.filter(SchematicPrinter::ownsPendingBreak)
+                    val waiting = exposedStartupOrphansNearestFirst(startupOrphans, player.position())
+                        .filterNot(SchematicPrinter::ownsPendingBreak)
+                    val slime = Blocks.SLIME_BLOCK.defaultBlockState()
                     MoverPlanFrontier(
-                        // Already in plan order and bounded to one layer segment upstream
-                        // (see PlanRuntimeAdapter.frontierSnapshot's own doc) -- a nearest-first
-                        // re-sort or an extra re-cap here would undo the whole point of a
-                        // per-layer plan-order lookahead (MoverCore plans the ENTIRE segment's
-                        // route in one pass, then advances through it -- see buildPlanRoute/
-                        // tickPlanArrivalHold's own docs), so this is a straight conversion.
-                        waitingForReach = snapshot.waitingForReach
-                            .map { target -> MoverPlanFrontierTarget(target.pos, target.expected) },
-                        columnBlocked = snapshot.columnBlocked,
-                        inFlight = snapshot.inFlight,
-                        totalWaitingForReach = snapshot.totalWaitingForReach,
-                        totalColumnBlocked = snapshot.totalColumnBlocked,
-                        totalRemainingActions = snapshot.totalRemainingActions,
+                        waitingForReach = waiting.map { pos -> MoverPlanFrontierTarget(pos, slime) },
+                        columnBlocked = emptyList(),
+                        inFlight = inFlight,
+                        inFlightCollisionStates = inFlight.map { pos -> MoverPlanFrontierTarget(pos, slime) },
+                        totalWaitingForReach = waiting.size,
+                        totalColumnBlocked = 0,
+                        totalRemainingActions = startupOrphans.size,
                     )
+                } else {
+                    SchematicPrinter.planFrontierSnapshot()?.let { snapshot ->
+                        MoverPlanFrontier(
+                            waitingForReach = snapshot.waitingForReach
+                                .map { target -> MoverPlanFrontierTarget(target.pos, target.expected) },
+                            columnBlocked = snapshot.columnBlocked,
+                            inFlight = snapshot.inFlight,
+                            inFlightCollisionStates = snapshot.inFlightCollisionStates
+                                .map { target -> MoverPlanFrontierTarget(target.pos, target.expected) },
+                            totalWaitingForReach = snapshot.totalWaitingForReach,
+                            totalColumnBlocked = snapshot.totalColumnBlocked,
+                            totalRemainingActions = snapshot.totalRemainingActions,
+                        )
+                    }
                 },
-                planSessionFinal = SchematicPrinter.isPlanSessionFinal(),
+                planSessionFinal = startupOrphans.isEmpty() && SchematicPrinter.isPlanSessionFinal(),
             ),
         )
         latestCommand = command
         latestStatus = core.status()
         applyCommand(player, command)
-        // TEMP C3MOV (remove after the vertical-travel investigation)
-        debugTraceMovement(level.gameTime, beforeState, player, gateY)
         notifyTerminalTransition(beforeState, latestStatus!!)
     }
 
@@ -423,9 +425,6 @@ public object SchematicMover {
         latestCommand = STOP_COMMAND
         player?.let { applyCommand(it, STOP_COMMAND) }
         MoverConnectionObserver.remove()
-        // Printer-off-driven stop is a mandatory scaffold cleanup
-        // trigger too (usually a no-op here: SchematicPrinter's own toggle-off/
-        // auto-disable path already cleaned up before this runs).
         SchematicPrinter.cleanupScaffolds()
         ChatSender.send("[nuchematica] auto-move stopped (printer off)")
     }
@@ -439,8 +438,6 @@ public object SchematicMover {
         latestCommand = STOP_COMMAND
         player?.let { applyCommand(it, STOP_COMMAND) }
         MoverConnectionObserver.remove()
-        // World unload/logout/forced deactivation is a mandatory
-        // scaffold cleanup trigger -- the safety net for exit paths nothing else covers.
         SchematicPrinter.cleanupScaffolds()
     }
 
@@ -450,15 +447,6 @@ public object SchematicMover {
         when (status.state) {
             MoverState.ABORTED -> {
                 MoverConnectionObserver.remove()
-                // TEMP C3DBG (remove after the layer-pin investigation): a TRAPPED
-                // abort is a terminal-convergence failure -- dump the same
-                // classification COMPLETE gets, so the stuck remainder is diagnosable.
-                if (status.abortReason == MoverAbortReason.TRAPPED) {
-                    SchematicPrinter.debugDumpPinState("trapped-abort")
-                }
-                // Every tick()-driven abort (TRAPPED, damage, GUI,
-                // gamemode loss, server correction, ...) is a mandatory scaffold
-                // cleanup trigger -- never leave the scaffold material in the world.
                 SchematicPrinter.cleanupScaffolds()
                 status.abortReason?.let { reason ->
                     ChatSender.send("[nuchematica] auto-move aborted: $reason")
@@ -466,8 +454,6 @@ public object SchematicMover {
             }
             MoverState.COMPLETE -> {
                 MoverConnectionObserver.remove()
-                // TEMP C3DBG (remove after the layer-pin investigation)
-                SchematicPrinter.debugDumpPinState("auto-move-complete")
                 val breakdown = SchematicPrinter.completeBreakdown()
                 ChatSender.send(
                     "[nuchematica] auto-move complete (remaining=${breakdown.totalRemaining} " +
@@ -542,13 +528,22 @@ public object SchematicMover {
             player.abilities.flying = true
             player.onUpdateAbilities()
         }
+        val currentVelocity = player.deltaMovement
+        val controlledVelocity = controlledMoverVelocity(
+            currentVelocity = currentVelocity,
+            command = command,
+            flying = player.abilities.flying,
+        )
         if (command.stopMovement) {
             if (!stopMovementApplied) {
-                player.setDeltaMovement(Vec3.ZERO)
+                player.setDeltaMovement(controlledVelocity)
                 stopMovementApplied = true
             }
         } else {
             stopMovementApplied = false
+            if (controlledVelocity != currentVelocity) {
+                player.setDeltaMovement(controlledVelocity)
+            }
         }
     }
 
@@ -610,13 +605,6 @@ public object SchematicMover {
     private const val COLLISION_EPSILON: Double = 0.0000001
 }
 
-// Plan-mode travel bounds for the collision-aware A* profile: the schematic's own
-// world-space AABB (the same +2-margin PrintWorldModel/SchematicPrinter's own bounds
-// caches use) inflated by a further 8 in every direction to allow routing outside the
-// build itself (region-exit travel, e.g. around an exterior wall). Cached by
-// (content, transformRevision) identity -- mirrors SchematicPrinter's own
-// boundsPredicateFor cache -- so the O(content) scan runs only when the schematic or its
-// transform actually changes, never every tick.
 private class PlanTravelBoundsCache {
     private var contentIdentity: Any? = null
     private var transformRevision: Long = 0L
@@ -655,23 +643,13 @@ private class PlanTravelBoundsCache {
     }
 }
 
-// Replaces the old full-rebuild-per-missingRevision cache with the
-// same rebuild/applyChange/sync split as SchematicPrinter's LayerGateEligibleMissingCache
-// (see that class's doc), including its budgeted rebuild: sync() only ever advances an
-// in-progress structural rebuild by rebuildBudget entries per call instead of doing the
-// whole O(all-missing) pass synchronously, so a multi-million-entry missing set does not
-// freeze the tick that first sees a fresh content/transform identity. rebuildCount is
-// test-visible for the same structural-guarantee assertion: ordinary per-placement
-// traffic must never move it.
+/**
+ * Revision-aware cache of transformed missing positions.
+ *
+ * Structural changes rebuild within [rebuildBudget]; ordinary revisions replay retained
+ * changes. The last complete result remains visible until a rebuild finishes.
+ */
 internal class MoverMissingWorldCache(
-    // Injectable so tests can prove the per-call budget structurally (a
-    // small budget over a small dataset) instead of needing a huge fixture to exercise
-    // the multi-call path -- defaults to the exact production budget (PrintWorldModel's
-    // own capture budget, piggybacking the existing pump pattern rather than inventing a
-    // second tuning knob), so every existing/production call site is unaffected. Declared
-    // before localToWorld (not after) so localToWorld stays the LAST constructor
-    // parameter -- existing call sites use Kotlin's trailing-lambda shorthand
-    // (`MoverMissingWorldCache { pos -> ... }`), which only binds to the final parameter.
     private val rebuildBudget: Int = PrintWorldModel.CAPTURE_CELLS_PER_TICK,
     private val localToWorld: (BlockPos) -> BlockPos,
 ) {
@@ -684,48 +662,15 @@ internal class MoverMissingWorldCache(
     internal var rebuildCount: Int = 0
         private set
 
-    // Budgeted rebuild state, mirroring LayerGateEligibleMissingCache's own
-    // pendingEntries/working-map shape. Without budgeting, a structural change would
-    // call rebuild() -- an unconditional O(all-missing) pass -- synchronously inside
-    // sync(), which SchematicMover.tick calls every tick: on a multi-million-entry
-    // missing set, the FIRST tick after toggling auto-move on (contentIdentity starts
-    // null, so structurallyStale is always true that tick) would freeze the client on
-    // this single call. pendingEntries is non-null exactly while a rebuild episode spans
-    // more than one sync() call; the OLD worldByLocal/localByWorld stay fully intact and
-    // readable until the working copy swaps in atomically on completion.
     private var pendingEntries: Iterator<BlockPos>? = null
     private var pendingContentIdentity: Any? = null
     private var pendingTransformRevision: Long = 0L
-    // The missingRevision as of beginRebuild -- the revision the swapped-in
-    // worldByLocal/localByWorld will actually reflect once the pass completes, since
-    // pendingEntries iterates the missingLocal view captured at that moment (frozen, per
-    // MissingLocalView's own doc), not whatever the current tick's missingRevision
-    // happens to be. A rebuild can span several ticks; stamping the COMPLETION-time
-    // revision as "caught up to" would silently drop any change that landed during the
-    // rebuild: worldByLocal would stay stuck at the begin-time view forever, since
-    // lastAppliedRevision would (falsely) claim there is nothing left to replay.
-    // Stamping the BEGIN-time revision instead means the very next sync() call's
-    // ordinary changesSince(lastAppliedRevision) path replays everything that happened
-    // during and after the rebuild, exactly like any other catch-up gap -- no new
-    // machinery, just an honest revision stamp.
     private var pendingMissingRevisionAtBegin: Long = 0L
     private var workingByLocal: LinkedHashMap<BlockPos, BlockPos> = LinkedHashMap()
     private var workingLocalByWorld: HashMap<BlockPos, BlockPos> = HashMap()
 
-    // True from the tick a rebuild episode starts until the budgeted pass
-    // finishes swapping its result in. SchematicMover.tick gates on this exactly like it
-    // already gates on PrintWorldModel.status() == CAPTURING / MissingBlockHolder
-    // .isInitializing() -- the result this cache would return mid-rebuild is stale
-    // (still the PREVIOUS complete result, per the no-torn-result guarantee above), not
-    // merely incomplete, so a caller that pressed on regardless would route the mover
-    // against outdated missing-world state for however many ticks the rebuild spans.
     internal fun isRebuilding(): Boolean = pendingEntries != null
 
-    // Single per-tick entry point: a structural identity change forces one (budgeted)
-    // rebuild; otherwise the missingRevision delta since last tick is replayed via
-    // MissingBlockHolder.changesSince, falling back to one rebuild only if that span is
-    // no longer retained. A rebuild already in progress just gets pumped further; a NEW
-    // structural change arriving mid-rebuild restarts it against the fresh identity.
     internal fun sync(
         missingRevision: Long,
         transformRevision: Long,
@@ -739,11 +684,6 @@ internal class MoverMissingWorldCache(
             if (!stillSameTarget) {
                 beginRebuild(contentIdentity, transformRevision, missingLocal, missingRevision)
             }
-            // lastAppliedRevision is not touched here -- it only ever becomes correct
-            // once pumpRebuild's completion swap-in sets it to the begin-time revision
-            // (see pendingMissingRevisionAtBegin's doc). While still pumping, its stale
-            // value is never read (every other branch of sync() is unreachable while
-            // pendingEntries != null), so leaving it alone is safe.
             pumpRebuild(rebuildBudget)
             return worldByLocal.values
         }
@@ -765,19 +705,11 @@ internal class MoverMissingWorldCache(
         return worldByLocal.values
     }
 
-    // Unbudgeted, complete-in-one-call rebuild -- kept for callers (tests, and any
-    // future caller) that want the old synchronous "do it all now" behavior rather than
-    // sync()'s tick-budgeted path. Implemented as beginRebuild + an unbounded pump so
-    // the two paths share one body instead of two copies of the transform loop.
     internal fun rebuild(
         contentIdentity: Any,
         transformRevision: Long,
         missingLocal: List<BlockPos>,
     ): Collection<BlockPos> {
-        // No missingRevision of its own (this path is independent of sync()'s revision
-        // tracking) -- passes the current lastAppliedRevision through unchanged so
-        // completion's swap-in sets it back to itself (a no-op) rather than to an
-        // arbitrary value.
         beginRebuild(contentIdentity, transformRevision, missingLocal, lastAppliedRevision)
         pumpRebuild(Int.MAX_VALUE)
         return worldByLocal.values
@@ -798,10 +730,6 @@ internal class MoverMissingWorldCache(
         workingLocalByWorld = HashMap()
     }
 
-    // Advances the in-progress rebuild by at most `budget` positions. No-op unless a
-    // rebuild is actually pending. Swaps the working maps into worldByLocal/localByWorld
-    // atomically only once every position has been visited -- see isRebuilding's doc for
-    // why the OLD result must stay exactly as it was until then.
     private fun pumpRebuild(budget: Int): Unit {
         val entries = pendingEntries ?: return
         var processed = 0
@@ -820,9 +748,6 @@ internal class MoverMissingWorldCache(
         localByWorld.putAll(workingLocalByWorld)
         contentIdentity = pendingContentIdentity
         transformRevision = pendingTransformRevision
-        // The swapped-in worldByLocal/localByWorld reflect missingLocal exactly as it
-        // stood at beginRebuild, not "now" -- see pendingMissingRevisionAtBegin's doc
-        // for why stamping anything later here would silently drop concurrent changes.
         lastAppliedRevision = pendingMissingRevisionAtBegin
         pendingEntries = null
         workingByLocal = LinkedHashMap()

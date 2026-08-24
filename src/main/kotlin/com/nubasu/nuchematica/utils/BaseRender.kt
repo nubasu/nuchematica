@@ -21,7 +21,7 @@ public object BaseRender {
         val r = color.x()
         val g = color.y()
         val b = color.z()
-        val a = 0.2f // 半透明
+        val a = 0.2f
 
         val matrix = poseStack.last().pose()
 

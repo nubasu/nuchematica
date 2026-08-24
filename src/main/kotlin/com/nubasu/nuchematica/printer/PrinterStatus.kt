@@ -4,9 +4,7 @@ public data class PrinterStatus(
     public val remaining: Int,
     public val placed: Int,
     public val skips: Map<PrinterSkipReason, Int>,
-    // Plan-mode (v4) HUD phase -- null on every v3 construction site, so the v3 HUD stays
-    // byte-for-byte unchanged. See SchematicPrinter's own planPhase field for the values this
-    // takes and PrinterHudFormatter.lines for where it renders.
+    /** Current plan lifecycle label, omitted outside plan mode. */
     internal val planPhase: String? = null,
 )
 

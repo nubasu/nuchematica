@@ -23,12 +23,6 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import java.util.concurrent.atomic.AtomicLong
 
-/**
- * Phase B final acceptance criterion 2: after repeated content replacement the
- * resident GPU handle count, byte accounting, and live job counters must return
- * to the post-initial-build baseline, and every superseded handle must be closed
- * exactly once. Written by the reviewer independently of the implementation work.
- */
 public class PhaseBFinalAcceptanceAuditTest {
 
     @Test

@@ -1,8 +1,5 @@
 package com.nubasu.nuchematica.tag
 
-/**
- * ref: https://minecraft.fandom.com/wiki/NBT_format
- */
 public class ListTag(public val type: Class<out Tag>, override val value: List<Tag>) : Tag() {
 
     public fun setValue(list: List<Tag>): ListTag {

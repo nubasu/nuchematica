@@ -329,8 +329,6 @@ public class PrinterSettingsScreen(
         private const val PRINTER_PLAN_FIRST_MODE_LABEL_KEY =
             "screen.nuchematica.printer.plan_first_mode"
 
-        // Rows stack top to bottom in a single column so every widget's bottom
-        // edge stays within the minimum supported scaled GUI height.
         private const val ATTEMPTS_Y = FIRST_LINE_BASELINE
         private const val INTERVAL_Y = ATTEMPTS_Y + ROW_HEIGHT
         private const val REACH_Y = INTERVAL_Y + ROW_HEIGHT

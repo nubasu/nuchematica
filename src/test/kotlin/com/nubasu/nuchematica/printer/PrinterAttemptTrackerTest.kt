@@ -32,9 +32,30 @@ public class PrinterAttemptTrackerTest {
     public fun stableBaselineStateIsRejected(): Unit {
         val tracker = trackedAttempt()
 
-        val result = observeStable(tracker, baselineState)
+        for (tick in 1L until PrinterAttemptTracker.DEADLINE_TICKS) {
+            assertTrue(tracker.observe(tick, { baselineState }).isEmpty())
+        }
+        val result = tracker.observe(PrinterAttemptTracker.DEADLINE_TICKS, { baselineState }).single()
 
         assertEquals(PrinterAttemptOutcome.REJECTED, result.outcome)
+        assertEquals(PrinterAttemptTracker.DEADLINE_TICKS, result.completedTick)
+    }
+
+    @Test
+    public fun stableBaselineBeforeDeadlineDoesNotPreemptDelayedAcceptance(): Unit {
+        val tracker = trackedAttempt()
+
+        for (tick in 1L until 10L) {
+            assertTrue(tracker.observe(tick, { baselineState }).isEmpty())
+        }
+        var result: PrinterAttemptResult? = null
+        for (tick in 10L until 10L + PrinterAttemptTracker.SETTLE_TICKS) {
+            val completed = tracker.observe(tick, { expectedState })
+            if (completed.isNotEmpty()) result = completed.single()
+        }
+
+        assertEquals(PrinterAttemptOutcome.ACCEPTED, result?.outcome)
+        assertEquals(14L, result?.completedTick)
     }
 
     @Test
@@ -99,10 +120,6 @@ public class PrinterAttemptTrackerTest {
         assertEquals(PrinterAttemptTracker.DEADLINE_TICKS, completed.single().completedTick)
     }
 
-    // Contract: observe's trailing matcher parameter overrides the default no-arg
-    // BlockStateEquivalence delegation -- a settings-bound caller (PlanRuntimeAdapter) must be
-    // able to decide ACCEPTED on its own terms without this tracker ever touching the live
-    // settings holder itself.
     @Test
     public fun customMatcherOverridesDefaultEquivalence(): Unit {
         val tracker = trackedAttempt()

@@ -6,13 +6,11 @@ import net.minecraft.core.Direction
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.context.BlockPlaceContext
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.Vec3
 
-// Outcome of resolving a single missing position into a placeable candidate. Each
-// non-Resolved variant corresponds to one of PrinterCandidateSelector.select's
-// per-position early-continue points, so the selector can turn a variant back into its
-// existing skip-log/candidate handling without re-deriving the reason.
+/** Typed outcome of resolving one missing position into a placement candidate. */
 internal sealed class PlacementResolution {
     internal data class Resolved(
         val hit: BlockHitResult,
@@ -21,9 +19,6 @@ internal sealed class PlacementResolution {
         val placementState: BlockState,
     ) : PlacementResolution()
 
-    // Covers both the coarse distance prefilter and every support hit falling outside
-    // the real reach sphere: both are "nothing here was in reach" from the caller's
-    // point of view.
     internal object OutOfReach : PlacementResolution()
     internal object TargetNotReplaceable : PlacementResolution()
     internal object NoSupportFace : PlacementResolution()
@@ -31,24 +26,13 @@ internal sealed class PlacementResolution {
     internal object PredictionMismatch : PlacementResolution()
 }
 
-// Margin added to reach for the coarse prefilter: a hit can land on the face of a block
-// adjacent to the missing position, up to ~1 block farther from the eye than the missing
-// position's own center.
 private const val PREFILTER_MARGIN: Double = 1.0
 
-// Pure per-position placement pipeline extracted from PrinterCandidateSelector.select:
-// coarse distance prefilter, replaceable-target check, support-face hit generation, reach
-// filtering, item eligibility, then prediction/oriented-rotation trial. No logging, no
-// holder reads, no mutation -- every input the decision depends on is an argument,
-// including the behavior settings snapshot the selector reads on the caller's behalf.
-//
-// The settings snapshot is taken ONCE per position and reused for both the eligibility
-// derivation and the prediction equivalence check -- deliberately atomic, so a settings
-// change can never produce a mixed-behavior verdict within one position. This holds only
-// under an invariant the callers must keep: the three injected callbacks never mutate the
-// live settings holder (they are coordinate/prediction machinery, not configuration), and
-// any world/player state they touch is restored before returning. A caller that wires in a
-// callback violating that forfeits this function's purity, not just its determinism.
+/**
+ * Resolves one position without logging or mutating printer state.
+ *
+ * The supplied [settings] snapshot is used for both eligibility and prediction matching.
+ */
 internal fun resolvePlacement(
     worldPos: BlockPos,
     expectedState: BlockState,
@@ -64,11 +48,6 @@ internal fun resolvePlacement(
     val prefilterReachSquared = (reach + PREFILTER_MARGIN) * (reach + PREFILTER_MARGIN)
     val effectiveExpected = effectivePlacementState(expectedState, settings)
 
-    // Coarse distance prefilter before any state read: on large schematics, reading
-    // target + 6 neighbor states for every missing block every tick is the dominant
-    // cost. Positions that cannot possibly be in reach (even accounting for a hit
-    // landing on an adjacent block's face) are rejected here without touching
-    // stateAt/supportHits/prediction at all.
     val deltaX = eyePosition.x - (worldPos.x + 0.5)
     val deltaY = eyePosition.y - (worldPos.y + 0.5)
     val deltaZ = eyePosition.z - (worldPos.z + 0.5)
@@ -93,7 +72,11 @@ internal fun resolvePlacement(
         val context = placementContext(effectiveExpected, hit)
         val predicted = predictPlacement(item, context)
         if (predicted != null && BlockStateEquivalence.matches(effectiveExpected, predicted, settings)) {
-            ResolvedHit(hit, distanceSquared, requiredRotation = null)
+            ResolvedHit(
+                hit,
+                distanceSquared,
+                requiredRotation = explicitCurrentRotationForMatchingState(effectiveExpected, context),
+            )
         } else {
             val rotation = orientedPrediction(item, context, effectiveExpected)
             if (rotation != null) ResolvedHit(hit, distanceSquared, rotation) else null
@@ -108,16 +91,41 @@ internal fun resolvePlacement(
     )
 }
 
+private fun explicitCurrentRotationForMatchingState(
+    expectedState: BlockState,
+    context: BlockPlaceContext,
+): PlacementRotation? {
+    val properties = expectedState.properties
+    val rotationSensitive =
+        BlockStateProperties.HORIZONTAL_FACING in properties ||
+            BlockStateProperties.FACING in properties ||
+            BlockStateProperties.ATTACH_FACE in properties ||
+            BlockStateProperties.ROTATION_16 in properties
+    if (!rotationSensitive) return null
+    val player = context.player ?: return null
+    return PlacementRotation(player.yRot, player.xRot)
+}
+
 private data class ResolvedHit(
     val hit: BlockHitResult,
     val distanceSquared: Double,
     val requiredRotation: PlacementRotation?,
 )
 
-// Builds its hits from the shared supportHitPoint geometry in PrinterCandidateSelector.kt,
-// adding only the world-dependent filtering (does a support block actually exist at the
-// neighbor) on top -- kept aligned with potentialSupportHitPoints' pure envelope so the
-// two never drift apart.
+/** Returns hit points only for support faces present in the supplied world view. */
+internal fun availableSupportHitPoints(
+    worldPos: BlockPos,
+    expectedState: BlockState,
+    stateAt: (BlockPos) -> BlockState,
+): List<Vec3> {
+    return Direction.values().mapNotNull { supportDirection ->
+        val supportPos = worldPos.relative(supportDirection)
+        val face = supportDirection.opposite
+        if (!isUsableSupportNeighbor(expectedState, stateAt(supportPos), face)) return@mapNotNull null
+        supportHitPoint(worldPos, expectedState, supportDirection)
+    }
+}
+
 private fun supportHits(
     worldPos: BlockPos,
     expectedState: BlockState,
@@ -127,7 +135,9 @@ private fun supportHits(
         val location = supportHitPoint(worldPos, expectedState, supportDirection)
             ?: return@mapNotNull null
         val supportPos = worldPos.relative(supportDirection)
-        if (!isSupportingState(stateAt(supportPos))) return@mapNotNull null
+        if (!isUsableSupportNeighbor(expectedState, stateAt(supportPos), supportDirection.opposite)) {
+            return@mapNotNull null
+        }
         BlockHitResult(location, supportDirection.opposite, supportPos, false)
     }
 }

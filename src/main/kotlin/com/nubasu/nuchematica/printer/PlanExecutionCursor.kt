@@ -2,12 +2,6 @@ package com.nubasu.nuchematica.printer
 
 import net.minecraft.core.BlockPos
 
-// One action's cursor-owned bookkeeping: its assigned id, which unit/group it belongs to,
-// the original PlanAction, and the live mutable state/retry count PlanExecutionCursor
-// advances as events arrive. awaitingAttemptId is the attemptId of the submission this
-// record is currently outstanding for (null when nothing is outstanding); onEvent clears it
-// the moment a Correlated event actually drives a transition, so a later duplicate of that
-// same attempt no longer matches and is discarded.
 private class ActionRecord(
     internal val actionId: Long,
     internal val unitIndex: Int,
@@ -26,9 +20,6 @@ private fun dependsOnOf(action: PlanAction): List<BlockPos> {
     }
 }
 
-// Visible beyond this file so PlanRuntimeAdapter can replay the exact same groupId
-// derivation while building its own action registry (see that class's doc for why it needs
-// one independent of this cursor's own internal bookkeeping).
 internal fun groupIdOf(action: PlanAction): Int {
     return when (action) {
         is PlanAction.PlaceTarget -> action.groupId
@@ -37,11 +28,6 @@ internal fun groupIdOf(action: PlanAction): Int {
     }
 }
 
-// Every group PrintPlanner emits (see appendScaffoldActions) is PlaceScaffold*n -> PlaceTarget
-// -> RemoveScaffold*n, the removals in exact reverse of the placements' own order and over
-// the same position set with no duplicates. PlanExecutionCursor's own cascade logic
-// (findPlaceScaffoldRecord, cascadeSkipIfPlacement) relies on that shape holding, so a
-// malformed group is rejected here rather than silently mishandled later.
 private fun validateGroupShape(groupId: Int, actions: List<PlanAction>): Unit {
     var index = 0
     val placedPositions = mutableListOf<BlockPos>()
@@ -69,11 +55,12 @@ private fun validateGroupShape(groupId: Int, actions: List<PlanAction>): Unit {
     }
 }
 
-// Headless, main-thread, synchronous consumer of a PrintPlan's units: assigns every unit
-// action a deterministic id at construction, then exposes orderedFrontier/submitSpecific/
-// onEvent/status as the only way its own state ever changes -- see PlanExecutionModels.kt
-// for the state/event vocabulary. Only ever executes PrintPlan.units; PrintPlan.reservations
-// is out of scope (never executed, never counted toward completion).
+/**
+ * Executes plan units in order while advancing each action group independently.
+ *
+ * Action IDs are deterministic for the expanded plan, and state changes only through
+ * submissions and [onEvent].
+ */
 internal class PlanExecutionCursor(plan: PrintPlan) {
     private val records: List<ActionRecord>
     private val unitActionIds: List<List<Long>>
@@ -84,11 +71,11 @@ internal class PlanExecutionCursor(plan: PrintPlan) {
         val builtUnitActionIds = mutableListOf<List<Long>>()
         val builtUnitGroups = mutableListOf<LinkedHashMap<Int, MutableList<Long>>>()
         var nextId = 0L
-        for ((unitIndex, unit) in plan.units.withIndex()) {
+        for ((unitIndex, unit) in executablePlanUnits(plan).withIndex()) {
             val actionIdsForUnit = mutableListOf<Long>()
             val groupsForUnit = LinkedHashMap<Int, MutableList<Long>>()
             for (action in unit.actions) {
-                check(dependsOnOf(action).isEmpty()) {
+                check(unit.isReservation || dependsOnOf(action).isEmpty()) {
                     "unit action dependsOn must be empty outside reservation resolution: $action"
                 }
                 val actionId = nextId++
@@ -114,7 +101,6 @@ internal class PlanExecutionCursor(plan: PrintPlan) {
         unitGroups = builtUnitGroups
     }
 
-    // Index of the first unit not yet complete, or unitActionIds.size once every unit is.
     internal fun currentUnitIndex(): Int {
         for (unitIndex in unitActionIds.indices) {
             if (!isUnitComplete(unitIndex)) return unitIndex
@@ -125,14 +111,11 @@ internal class PlanExecutionCursor(plan: PrintPlan) {
     internal val isComplete: Boolean
         get() = currentUnitIndex() == unitActionIds.size
 
-    // The current unit's own frontier actionIds, one per group, in group first-appearance
-    // (= plan) order -- a group's frontier is its own first not-yet-terminal action (strict
-    // in-group order). A group whose every action is already terminal contributes nothing (it
-    // is simply absent from the result, not represented by any placeholder). Every state
-    // (Pending, Waiting, InFlight) is included here -- callers that need to skip an
-    // already-outstanding frontier do so themselves (see PlanRuntimeAdapter's tick loop); this
-    // is a plan-order listing, not a submittability filter. Empty once the unit itself is
-    // complete (currentUnitIndex has advanced past every unit, or the plan is empty).
+    /**
+     * Lists each current-unit group's first nonterminal action in plan order.
+     *
+     * Waiting and in-flight actions remain in this listing; it is not a submittability filter.
+     */
     internal fun orderedFrontier(): List<Long> {
         val unitIndex = currentUnitIndex()
         if (unitIndex >= unitGroups.size) return emptyList()
@@ -144,19 +127,8 @@ internal class PlanExecutionCursor(plan: PrintPlan) {
         return frontier
     }
 
-    // Lets a caller submit a SPECIFIC action out of orderedFrontier's own plan-order listing.
-    // Submits (same attempt-id bump/record path submit() uses) iff actionId names the CURRENT
-    // unit's own frontier action for its group and that action is Pending or Waiting. Multiple
-    // groups within the same unit may be InFlight at once -- strict plan-order dispatch (see
-    // PlanRuntimeAdapter's tick loop) is what keeps execution ordered, not a per-unit
-    // single-outstanding-action gate here. Returns null with no state change otherwise: an
-    // unknown id, an action in a later/earlier unit, a non-frontier (already-terminal-ahead-
-    // of-it, so unreachable) action, or a terminal/already-InFlight action. The caller owns
-    // deciding WHICH frontier action to try next; this only enforces that the try is legal.
+    /** Submits a pending or waiting frontier action with a fresh attempt ID. */
     internal fun submitSpecific(actionId: Long): CursorAction? {
-        // Long-domain bounds check BEFORE toInt(): an id outside the actual record range
-        // (e.g. records.size + 2^32) must never truncate down into an in-range index and
-        // alias some other action's own record.
         if (actionId < 0L || actionId >= records.size.toLong()) return null
         val record = records[actionId.toInt()]
         val unitIndex = currentUnitIndex()
@@ -168,12 +140,6 @@ internal class PlanExecutionCursor(plan: PrintPlan) {
         }
     }
 
-    // Read-only view of one action's current state, keyed by the same actionId
-    // orderedFrontier/submitSpecific/onEvent already use. Lets an external consumer
-    // (PlanRuntimeAdapter) detect a cascade-driven transition it never directly witnessed
-    // itself -- e.g. a scaffold failure skipping a sibling RemoveScaffold via
-    // cascadeSkipIfPlacement -- without this cursor needing to notify anyone of that internal
-    // side effect as a CursorEvent.
     internal fun stateOf(actionId: Long): ActionState {
         require(actionId >= 0L && actionId < records.size.toLong()) { "unknown actionId $actionId" }
         return records[actionId.toInt()].state
@@ -181,6 +147,7 @@ internal class PlanExecutionCursor(plan: PrintPlan) {
 
     private var ignoredEventCount = 0
 
+    /** Applies matching outcomes and ignores stale or duplicate correlated events. */
     internal fun onEvent(event: CursorEvent): Unit {
         val id = event.actionId
         require(id >= 0L && id < records.size.toLong()) { "unknown actionId $id" }
@@ -191,16 +158,9 @@ internal class PlanExecutionCursor(plan: PrintPlan) {
         }
         event as CursorEvent.Correlated
         if (record.awaitingAttemptId != event.attemptId) {
-            // Stale (superseded by a later resubmission), a duplicate report for an attempt
-            // already decided, or any report against an action that is already terminal --
-            // record.awaitingAttemptId is cleared the instant a Correlated event actually
-            // drives a transition below, so all three collapse into this one mismatch check.
             ignoredEventCount++
             return
         }
-        // Submitted only ever confirms a state submit() already set (InFlight); it carries no
-        // transition of its own, so the attempt stays outstanding for whatever report actually
-        // decides it next.
         if (event !is CursorEvent.Submitted) record.awaitingAttemptId = null
         when (event) {
             is CursorEvent.Submitted -> Unit
@@ -217,14 +177,6 @@ internal class PlanExecutionCursor(plan: PrintPlan) {
         }
     }
 
-    // PostCleanupMismatch reports a fact observed after the whole group already settled, not
-    // the outcome of one particular submission -- it carries no attemptId and is exempt from
-    // the Correlated gate above. Against an already-Done PlaceTarget it is the one event
-    // allowed to override that Done into a terminal failure, with no cascade (the group's
-    // RemoveScaffold actions are already decided by the time cleanup can be inspected). Against
-    // any other terminal state it is just another post-terminal report and is discarded like
-    // any other. Against a still-live action it behaves like an ordinary terminal failure,
-    // cascade included.
     private fun applyPostCleanupMismatch(record: ActionRecord): Unit {
         if (record.state is ActionState.Done) {
             record.state = ActionState.Failed(ActionFailureReason.POST_CLEANUP_MISMATCH)
@@ -234,13 +186,6 @@ internal class PlanExecutionCursor(plan: PrintPlan) {
             ignoredEventCount++
             return
         }
-        // The record may still be outstanding for a real submission (InFlight) when this
-        // fires -- clear that attempt now, same as the ordinary Correlated path already does
-        // before every ordinary transition. Without this, that submission's real (later)
-        // outcome would still match awaitingAttemptId, so onEvent's stale-attempt check would
-        // let it through as if it were a live report and silently no-op inside the terminal
-        // apply* call below instead of being counted via ignoredEventCount -- undercounting a
-        // report against an action that is, by then, already terminal.
         record.awaitingAttemptId = null
         applyTerminalFailure(record, ActionFailureReason.POST_CLEANUP_MISMATCH)
     }
@@ -300,10 +245,6 @@ internal class PlanExecutionCursor(plan: PrintPlan) {
         cascadeSkipIfPlacement(record)
     }
 
-    // Rejected/Timeout are retried up to PrinterRuntime.MAX_RETRIES (the cursor owns this
-    // budget itself -- see contract) before becoming a terminal Failed; every retry just
-    // sends the action back to Pending so it becomes this action's own frontier's turn to
-    // submit again.
     private fun applyRetryableFailure(record: ActionRecord, reason: ActionFailureReason): Unit {
         if (isTerminal(record.state)) return
         if (record.retryCount >= PrinterRuntime.MAX_RETRIES) {
@@ -315,13 +256,6 @@ internal class PlanExecutionCursor(plan: PrintPlan) {
         }
     }
 
-    // A terminal PlaceScaffold/PlaceTarget failure breaks the rest of its own group's
-    // placement chain: every later PlaceScaffold/PlaceTarget in the group (never reachable
-    // now, in-group order is strict) is skipped. RemoveScaffold cleanup is still mandatory,
-    // but only for the scaffold cells that actually made it into the world -- a
-    // RemoveScaffold whose own PlaceScaffold never reached Done has nothing to remove, so it
-    // is skipped too. A RemoveScaffold action itself failing does not cascade (removal
-    // failures are independent per cell, and cleanup of the others must still be attempted).
     private fun cascadeSkipIfPlacement(record: ActionRecord): Unit {
         if (record.action is PlanAction.RemoveScaffold) return
         val groupActionIds = unitGroups[record.unitIndex].getValue(record.groupId)
@@ -353,15 +287,6 @@ internal class PlanExecutionCursor(plan: PrintPlan) {
         return null
     }
 
-    // Whether a scaffold cell's own terminal state proves it never actually reached the
-    // world, so its removal has nothing to clean up and can be skipped. TIMEOUT is
-    // deliberately excluded: the runtime never learned whether the block landed before the
-    // wait elapsed, so a cell reported TIMEOUT might still be standing and its removal must
-    // stay mandatory. REMOVE_FAILED/POST_CLEANUP_MISMATCH never apply to a PlaceScaffold's own
-    // terminal state under this cursor's state machine (they are only ever assigned to a
-    // RemoveScaffold's or a PlaceTarget's own record respectively); both default to false here
-    // for the same reason TIMEOUT does -- an unrecognized reason must never assume placement
-    // failed and skip mandatory cleanup.
     private fun isDefinitelyNotPlaced(state: ActionState): Boolean {
         return when (state) {
             is ActionState.Skipped -> true

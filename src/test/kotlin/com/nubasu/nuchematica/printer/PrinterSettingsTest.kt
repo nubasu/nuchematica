@@ -48,7 +48,7 @@ public class PrinterSettingsTest {
         assertTrue(decoded.facePlacement)
         assertFalse(decoded.placeWaterloggedDry)
         assertTrue(decoded.substituteLookalikes)
-        assertFalse(decoded.planFirstMode)
+        assertTrue(decoded.planFirstMode)
     }
 
     @Test
@@ -56,20 +56,23 @@ public class PrinterSettingsTest {
         val settings = PrinterSettings(
             attemptsPerTick = 6,
             reach = 3.5,
-            planFirstMode = true,
+            planFirstMode = false,
         )
 
         assertEquals(settings, PrinterSettingsCodec.decode(PrinterSettingsCodec.encode(settings)))
     }
 
-    // Contract 8 (M3b1b-2): pins SchematicPrinter.tick's own plan-mode branch condition
-    // (settings.planFirstMode && PrintWorldModel.status() == READY) exactly -- with the flag
-    // off, that condition must stay false no matter what PrintWorldModel currently reports,
-    // so plan mode can never be entered and the v3 path below it is the only one ever
-    // reached. SchematicPrinter itself is not unit-testable here (its tick() reads
-    // Minecraft.getInstance() directly with no test seam); this test's own reconstruction of
-    // its exact branch expression, together with the full existing v3 suite staying green
-    // with zero behavior changes, is this session's evidence for the flag-OFF invariant.
+    @Test
+    public fun savedSettingsFromTheObservedFantasyRunMigrateToPlanFirstMode(): Unit {
+        val decoded = PrinterSettingsCodec.decode(
+            """{"placementIntervalTicks":3,"placeWaterloggedDry":true}""",
+        )
+
+        assertTrue(decoded.planFirstMode)
+        assertEquals(3, decoded.placementIntervalTicks)
+        assertTrue(decoded.placeWaterloggedDry)
+    }
+
     @Test
     public fun planFirstModeOffKeepsTheSessionBranchConditionFalseRegardlessOfWorldModelStatus(): Unit {
         val settings = PrinterSettings(planFirstMode = false)

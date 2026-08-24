@@ -8,7 +8,7 @@ import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket
 
 internal object MoverConnectionObserver {
     @Volatile
-    private var correctionReceived: Boolean = false
+    private var correctionReceived: CorrectionPacket? = null
 
     @Volatile
     private var desiredChannel: Channel? = null
@@ -24,7 +24,7 @@ internal object MoverConnectionObserver {
 
         desiredChannel = channel
         synchronized(this) {
-            correctionReceived = false
+            correctionReceived = null
         }
         if (previousDesired != null && previousDesired !== channel) {
             scheduleRemoval(previousDesired)
@@ -57,15 +57,15 @@ internal object MoverConnectionObserver {
         desiredChannel = null
         installedChannel = null
         synchronized(this) {
-            correctionReceived = false
+            correctionReceived = null
         }
         channels.forEach(::scheduleRemoval)
     }
 
-    internal fun consumeCorrection(): Boolean {
+    internal fun consumeCorrection(): CorrectionPacket? {
         return synchronized(this) {
             val received = correctionReceived
-            correctionReceived = false
+            correctionReceived = null
             received
         }
     }
@@ -84,7 +84,14 @@ internal object MoverConnectionObserver {
             try {
                 if (message is ClientboundPlayerPositionPacket) {
                     synchronized(MoverConnectionObserver) {
-                        correctionReceived = true
+                        correctionReceived = CorrectionPacket(
+                            x = message.x,
+                            y = message.y,
+                            z = message.z,
+                            relativeArguments = message.relativeArguments.mapTo(LinkedHashSet()) { argument ->
+                                argument.name
+                            },
+                        )
                     }
                 }
             } finally {
@@ -96,3 +103,10 @@ internal object MoverConnectionObserver {
     private const val PACKET_HANDLER_NAME: String = "packet_handler"
     private const val HANDLER_NAME: String = "nuchematica_mover"
 }
+
+internal data class CorrectionPacket(
+    internal val x: Double,
+    internal val y: Double,
+    internal val z: Double,
+    internal val relativeArguments: Set<String>,
+)

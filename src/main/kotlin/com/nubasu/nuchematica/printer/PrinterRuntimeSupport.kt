@@ -43,10 +43,6 @@ public class PrinterSkipLog {
     private val positions: EnumMap<PrinterSkipReason, MutableSet<BlockPos>> =
         EnumMap(PrinterSkipReason::class.java)
 
-    // Set-of-positions instead of an event counter: a single unsupported block
-    // ticks skip logic every game tick, and an event counter would blow up to
-    // hundreds of "skips" per second for one block. Tracking distinct positions
-    // keeps this readable as "N blocks are skipped for reason X".
     public fun record(reason: PrinterSkipReason, pos: BlockPos): Unit {
         positions.getOrPut(reason) { mutableSetOf() }.add(pos.immutable())
     }

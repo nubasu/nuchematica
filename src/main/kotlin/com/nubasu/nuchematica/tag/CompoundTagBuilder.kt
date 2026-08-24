@@ -2,9 +2,6 @@ package com.nubasu.nuchematica.tag
 
 import java.util.HashMap
 
-/**
- * ref: https://minecraft.fandom.com/wiki/NBT_format
- */
 public class CompoundTagBuilder(private val entries: MutableMap<String, Tag> = HashMap()) {
 
     private fun put(key: String, value: Tag): CompoundTagBuilder {

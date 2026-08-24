@@ -3,7 +3,6 @@ package com.nubasu.nuchematica.renderer
 import com.mojang.blaze3d.vertex.VertexConsumer
 import kotlin.math.roundToInt
 
-/** Applies schematic opacity to vertex formats that carry a color attribute. */
 internal class OpacityVertexConsumer(
     private val parent: VertexConsumer,
     private val opacity: Float,

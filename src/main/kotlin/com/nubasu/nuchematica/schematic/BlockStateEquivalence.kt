@@ -16,11 +16,6 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.Property
 
 public object BlockStateEquivalence {
-    // Properties that world updates or redstone/interaction events change at runtime
-    // (saplings growing, a player opening a trapdoor, a lamp lighting up) rather than the
-    // printer's own placement action. A freshly placed block will virtually never carry the
-    // same value as the schematic's snapshot for these, so they are ignored whenever the
-    // target block has them at all -- no per-block-type condition needed.
     private val DYNAMICALLY_SET_PROPERTIES: List<Property<*>> = listOf(
         BlockStateProperties.POWERED,
         BlockStateProperties.OPEN,

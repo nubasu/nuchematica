@@ -15,11 +15,8 @@ public data class PrinterSettings(
     public var facePlacement: Boolean = true,
     public var placeWaterloggedDry: Boolean = false,
     public var substituteLookalikes: Boolean = true,
-    // Flag-gated v4 plan-first execution path (PlanExecutionCursor/PlanRuntimeAdapter);
-    // false keeps the printer on its existing v3 per-tick classification/placement path
-    // byte-for-byte unchanged. No GUI toggle yet -- opt in by editing the saved settings
-    // file directly.
-    public var planFirstMode: Boolean = false,
+    /** Uses precomputed placement and movement plans when enabled. */
+    public var planFirstMode: Boolean = true,
 )
 
 public object PrinterSettingsHolder {

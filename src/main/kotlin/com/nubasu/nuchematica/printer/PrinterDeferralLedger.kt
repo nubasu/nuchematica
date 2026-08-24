@@ -4,11 +4,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.block.state.BlockState
 
-// Independent causes that can temporarily exclude a position from printer/mover work:
-// PREDICTION_MISMATCH -- placement prediction did not match the schematic state.
-// RETRY_LIMIT -- the runtime exhausted its bounded placement retries.
-// MOVER_UNREACHABLE -- every usable mover target for the position was abandoned.
-// NO_PROGRESS -- reached mover targets repeatedly produced no queue progress.
+/** Independent causes that can temporarily exclude a position from printer work. */
 internal enum class PrinterDeferralReason {
     PREDICTION_MISMATCH,
     RETRY_LIMIT,
@@ -16,18 +12,12 @@ internal enum class PrinterDeferralReason {
     NO_PROGRESS,
 }
 
-// A position can retain several causes at once. Refreshing one cause leaves the other
-// records untouched, and lazy revalidation removes only the causes whose own condition
-// changed. isDeferred therefore remains true until every independent cause is invalid.
-//
-// Revalidation strategies are selected per cause:
-// - PREDICTION_MISMATCH / RETRY_LIMIT snapshot the position's six neighbors. A
-//   reference change to any interned BlockState removes that cause.
-// - MOVER_UNREACHABLE / NO_PROGRESS snapshot the queue revision and use independent
-//   exponential backoff histories. Progress grants a retry only after that cause's
-//   current threshold has elapsed.
-// Transform, schematic-content, and client-level identity changes clear every cause.
-// Auto-move re-toggle clears only mover causes so printer placement causes stay sticky.
+/**
+ * Tracks independent deferral causes per position and revalidates them lazily.
+ *
+ * Placement failures remain deferred until a neighboring state changes. Movement failures
+ * use independent revision-based exponential backoff. Session identity changes clear both.
+ */
 internal class PrinterDeferralLedger {
     private var transformRevision: Long = 0L
     private var contentIdentity: Any? = null
@@ -53,8 +43,7 @@ internal class PrinterDeferralLedger {
         this.levelIdentity = levelIdentity
     }
 
-    // queueRevision is used only by progress-epoch causes. Neighbor-snapshot causes
-    // retain the default and ignore it.
+    /** Records one cause without replacing other causes for the same position. */
     internal fun defer(
         worldPos: BlockPos,
         reason: PrinterDeferralReason,
@@ -94,9 +83,9 @@ internal class PrinterDeferralLedger {
         progressFailureCounts.clear()
     }
 
-    // The mover guards this grant by queue revision. Removing only the active progress
-    // records makes the terminal sweep eligible immediately, while the separate failure
-    // history ensures a position re-deferred by that sweep receives its next threshold.
+    /**
+     * Clears active movement backoffs for one final sweep without resetting failure history.
+     */
     internal fun grantFinalSweepBackoffBypass(): Unit {
         val positions = deferredWorld.entries.iterator()
         while (positions.hasNext()) {
@@ -114,21 +103,13 @@ internal class PrinterDeferralLedger {
         progressFailureCounts.clear()
     }
 
-    // TEMP C3DBG (remove after the layer-pin investigation): raw recorded causes,
-    // deliberately without the lazy revalidation/eviction activeReasons performs.
-    internal fun deferredSnapshot(): Map<BlockPos, Set<PrinterDeferralReason>> =
-        deferredWorld.mapValues { (_, records) -> records.keys.toSet() }
-
     internal fun isDeferred(
         worldPos: BlockPos,
         stateAt: (BlockPos) -> BlockState,
         queueRevision: Long,
     ): Boolean = activeReasons(worldPos, stateAt, queueRevision).isNotEmpty()
 
-    // Revalidates each cause independently on every query. Callers only reach this for
-    // in-reach candidates, gate scanning, and terminal classification, keeping the
-    // neighbor-read cost bounded while ensuring diagnostics cannot authorize a stale
-    // COMPLETE decision.
+    /** Returns the causes still valid after neighbor or revision-based revalidation. */
     internal fun activeReasons(
         worldPos: BlockPos,
         stateAt: (BlockPos) -> BlockState,
@@ -162,7 +143,6 @@ internal class PrinterDeferralLedger {
         val snapshot = requireNotNull(neighbors)
         val current = neighborSnapshot(worldPos, stateAt)
         for (index in snapshot.indices) {
-            // BlockState instances are interned per block+properties combination.
             if (snapshot[index] !== current[index]) return false
         }
         return true

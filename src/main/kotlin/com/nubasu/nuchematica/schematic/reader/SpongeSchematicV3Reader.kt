@@ -169,7 +169,6 @@ public object SpongeSchematicV3Reader: SchematicReader {
         )
     }
 
-
     private fun getBlockEntities(tag: CompoundTag): BlockEntityObject {
         return BlockEntityObject(
             pos = tag.getIntArray("Pos"),

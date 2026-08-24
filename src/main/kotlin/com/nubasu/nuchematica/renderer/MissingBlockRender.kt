@@ -21,8 +21,6 @@ public class MissingBlockRender {
     private var isBuilt = false
     @Volatile
     private var isBuilding = false
-    // Incremented on every initialize(); an in-flight build whose generation no longer
-    // matches is discarded instead of uploading stale geometry.
     @Volatile
     private var buildGeneration = 0
 
@@ -73,8 +71,7 @@ public class MissingBlockRender {
         if (isBuilt || isBuilding) return
         isBuilding = true
 
-        // Snapshot on the main thread: the holder lists are mutated by the client tick
-        // handler, so the worker must never touch the live collections.
+        // Snapshot main-thread collections before the worker reads them.
         val generation = buildGeneration
         val wrongBlockPositions = MissingBlockHolder.blockPos.toList()
         val missingPositions = MissingBlockHolder.airPos.toList()
@@ -98,9 +95,8 @@ public class MissingBlockRender {
                     var newBuffer: VertexBuffer? = null
                     var swapped = false
                     try {
+                        // Drop geometry superseded by initialize().
                         if (generation != buildGeneration) {
-                            // A newer initialize() superseded this build; drop it and let
-                            // the next frame rebuild from current data.
                             return@execute
                         }
 
@@ -114,7 +110,6 @@ public class MissingBlockRender {
                     } catch (e: Exception) {
                         LogUtils.getLogger().error("failed to upload missing-block vertex buffer", e)
                         if (!swapped && generation == buildGeneration) {
-                            // Keep an existing buffer drawable and avoid retrying every frame.
                             isBuilt = true
                         }
                     } finally {
@@ -127,8 +122,6 @@ public class MissingBlockRender {
                 }
             } catch (e: Exception) {
                 LogUtils.getLogger().error("failed to build missing-block vertex buffer", e)
-                // Mark as built so the render loop does not retry (and log-spam) every
-                // frame; the next initialize() resets the state and tries again.
                 isBuilt = true
                 isBuilding = false
             }
@@ -143,7 +136,6 @@ public class MissingBlockRender {
         color: Vector3f,
     ) {
         positions.forEach { pos ->
-            // Only draw the faces that are not hidden by an adjacent schematic block.
             val visibleFaces = selectMissingOverlayFaces(pos, schematicBlocks)
             if (visibleFaces.isEmpty()) return@forEach
 

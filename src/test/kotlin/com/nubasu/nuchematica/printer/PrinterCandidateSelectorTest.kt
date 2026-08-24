@@ -11,6 +11,7 @@ import net.minecraft.world.item.context.BlockPlaceContext
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.properties.AttachFace
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.Half
 import net.minecraft.world.level.block.state.properties.SlabType
@@ -469,20 +470,12 @@ public class PrinterCandidateSelectorTest {
         assertEquals(Blocks.STONE_BRICKS.defaultBlockState(), candidate.placementState)
     }
 
-    // hasSupportNeighbor (used by the gate memo and the mover, unlike
-    // supportHits above which only the selector calls) must exclude the exact same
-    // faces supportHits already excludes, so a TOP/BOTTOM half expected state is never
-    // reported "supported" by a neighbor no real placement could ever use.
     @Test
     public fun hasSupportNeighborExcludesBelowNeighborForTopHalfExpectedState(): Unit {
         val target = BlockPos(0, 1, 0)
         val topSlab = Blocks.STONE_SLAB.defaultBlockState()
             .setValue(BlockStateProperties.SLAB_TYPE, SlabType.TOP)
 
-        // Regression guard: a naive plain 6-direction check would return true here,
-        // disagreeing with supportHits (which already excludes this face for the
-        // selector) and letting the gate/mover treat an unplaceable top-slab island as
-        // supported.
         assertFalse(
             hasSupportNeighbor(
                 target,
@@ -535,11 +528,33 @@ public class PrinterCandidateSelectorTest {
         )
     }
 
-    // isActionableMissing's canScaffold term. A position with no
-    // usable support face is still actionable when the supplied canScaffold reports
-    // a scaffold plan exists for it -- this is the single OR term the gate, the mover,
-    // and classifyMissing all route through instead of re-deriving "supported OR
-    // scaffoldable" independently (avoiding a definition-drift class of bug).
+    @Test
+    public fun hasSupportNeighborRequiresMatchingHorizontalFaceForTrapdoor(): Unit {
+        val target = BlockPos(0, 1, 0)
+        val westFacingTrapdoor = Blocks.OAK_TRAPDOOR.defaultBlockState()
+            .setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.WEST)
+            .setValue(BlockStateProperties.HALF, Half.BOTTOM)
+            .setValue(BlockStateProperties.OPEN, true)
+            .setValue(BlockStateProperties.POWERED, true)
+
+        assertFalse(
+            hasSupportNeighbor(
+                target,
+                westFacingTrapdoor,
+                stateReader(mapOf(target.north() to Blocks.STONE.defaultBlockState())),
+            ),
+            "clicking the north support exposes SOUTH, which predicts the wrong trapdoor facing",
+        )
+        assertTrue(
+            hasSupportNeighbor(
+                target,
+                westFacingTrapdoor,
+                stateReader(mapOf(target.east() to Blocks.STONE.defaultBlockState())),
+            ),
+            "clicking the east support exposes WEST, matching the expected trapdoor facing",
+        )
+    }
+
     @Test
     public fun scaffoldPlannablePositionIsActionableWithoutRealSupport(): Unit {
         val target = BlockPos(0, 1, 0)
@@ -656,15 +671,6 @@ public class PrinterCandidateSelectorTest {
         assertTrue(BlockStateEquivalence.matches(horizontalLog, predicted))
     }
 
-    // HALF-aware hit correction: the slab-only SLAB_TYPE bias in supportHits
-    // was generalized to also read StairBlock/TrapDoorBlock's HALF property. Confirmed
-    // against StairBlock.getStateForPlacement / TrapDoorBlock.getStateForPlacement
-    // bytecode (javap, forge-1.18.2-40.3.0_mapped_official_1.18.2.jar): a DOWN-face hit
-    // always yields HALF=TOP, an UP-face hit always yields HALF=BOTTOM, and a side-face
-    // hit yields TOP only when (clickLocation.y - clickedPos.y) > 0.5 -- the same rule
-    // slabs already used. These tests exercise the real BlockItem.getPlacementState
-    // against a single shared mock BlockPlaceContext (see OrientedMockContext below):
-    // per-trial mockk construction has previously stalled the test worker.
     @Test
     public fun topOakStairsUsesUpperSideHitAndMatchesHorizontalFacing(): Unit {
         val target = BlockPos(0, 1, 0)
@@ -790,10 +796,6 @@ public class PrinterCandidateSelectorTest {
         assertHit(byFace, Direction.EAST, target.west(), Vec3(-0.0001, 1.5, 0.5))
     }
 
-    // potentialSupportHitPoints and supportHits must share one
-    // geometry function structurally, not two copies that could drift apart. When
-    // every neighbor is a real support, the world-checked supportHits locations
-    // (attemptedHits above) and the pure envelope must be the exact same 6 points.
     @Test
     public fun potentialSupportHitPointsMatchesSupportHitsExactlyWhenEveryNeighborSupports(): Unit {
         val target = BlockPos(0, 1, 0)
@@ -822,9 +824,6 @@ public class PrinterCandidateSelectorTest {
         assertEquals(attemptedHits.map { it.location }.toSet(), envelope.toSet())
     }
 
-    // The envelope is pure geometry, independent of world state: it must still report
-    // the same 5 usable faces (all but the excluded support-from-below) for a TOP-half
-    // stair even though no neighbor here actually has a block in it.
     @Test
     public fun potentialSupportHitPointsExcludesBelowFaceForTopHalfRegardlessOfWorldState(): Unit {
         val target = BlockPos(0, 1, 0)
@@ -947,6 +946,63 @@ public class PrinterCandidateSelectorTest {
     }
 
     @Test
+    public fun standingTorchOnlyTreatsTheFloorFaceAsUsableSupport(): Unit {
+        val torch = Blocks.TORCH.defaultBlockState()
+
+        assertTrue(isUsableSupportFace(torch, Direction.UP))
+        for (face in Direction.values().filterNot { it == Direction.UP }) {
+            assertFalse(isUsableSupportFace(torch, face), "face=$face")
+        }
+    }
+
+    @Test
+    public fun wallTorchOnlyTreatsItsExpectedAttachmentFaceAsUsableSupport(): Unit {
+        val northFacing = Blocks.WALL_TORCH.defaultBlockState()
+            .setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.NORTH)
+
+        assertTrue(isUsableSupportFace(northFacing, Direction.NORTH))
+        for (face in Direction.values().filterNot { it == Direction.NORTH }) {
+            assertFalse(isUsableSupportFace(northFacing, face), "face=$face")
+        }
+    }
+
+    @Test
+    public fun floorAndCeilingAttachmentsRequireTheirVerticalSupportFace(): Unit {
+        val expectedFaces = mapOf(AttachFace.FLOOR to Direction.UP, AttachFace.CEILING to Direction.DOWN)
+
+        for ((attachFace, expectedFace) in expectedFaces) {
+            val lever = Blocks.LEVER.defaultBlockState()
+                .setValue(BlockStateProperties.ATTACH_FACE, attachFace)
+            assertTrue(isUsableSupportFace(lever, expectedFace), "attachFace=$attachFace")
+            for (face in Direction.values().filterNot { it == expectedFace }) {
+                assertFalse(isUsableSupportFace(lever, face), "attachFace=$attachFace face=$face")
+            }
+        }
+    }
+
+    @Test
+    public fun wallAttachmentMayUseAnyClickableSupportFace(): Unit {
+        val lever = Blocks.LEVER.defaultBlockState()
+            .setValue(BlockStateProperties.ATTACH_FACE, AttachFace.WALL)
+
+        for (face in Direction.values()) {
+            assertTrue(isUsableSupportFace(lever, face), "face=$face")
+        }
+    }
+
+    @Test
+    public fun resolveOrientedRotationCanCombineCardinalYawWithSteepPitch(): Unit {
+        val result = resolveOrientedRotation(
+            currentYaw = 10f,
+            currentPitch = 5f,
+            setRotation = { _, _ -> Unit },
+            matches = { trial -> trial == PlacementRotation(90f, 89f) },
+        )
+
+        assertEquals(PlacementRotation(90f, 89f), result)
+    }
+
+    @Test
     public fun resolveOrientedRotationReturnsNullAndRestoresWhenNoTrialMatches(): Unit {
         val setCalls = mutableListOf<Pair<Float, Float>>()
         val currentYaw = 20f
@@ -960,7 +1016,7 @@ public class PrinterCandidateSelectorTest {
         )
 
         assertNull(result)
-        assertEquals(6, setCalls.size - 1)
+        assertEquals(14, setCalls.size - 1)
         assertEquals(currentYaw to currentPitch, setCalls.last())
     }
 
@@ -983,10 +1039,6 @@ public class PrinterCandidateSelectorTest {
         assertEquals(listOf(near, far), candidates.map { it.worldPos })
     }
 
-    // Player-column placement guard. A candidate the player is
-    // currently standing in/on/over must be skipped transiently (plain continue) --
-    // not recorded to the skip log or deferred -- since it is not a structural
-    // rejection, just momentarily unavailable until the mover moves the player away.
     @Test
     public fun candidateInPlayerFeetCellIsSkippedWithoutRecordingAnySkipReason(): Unit {
         val target = BlockPos(0, 1, 0)
@@ -1006,6 +1058,57 @@ public class PrinterCandidateSelectorTest {
     }
 
     @Test
+    public fun fenceBelowFractionalPlayerFeetIsSkippedByItsCollisionShape(): Unit {
+        val target = BlockPos.ZERO
+        val fence = Blocks.OAK_FENCE.defaultBlockState()
+
+        val candidates = select(
+            missing = listOf(target),
+            states = mapOf(target.below() to Blocks.STONE.defaultBlockState()),
+            eyePosition = Vec3(0.5, 2.82, 0.5),
+            reach = 10.0,
+            expected = fence,
+            predictedState = fence,
+            playerFeetPos = Vec3(0.5, 1.2, 0.5),
+        )
+
+        assertTrue(candidates.isEmpty())
+    }
+
+    @Test
+    public fun unconnectedFenceReservesPossibleNeighbourArmBelowPlayer(): Unit {
+        val target = BlockPos.ZERO
+        val unconnectedFence = Blocks.OAK_FENCE.defaultBlockState()
+
+        val candidates = select(
+            missing = listOf(target),
+            states = mapOf(target.below() to Blocks.STONE.defaultBlockState()),
+            eyePosition = Vec3(0.5, 2.82, -0.05),
+            reach = 10.0,
+            expected = unconnectedFence,
+            predictedState = unconnectedFence,
+            playerFeetPos = Vec3(0.5, 1.2, -0.05),
+        )
+
+        assertTrue(candidates.isEmpty())
+    }
+
+    @Test
+    public fun fullBlockBelowFractionalPlayerFeetRemainsSelectable(): Unit {
+        val target = BlockPos.ZERO
+
+        val candidates = select(
+            missing = listOf(target),
+            states = mapOf(target.below() to Blocks.STONE.defaultBlockState()),
+            eyePosition = Vec3(0.5, 2.82, 0.5),
+            reach = 10.0,
+            playerFeetPos = Vec3(0.5, 1.2, 0.5),
+        )
+
+        assertEquals(listOf(target), candidates.map { candidate -> candidate.worldPos })
+    }
+
+    @Test
     public fun candidateInPlayerHeadCellIsSkipped(): Unit {
         val target = BlockPos(0, 2, 0)
 
@@ -1014,8 +1117,22 @@ public class PrinterCandidateSelectorTest {
             states = mapOf(target.below() to Blocks.STONE.defaultBlockState()),
             eyePosition = Vec3(0.5, 5.0, 0.5),
             reach = 10.0,
-            // Feet at y=1: occupies cell 1 (feet) and cell 2 (head).
             playerFeetPos = Vec3(0.5, 1.0, 0.5),
+        )
+
+        assertTrue(candidates.isEmpty())
+    }
+
+    @Test
+    public fun candidateOverlappingPlayerFootprintInAdjacentColumnIsSkipped(): Unit {
+        val target = BlockPos(1, 1, 0)
+
+        val candidates = select(
+            missing = listOf(target),
+            states = mapOf(target.below() to Blocks.STONE.defaultBlockState()),
+            eyePosition = Vec3(0.85, 2.62, 0.5),
+            reach = 10.0,
+            playerFeetPos = Vec3(0.85, 1.0, 0.5),
         )
 
         assertTrue(candidates.isEmpty())
@@ -1030,7 +1147,6 @@ public class PrinterCandidateSelectorTest {
             states = mapOf(target.below() to Blocks.STONE.defaultBlockState()),
             eyePosition = Vec3(0.5, 5.0, 0.5),
             reach = 10.0,
-            // Feet at y=1: guarded range is feet..head+1 == 1..3.
             playerFeetPos = Vec3(0.5, 1.0, 0.5),
         )
 
@@ -1168,14 +1284,6 @@ public class PrinterCandidateSelectorTest {
         assertEquals(expectedLocation.z, hit.location.z, 0.0000001)
     }
 
-    // Single mock BlockPlaceContext (plus a mutable holder for the per-hit fields)
-    // reused across every hit tried within one test, instead of re-mocking per hit like
-    // slabPlacementContext above: constructing mockk instances in a loop (as the oriented
-    // rotation trials for stairs/trapdoors would require, one hit per direction) has
-    // previously stalled the test worker. Mirrors slabPlacementContext's stubs, including
-    // BlockPlaceContext.getClickedPos() resolving to the target position (hit.blockPos
-    // .relative(hit.direction)), not the clicked support block itself: real
-    // BlockPlaceContext returns the placement position when the clicked block is solid.
     private class OrientedMockContext(horizontalDirection: Direction) {
         private val level: Level = mockk()
         private val context: BlockPlaceContext = mockk()

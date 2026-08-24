@@ -8,10 +8,7 @@ public data class FeedSnapshot(
     public val rateLimitedRemainder: Int,
     public val inFlightCount: Int,
     public val acceptedThisTick: Int,
-    // Elapsed ticks since the runtime last observed an ACCEPTED placement in the
-    // current session; null before the first acceptance. Lets a consumer distinguish
-    // a backlog that is actively landing placements from one that has gone quiet
-    // without needing its own placement history.
+    /** Elapsed session ticks since the last acceptance, or null before the first. */
     public val ticksSinceLastAccept: Long? = null,
 )
 

@@ -241,7 +241,10 @@ public class PrinterRuntimeTest {
         fixture.runtime.tick(fixture.context(tick = 1L))
 
         val completed = mutableListOf<PrinterAttemptResult>()
-        for (tick in 2L..18L) {
+        val exhaustionTick = 1L +
+            (PrinterRuntime.MAX_RETRIES + 1L) * PrinterAttemptTracker.DEADLINE_TICKS +
+            PrinterRuntime.MAX_RETRIES
+        for (tick in 2L..exhaustionTick) {
             completed += fixture.runtime.tick(fixture.context(tick))
         }
 
@@ -257,11 +260,11 @@ public class PrinterRuntimeTest {
         assertEquals(1, fixture.runtime.skipLog.count(PrinterSkipReason.RETRY_LIMIT))
         assertTrue(fixture.runtime.attemptTracker.activeAttempts().isEmpty())
 
-        fixture.runtime.tick(fixture.context(tick = 19L))
+        fixture.runtime.tick(fixture.context(tick = exhaustionTick + 1L))
         assertEquals(3, fixture.gatewayCalls)
 
         fixture.blocked = false
-        fixture.runtime.tick(fixture.context(tick = 20L))
+        fixture.runtime.tick(fixture.context(tick = exhaustionTick + 2L))
         assertEquals(4, fixture.gatewayCalls)
         assertEquals(0, fixture.runtime.attemptTracker.activeAttempts().single().retryCount)
     }
@@ -272,7 +275,10 @@ public class PrinterRuntimeTest {
         fixture.runtime.tick(fixture.context(tick = 0L))
         fixture.runtime.tick(fixture.context(tick = 1L))
 
-        for (tick in 2L..18L) {
+        val exhaustionTick = 1L +
+            (PrinterRuntime.MAX_RETRIES + 1L) * PrinterAttemptTracker.DEADLINE_TICKS +
+            PrinterRuntime.MAX_RETRIES
+        for (tick in 2L..exhaustionTick) {
             fixture.runtime.tick(fixture.context(tick))
         }
 
@@ -391,8 +397,6 @@ public class PrinterRuntimeTest {
             },
             candidateSelector = PrinterCandidateSelector(
                 skipLog = skipLog,
-                // Mismatches on purpose when a fixture wants to exercise the oriented
-                // fallback path (orientedRotation != null); otherwise matches directly.
                 predictPlacement = { _, _ ->
                     if (orientedRotation != null) Blocks.DIRT.defaultBlockState() else predictedState
                 },

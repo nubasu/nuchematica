@@ -9,15 +9,17 @@ public data class WorldEditSchematicFormat(
     val width: Short,
     val height: Short,
     val length: Short,
-    val weOriginX: Int?,        // unsupported in this mod
-    val weOriginY: Int?,        // unsupported in this mod
-    val weOriginZ: Int?,        // unsupported in this mod
-    val weOffsetX: Int?,        // unsupported in this mod
-    val weOffsetY: Int?,        // unsupported in this mod
-    val weOffsetZ: Int?,        // unsupported in this mod
+    /** Parsed for format compatibility but not applied. */
+    val weOriginX: Int?,
+    val weOriginY: Int?,
+    val weOriginZ: Int?,
+    val weOffsetX: Int?,
+    val weOffsetY: Int?,
+    val weOffsetZ: Int?,
     val blockIds: ByteArray,
     val blockData: ByteArray,
-    val addBlocks: ByteArray?,  // unsupported in this mod
+    /** Parsed for format compatibility but not applied. */
+    val addBlocks: ByteArray?,
     val tileEntities: List<Tag>,
     val entities: List<Tag>
 ): SchematicFormat

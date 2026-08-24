@@ -42,29 +42,12 @@ import net.minecraft.world.ticks.TickPriority
 import java.util.Random
 import java.util.function.Predicate
 
-// A named, never-swallowed signal that some vanilla code path touched a member this
-// planning-time adapter deliberately does not back with real data. canSurvive and
-// updateFromNeighbourShapes only ever need to read neighbouring block states (plus, for
-// some blocks, schedule a future tick -- recorded rather than acted on, see
-// SurvivalLevelAccessorAdapter's own scheduleTick overloads); hitting this at all means
-// either a block type that reads further state than that, or a future MC/Forge internal
-// change, and both are exactly the "unknown -> conservative failure" case
-// survivesWithoutScaffold's own catch converts into a per-position false rather than a
-// crash or a silently wrong default.
 private fun unsupportedMember(methodName: String): Nothing =
     throw UnsupportedOperationException("SurvivalPrediction adapter: $methodName is not backed (read-only getBlockState adapter)")
 
-// Minimal read-only LevelReader for BlockState.canSurvive: getBlockState delegates to the
-// caller's own view (the plan's placedInSlot-gated frozen-world view, so a scaffold cell's
-// removal is already reflected -- see survivesWithoutScaffold's own doc for why no
-// separate "post-removal" view is needed). Every other member throws: canSurvive never
-// needs more than neighbouring block states.
 private class SurvivalLevelReaderAdapter(private val view: (BlockPos) -> BlockState) : LevelReader {
     override fun getBlockState(pos: BlockPos): BlockState = view(pos)
 
-    // A BlockState's own fluid state (e.g. a waterlogged property, or the fluid a source
-    // block like WATER itself represents) is derivable purely from the state view already
-    // backs getBlockState with -- no separate world-fluid storage is ever consulted.
     override fun getFluidState(pos: BlockPos): FluidState = view(pos).fluidState
     override fun getBlockEntity(pos: BlockPos): BlockEntity = unsupportedMember("getBlockEntity")
     override fun getChunk(x: Int, z: Int, status: ChunkStatus, load: Boolean): ChunkAccess =
@@ -85,22 +68,12 @@ private class SurvivalLevelReaderAdapter(private val view: (BlockPos) -> BlockSt
         unsupportedMember("getEntityCollisions")
 }
 
-// Isomorphic LevelAccessor for Block.updateFromNeighbourShapes: same delegate/throw split
-// as SurvivalLevelReaderAdapter, just against the much larger LevelAccessor member set the
-// static method's signature happens to require. updateFromNeighbourShapes only ever reads
-// neighbouring block states and, for some blocks (e.g. leaves rescheduling their own decay
-// recheck), schedules a future tick -- both handled below -- despite LevelAccessor's much
-// larger write-capable surface.
 private class SurvivalLevelAccessorAdapter(private val view: (BlockPos) -> BlockState) : LevelAccessor {
-    // Set by any of the four scheduleTick overloads below -- see their own doc for why a
-    // request is recorded rather than silently dropped.
     internal var tickRequested: Boolean = false
         private set
 
     override fun getBlockState(pos: BlockPos): BlockState = view(pos)
 
-    // Same derivation as SurvivalLevelReaderAdapter.getFluidState -- purely a function of
-    // the state view already backs getBlockState with.
     override fun getFluidState(pos: BlockPos): FluidState = view(pos).fluidState
     override fun getBlockEntity(pos: BlockPos): BlockEntity = unsupportedMember("getBlockEntity")
     override fun getChunk(x: Int, z: Int, status: ChunkStatus, load: Boolean): ChunkAccess =
@@ -140,15 +113,6 @@ private class SurvivalLevelAccessorAdapter(private val view: (BlockPos) -> Block
 
     override fun nextSubTickCount(): Long = unsupportedMember("nextSubTickCount")
 
-    // scheduleTick is how a block asks to be re-evaluated on a LATER tick (e.g. sand
-    // scheduling its own fall check, or leaves scheduling their own decay recheck) --
-    // the returned BlockState from this single static call is already final regardless of
-    // whether that future tick ever runs, so the request itself is recorded rather than
-    // acted on. A block that schedules a tick as a side effect of computing its shape is
-    // asking the world to re-examine it later, which this one-shot predictor cannot
-    // simulate; survivesWithoutScaffold treats that as its own conservative failure
-    // unless the block is on its own short allowlist of ticks known not to threaten the
-    // schematic's expected state (see that allowlist's own doc).
     override fun scheduleTick(pos: BlockPos, block: Block, delay: Int): Unit {
         tickRequested = true
     }
@@ -195,41 +159,16 @@ private class SurvivalLevelAccessorAdapter(private val view: (BlockPos) -> Block
     override fun registryAccess(): RegistryAccess = unsupportedMember("registryAccess")
 }
 
-// Whether `expected` at `pos` would keep holding its own expected state once a scaffold
-// chain that helped place it is removed. This is a two-part check: canSurvive alone is not
-// enough, since a block can canSurvive with reduced support yet recompute to a DIFFERENT
-// state than the schematic expects (e.g. vine losing one of two attached faces -- see
-// updateFromNeighbourShapes below). `view` is the plan's own classification-time view
-// (placedInSlot-gated, see PrintPlanner.plan): scaffold cells are never placedInSlot (they
-// are a transient action, never a plan-first target of their own), so this view already
-// reads as "scaffold cells never existed" -- there is no separate "post-removal" view to
-// construct.
-//
-// Both checks are run against `placed` -- the state the printer would actually place, via
-// effectivePlacementState's lookalike substitution -- rather than the schematic's raw
-// `expected`: the printer never places some raw expected states as-is (e.g. a double slab
-// is placed as its full-block lookalike), so a survival check against the raw state would
-// be asking whether a block the printer never places would survive. The final equivalence
-// check still compares the predicted outcome against the original `expected`, since
-// BlockStateEquivalence.matches already knows how to relate a placed lookalike back to the
-// schematic's own expected state -- including a schematic's own natural (worldgen)
-// PERSISTENT=false leaf state, which is never what actually gets placed either.
-//
-// Any exception during either check -- including one of the adapters' own named
-// UnsupportedOperationException -- is treated as this position's own conservative
-// failure, never as an optimistic pass and never propagated to abort the whole plan: an
-// unknown block touching an unbacked adapter member is exactly the signal this design
-// wants to surface as "cannot confirm survival," not a crash.
+/**
+ * Predicts whether the effective placed state remains valid without scaffold support.
+ *
+ * Survival, neighbor-shape updates, scheduled instability, and ascending rail support are
+ * checked. Unsupported world reads and other exceptions conservatively return false.
+ */
 internal fun survivesWithoutScaffold(
     pos: BlockPos,
     expected: BlockState,
     view: (BlockPos) -> BlockState,
-    // No caller outside PrintPlanner exists (PrintPlanner always passes its own
-    // PrintPlanParams.behavior explicitly) -- this default exists only so every existing
-    // test call keeps its prior behavior, and deliberately mirrors PrinterSettings()'s own
-    // class-level defaults rather than reading the live PrinterSettingsHolder, matching
-    // PrintPlanParams.behavior's own hardcoded default (a planner input is never allowed
-    // to fall back to a mid-run holder read).
     settings: PlacementBehaviorSettings = PlacementBehaviorSettings(substituteLookalikes = true, placeWaterloggedDry = false),
 ): Boolean {
     return try {
@@ -245,25 +184,6 @@ internal fun survivesWithoutScaffold(
     }
 }
 
-// BaseRailBlock.canSurvive only checks canSupportRigidBlock(pos.below()) (a sturdy floor)
-// -- confirmed via its own bytecode, which reads no other position. The real vanilla
-// drop check for an ASCENDING shape additionally requires canSupportRigidBlock at
-// pos.relative(ascendingDirection) (the same-Y-level step the rail's raised edge leans
-// against), but that second check lives in BaseRailBlock's own private shouldBeRemoved,
-// reached only from the live-world reactive neighborChanged path -- never from canSurvive
-// or updateShape -- so this predictor's two static calls never see it on their own.
-// Direction mapping (ASCENDING_NORTH -> north(), ASCENDING_SOUTH -> south(),
-// ASCENDING_EAST -> east(), ASCENDING_WEST -> west()) confirmed via shouldBeRemoved's own
-// per-shape canSupportRigidBlock(pos.relative(direction)) bytecode, one case per
-// direction; NORTH_SOUTH/EAST_WEST and every curve shape fall to shouldBeRemoved's
-// default case (no extra check beyond the floor). getRailDirection(state, getter, pos,
-// null) is used rather than reading getShapeProperty() directly -- it is the exact call
-// vanilla's own neighborChanged makes before feeding the result into shouldBeRemoved, applies
-// uniformly to every BaseRailBlock subclass (plain, powered, detector, activator), and
-// leaves room for a Forge-side override of the rail's effective shape (the null
-// AbstractMinecart is the same "no specific cart" case vanilla's own reactive path allows
-// for). Not a BaseRailBlock at all is the overwhelmingly common case, returned true
-// immediately without touching the adapter.
 private fun ascendingRailHasUphillSupport(
     placed: BlockState,
     pos: BlockPos,
@@ -283,11 +203,4 @@ private fun ascendingRailHasUphillSupport(
     return view(uphillPos).isFaceSturdy(SurvivalLevelReaderAdapter(view), uphillPos, Direction.UP, SupportType.RIGID)
 }
 
-// Blocks whose own scheduleTick request during shape recomputation is known not to
-// threaten the schematic's own expected state, so a tick request from one of them is not
-// treated as this position's conservative failure. LEAVES is the only member: the tick
-// LeavesBlock.updateShape schedules is its own future decay recheck, which can only ever
-// change DISTANCE and PERSISTENT -- both properties BlockStateEquivalence.matches already
-// ignores for a leaves block regardless of what that unsimulated future tick would settle
-// them to, so the tick request itself can never change whether this position matches.
 private fun tickRequestIsBenign(placed: BlockState): Boolean = placed.block is LeavesBlock

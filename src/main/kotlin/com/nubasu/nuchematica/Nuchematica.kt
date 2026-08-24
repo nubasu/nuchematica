@@ -32,7 +32,6 @@ import net.minecraftforge.eventbus.api.SubscribeEvent
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext
 
-// The value here should match an entry in the META-INF/mods.toml file
 @Mod(Nuchematica.MODID)
 public class Nuchematica {
     init {
@@ -40,8 +39,7 @@ public class Nuchematica {
         val keyManager = KeyManager()
         PrinterSettingsHolder.printerSettings = PrinterSettingsIO.load()
 
-        // Key bindings must be registered on the MOD event bus (FMLClientSetupEvent is a
-        // mod-bus event and never fires for listeners registered on the Forge bus).
+        // FMLClientSetupEvent listeners must use the mod event bus.
         modEventBus.addListener(keyManager::keyRegister)
         modEventBus.addListener(NuchematicaShaders::registerShaders)
         modEventBus.addListener(this::registerClientReloadListeners)
@@ -109,8 +107,7 @@ public class Nuchematica {
 
     @SubscribeEvent
     public fun onWorldRenderLast(event: RenderLevelStageEvent) {
-        // A5 adopted pair: draw after particles and target that stage's active output.
-        // RenderLevelStageEvent fires once per stage (~10x per frame); draw only once.
+        // RenderLevelStageEvent fires once per stage; draw only after particles.
         if (event.stage == Stage.AFTER_PARTICLES) {
             SelectedRegionManager.renderLine(event)
             SchematicRenderManager.render(event)
@@ -119,7 +116,7 @@ public class Nuchematica {
 
     @SubscribeEvent
     public fun onClientTick(event: TickEvent.ClientTickEvent ) {
-        if (event.phase != TickEvent.Phase.END) return  // run at end of tick
+        if (event.phase != TickEvent.Phase.END) return
         val world = Minecraft.getInstance().level
         if (world == null) {
             SchematicPrinter.tick()
@@ -131,25 +128,22 @@ public class Nuchematica {
         SchematicPrinter.tick()
         SchematicMover.tick()
 
-        // Check pending breaks
         val breakIter = ClientBlockInteractHandler.pendingBreakPositions.iterator()
         while (breakIter.hasNext()) {
             val pos = breakIter.next()
-            val currentState = world.getBlockState(pos)
-            if (currentState.isAir) {
-                // The block was broken by the player
+            val currentState = pendingBreakState(
+                pos = pos,
+                isPrinterOwned = SchematicPrinter::ownsPendingBreak,
+                stateAt = world::getBlockState,
+            )
+            if (currentState != null) {
                 MissingBlockHolder.removed(pos)?.let(SchematicRenderManager::onMissingBlockChange)
-                // The generic click reconcile path is one of the write-on-ack sites --
-                // a manual player break is just as much a server-confirmed outcome as
-                // a printer-submitted one.
                 PrintWorldModel.recordWrite(pos, currentState)
                 SchematicPrinter.invalidatePlanSession(pos)
                 breakIter.remove()
             }
-            // (Optional: remove after a timeout to avoid stuck entries if not broken)
         }
 
-        // Check pending placements
         val placeIter = ClientBlockInteractHandler.pendingPlacePositions.iterator()
         while (placeIter.hasNext()) {
             val pos = placeIter.next()
@@ -159,11 +153,8 @@ public class Nuchematica {
                 stateAt = world::getBlockState,
             )
             if (currentState != null) {
-                // A block was placed by the player
                 MissingBlockHolder.placed(pos, currentState)
                     ?.let(SchematicRenderManager::onMissingBlockChange)
-                // Write-on-ack for the manual-placement side of the generic click
-                // reconcile path.
                 PrintWorldModel.recordWrite(pos, currentState)
                 SchematicPrinter.invalidatePlanSession(pos)
                 placeIter.remove()
@@ -171,9 +162,7 @@ public class Nuchematica {
         }
     }
 
-
     public companion object {
-        // Define mod id in a common place for everything to reference
         public const val MODID: String = "nuchematica"
     }
 }
@@ -186,4 +175,13 @@ internal fun pendingPlacementState(
     if (isPrinterOwned(pos)) return null
     val currentState = stateAt(pos)
     return currentState.takeUnless(BlockState::isAir)
+}
+
+internal fun pendingBreakState(
+    pos: BlockPos,
+    isPrinterOwned: (BlockPos) -> Boolean,
+    stateAt: (BlockPos) -> BlockState,
+): BlockState? {
+    if (isPrinterOwned(pos)) return null
+    return stateAt(pos).takeIf(BlockState::isAir)
 }

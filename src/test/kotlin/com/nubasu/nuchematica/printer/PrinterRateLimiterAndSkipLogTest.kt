@@ -173,6 +173,35 @@ public class PrinterRateLimiterAndSkipLogTest {
     }
 
     @Test
+    public fun placementRotationSynchronizerWaitsTwoTicksAndRestoresOriginalRotation(): Unit {
+        val synchronizer = PlacementRotationSynchronizer(settleTicks = 2L)
+        val key = PlacementRotationKey(actionId = 7L, worldPos = BlockPos(1, 2, 3))
+        val original = PlacementRotation(yaw = 10f, pitch = -5f)
+        val required = PlacementRotation(yaw = 90f, pitch = 25f)
+        var local = original
+        val sent = mutableListOf<PlacementRotation>()
+        val apply: (PlacementRotation) -> Unit = { rotation -> local = rotation }
+        val send: (PlacementRotation) -> Unit = { rotation -> sent += rotation }
+
+        assertFalse(
+            synchronizer.prepare(key, 20L, { local }, apply, send, required),
+            "the first packet cannot prove the server has ticked its head rotation yet",
+        )
+        assertEquals(required, local)
+        synchronizer.maintain(apply, send)
+        assertFalse(synchronizer.prepare(key, 21L, { local }, apply, send, required))
+        assertTrue(synchronizer.prepare(key, 22L, { local }, apply, send, required))
+        assertTrue(synchronizer.isPending)
+
+        synchronizer.finish(key, apply, send)
+
+        assertFalse(synchronizer.isPending)
+        assertEquals(original, local)
+        assertEquals(original, sent.last())
+        assertTrue(sent.dropLast(1).all { rotation -> rotation == required })
+    }
+
+    @Test
     public fun cameraEaseStepMovesMonotonicallyTowardTarget(): Unit {
         var current = 0f
         val steps = mutableListOf<Float>()

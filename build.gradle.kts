@@ -1,4 +1,6 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.gradle.api.tasks.testing.Test
+import java.time.Duration
 
 plugins {
     kotlin("jvm")
@@ -16,6 +18,16 @@ val kotlinVersion: String by project
 val coroutinesVersion: String by project
 val serializationVersion: String by project
 val mockkVersion: String by project
+val forgeE2eSourceSet = sourceSets.create("forgeE2e")
+val forgeE2eResultFile = layout.buildDirectory.file("reports/automode-forge-e2e/result.json")
+val forgeE2eWorldName = "nuchematica-e2e-${System.currentTimeMillis()}"
+val forgeFantasyE2eResultFile = layout.buildDirectory.file("reports/automode-forge-fantasy-e2e/result.json")
+val forgeFantasyE2eWorldName = providers.gradleProperty("automodeFantasyE2eWorld")
+    .getOrElse("nuchematica-fantasy-e2e-${System.currentTimeMillis()}")
+val forgeFantasyE2eResume = providers.gradleProperty("automodeFantasyE2eResume").getOrElse("false")
+
+forgeE2eSourceSet.compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
+forgeE2eSourceSet.runtimeClasspath += forgeE2eSourceSet.output + sourceSets.main.get().runtimeClasspath
 
 project.group = "com.nubasu.nuchematica"
 project.version = "1.0-SNAPSHOT"
@@ -30,14 +42,11 @@ jarJar.enable()
 minecraft {
     accessTransformer(file("src/main/resources/META-INF/accesstransformer.cfg"))
     mappings("official", mcVersion)
-//    copyIdeResources.set(true)
-
     runs {
         runs {
-            create("client") {
+            val clientRun = create("client") {
                 workingDirectory(project.file("run"))
 
-//                ideaModule = "${project.parent!!.name}.${project.name}.test"
                 workingDirectory(project.file("run"))
                 args("--noCoreSearch")
 
@@ -50,6 +59,50 @@ minecraft {
                         source(sourceSets.main.get())
                     }
                 }
+            }
+            val automodeE2eRun = create("automodeE2eClient") {
+                client(true)
+                forceExit(false)
+                workingDirectory(project.layout.buildDirectory.dir("forge-e2e/run").get().asFile)
+                args("--width", "854", "--height", "480")
+
+                property("forge.logging.console.level", "info")
+                property("nuchematica.e2e.enabled", "true")
+                property("nuchematica.e2e.result", forgeE2eResultFile.get().asFile.absolutePath)
+                property("nuchematica.e2e.world", forgeE2eWorldName)
+
+                mods {
+                    create("nuchematica") {
+                        source(sourceSets.main.get())
+                        source(forgeE2eSourceSet)
+                    }
+                }
+            }
+            val automodeFantasyE2eRun = create("automodeFantasyE2eClient") {
+                client(true)
+                forceExit(false)
+                workingDirectory(project.layout.buildDirectory.dir("forge-fantasy-e2e/run").get().asFile)
+                args("--width", "854", "--height", "480")
+
+                property("forge.logging.console.level", "info")
+                property("nuchematica.e2e.enabled", "true")
+                property("nuchematica.e2e.scenario", "fantasy")
+                property("nuchematica.e2e.fixture", project.file("src/test/resources/test_schematic/Fantasy_BigHouse1.schematic").absolutePath)
+                property("nuchematica.e2e.result", forgeFantasyE2eResultFile.get().asFile.absolutePath)
+                property("nuchematica.e2e.world", forgeFantasyE2eWorldName)
+                property("nuchematica.e2e.resume", forgeFantasyE2eResume)
+
+                mods {
+                    create("nuchematica") {
+                        source(sourceSets.main.get())
+                        source(forgeE2eSourceSet)
+                    }
+                }
+            }
+            project.afterEvaluate {
+                // ForgeGradle adds the launch target in its afterEvaluate callback.
+                automodeE2eRun.merge(clientRun, false)
+                automodeFantasyE2eRun.merge(clientRun, false)
             }
         }
     }
@@ -100,50 +153,37 @@ dependencies {
 }
 
 tasks.test {
-    useJUnitPlatform()
-    // C3-fix-32: Gradle's unconfigured test-worker default (512m) is no longer enough
-    // for this suite -- 54+ classes each bootstrapping Minecraft's SharedConstants/
-    // Bootstrap, plus MockK/kotlin-reflect's own per-mock metadata bootstrap (a known
-    // cost, see PrintWorldModelTest.mockClientLevel's root-cause note), cumulatively
-    // exhausted 512m mid-run (OutOfMemoryError inside kotlin-reflect's ProtoBuf parsing)
-    // even with every individual test's own data kept small. Raised, not the individual
-    // tests shrunk further, since the tests were already at the "tens of thousands, not
-    // hundreds of thousands" per-mock-invocation ceiling that class's investigation
-    // established as the practical floor.
+    useJUnitPlatform {
+        excludeTags("automode-full")
+    }
+    // Minecraft and MockK initialization exceed Gradle's default 512 MiB worker heap.
     maxHeapSize = "2g"
 }
 
 val processResources by tasks.getting(Copy::class) {
-    // this will ensure that this task is redone when the versions change.
     inputs.property("version", project.version)
 
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 
-    // replace stuff in mcmod.info, nothing else
     from(sourceSets.main.get().resources.srcDirs) {
         include("mcmod.info")
-
-        // replace version and mcversion
         expand(mapOf(
             "version" to project.version,
             "mcversion" to "1.12.2"
         ))
     }
 
-    // copy everything else, thats not the mcmod.info
     from(sourceSets.main.get().resources.srcDirs) {
         exclude("mcmod.info")
     }
 }
 
-// workaround for userdev bug
+// prepareRuns expects resources beside Kotlin's compiled classes.
 val copyResourceToClasses by tasks.creating(Copy::class) {
     tasks.classes.get().dependsOn(this)
     dependsOn(tasks.processResources)
     onlyIf { gradle.taskGraph.hasTask(tasks.getByName("prepareRuns")) }
 
-    //into("$buildDir/classes/java/main")
-    // if you write @Mod class in kotlin, please use code below
     into("$buildDir/classes/kotlin/main")
     from(tasks.processResources.get().destinationDir)
 }
@@ -181,7 +221,6 @@ val shadowModJar by tasks.creating(ShadowJar::class) {
     dependsOn("reobfJar")
 
     val basePkg = "com.nubasu.nuchematica.libs"
-    // add also in FixRtmDevEnvironmentOnlyCorePlugin
     relocate("kotlin.", "$basePkg.kotlin.")
     relocate("kotlinx.", "$basePkg.kotlinx.")
     relocate("io.sigpipe.jbsdiff.", "$basePkg.jbsdiff.")
@@ -234,5 +273,66 @@ publishing {
         register<MavenPublication>("maven") {
             from(components["java"])
         }
+    }
+}
+
+tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileForgeE2eKotlin") {
+    dependsOn(tasks.compileKotlin)
+    friendPaths.from(sourceSets.main.get().output.classesDirs)
+}
+
+val automodeSimulation by tasks.registering(Test::class) {
+    group = "verification"
+    description = "Runs deterministic production-core automode simulations and writes JSON traces/reports."
+    dependsOn(tasks.testClasses)
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform {
+        includeTags("automode-full")
+    }
+    maxHeapSize = "2g"
+}
+
+tasks.matching { task -> task.name == "runAutomodeE2eClient" }.configureEach {
+    timeout.set(Duration.ofMinutes(8))
+    doFirst {
+        val result = forgeE2eResultFile.get().asFile
+        result.parentFile.mkdirs()
+        result.delete()
+    }
+}
+
+tasks.matching { task -> task.name == "runAutomodeFantasyE2eClient" }.configureEach {
+    timeout.set(Duration.ofMinutes(40))
+    doFirst {
+        val result = forgeFantasyE2eResultFile.get().asFile
+        result.parentFile.mkdirs()
+        result.delete()
+    }
+}
+
+val automodeForgeE2e by tasks.registering {
+    group = "verification"
+    description = "Runs automode in a separate Forge client/integrated-server process and verifies its JSON result."
+    dependsOn("runAutomodeE2eClient")
+    doLast {
+        val result = forgeE2eResultFile.get().asFile
+        check(result.isFile) { "Forge automode E2E did not write ${result.absolutePath}" }
+        val evidence = result.readText()
+        check("\"status\":\"PASS\"" in evidence) { "Forge automode E2E failed: $evidence" }
+        println("[automode-forge-e2e] $evidence")
+    }
+}
+
+val automodeFantasyForgeE2e by tasks.registering {
+    group = "verification"
+    description = "Runs the full Fantasy schematic through automode in a separate Forge client/integrated-server process."
+    dependsOn("runAutomodeFantasyE2eClient")
+    doLast {
+        val result = forgeFantasyE2eResultFile.get().asFile
+        check(result.isFile) { "Forge Fantasy automode E2E did not write ${result.absolutePath}" }
+        val evidence = result.readText()
+        check("\"status\":\"PASS\"" in evidence) { "Forge Fantasy automode E2E failed: $evidence" }
+        println("[automode-forge-fantasy-e2e] $evidence")
     }
 }

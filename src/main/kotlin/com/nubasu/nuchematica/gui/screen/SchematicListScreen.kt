@@ -48,7 +48,6 @@ public class SchematicListScreen : Screen(TextComponent("Schematics")) {
             }
         }
 
-        // scroll bar
         val scrollbarX = width - 10
         val scrollbarY = startY
         val scrollbarHeight = visibleRows * rowHeight
@@ -60,7 +59,6 @@ public class SchematicListScreen : Screen(TextComponent("Schematics")) {
             val sliderHeight = (scrollbarHeight * scrollbarHeight.toFloat() / totalHeight).toInt().coerceAtLeast(10)
             val sliderY = scrollbarY + (scrollOffset * (scrollbarHeight - sliderHeight) / (schematicFiles.size - visibleRows).coerceAtLeast(1))
 
-            // slider
             fill(poseStack, scrollbarX, sliderY, scrollbarX + 5, sliderY + sliderHeight, 0xFF666666.toInt())
         }
 

@@ -9,7 +9,6 @@ public object BlockIdMapper {
         return if (mapper[BlockAndDataId(blockId, dataId)] != null) {
             mapper[BlockAndDataId(blockId, dataId)]!!
         } else if(mapper[BlockAndDataId(blockId, 0)] != null){
-//            LogUtils.getLogger().warn("not found $blockId, $dataId")
             mapper[BlockAndDataId(blockId, 0)]!!
         } else {
             LogUtils.getLogger().warn("not found $blockId")
@@ -570,7 +569,7 @@ public object BlockIdMapper {
         BlockAndDataId(83, 15) to "minecraft:sugar_cane[age=15]",
         BlockAndDataId(84, 0) to "minecraft:jukebox[has_record=false]",
         BlockAndDataId(84, 1) to "minecraft:jukebox[has_record=true]",
-        BlockAndDataId(85, 0) to "minecraft:oak_fence", // TODO: [east=false,south=false,north=false,west=false]
+        BlockAndDataId(85, 0) to "minecraft:oak_fence",
         BlockAndDataId(86, 0) to "minecraft:carved_pumpkin[facing=south]",
         BlockAndDataId(86, 1) to "minecraft:carved_pumpkin[facing=west]",
         BlockAndDataId(86, 2) to "minecraft:carved_pumpkin[facing=north]",
@@ -691,8 +690,8 @@ public object BlockIdMapper {
         BlockAndDataId(100, 10) to "minecraft:mushroom_stem[north=true,east=true,south=true,west=true,up=false,down=false]",
         BlockAndDataId(100, 14) to "minecraft:red_mushroom_block[north=true,east=true,south=true,west=true,up=true,down=true]",
         BlockAndDataId(100, 15) to "minecraft:mushroom_stem[north=true,east=true,south=true,west=true,up=true,down=true]",
-        BlockAndDataId(101, 0) to "minecraft:iron_bars", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(102, 0) to "minecraft:glass_pane", // TODO: [east=false,south=false,north=false,west=false]
+        BlockAndDataId(101, 0) to "minecraft:iron_bars",
+        BlockAndDataId(102, 0) to "minecraft:glass_pane",
         BlockAndDataId(103, 0) to "minecraft:melon",
         BlockAndDataId(104, 0) to "minecraft:pumpkin_stem[age=0]",
         BlockAndDataId(104, 1) to "minecraft:pumpkin_stem[age=1]",
@@ -818,18 +817,19 @@ public object BlockIdMapper {
         BlockAndDataId(126, 11) to "minecraft:jungle_slab[type=top]",
         BlockAndDataId(126, 12) to "minecraft:acacia_slab[type=top]",
         BlockAndDataId(126, 13) to "minecraft:dark_oak_slab[type=top]",
-        BlockAndDataId(127, 0) to  "minecraft:cocoa", // minecraft:cocoa[facing=south,age=0]",
-        BlockAndDataId(127, 1) to  "minecraft:cocoa", // minecraft:cocoa[facing=west,age=0]",
-        BlockAndDataId(127, 2) to  "minecraft:cocoa", // minecraft:cocoa[facing=north,age=0]",
-        BlockAndDataId(127, 3) to  "minecraft:cocoa", // minecraft:cocoa[facing=east,age=0]",
-        BlockAndDataId(127, 4) to  "minecraft:cocoa", // minecraft:cocoa[facing=south,age=1]",
-        BlockAndDataId(127, 5) to  "minecraft:cocoa", // minecraft:cocoa[facing=west,age=1]",
-        BlockAndDataId(127, 6) to  "minecraft:cocoa", // minecraft:cocoa[facing=north,age=1]",
-        BlockAndDataId(127, 7) to  "minecraft:cocoa", // minecraft:cocoa[facing=east,age=1]",
-        BlockAndDataId(127, 8) to  "minecraft:cocoa", // minecraft:cocoa[facing=south,age=2]",
-        BlockAndDataId(127, 9) to  "minecraft:cocoa", // minecraft:cocoa[facing=west,age=2]",
-        BlockAndDataId(127, 10) to "minecraft:cocoa", // minecraft:cocoa[facing=north,age=2]",
-        BlockAndDataId(127, 11) to "minecraft:cocoa", // minecraft:cocoa[facing=east,age=2]",
+        // Legacy cocoa metadata encodes facing and age, which this map discards.
+        BlockAndDataId(127, 0) to  "minecraft:cocoa",
+        BlockAndDataId(127, 1) to  "minecraft:cocoa",
+        BlockAndDataId(127, 2) to  "minecraft:cocoa",
+        BlockAndDataId(127, 3) to  "minecraft:cocoa",
+        BlockAndDataId(127, 4) to  "minecraft:cocoa",
+        BlockAndDataId(127, 5) to  "minecraft:cocoa",
+        BlockAndDataId(127, 6) to  "minecraft:cocoa",
+        BlockAndDataId(127, 7) to  "minecraft:cocoa",
+        BlockAndDataId(127, 8) to  "minecraft:cocoa",
+        BlockAndDataId(127, 9) to  "minecraft:cocoa",
+        BlockAndDataId(127, 10) to "minecraft:cocoa",
+        BlockAndDataId(127, 11) to "minecraft:cocoa",
         BlockAndDataId(128, 0) to "minecraft:sandstone_stairs[half=bottom,shape=straight,facing=east]",
         BlockAndDataId(128, 1) to "minecraft:sandstone_stairs[half=bottom,shape=straight,facing=west]",
         BlockAndDataId(128, 2) to "minecraft:sandstone_stairs[half=bottom,shape=straight,facing=south]",
@@ -905,8 +905,8 @@ public object BlockIdMapper {
         BlockAndDataId(137, 12) to "minecraft:command_block[conditional=true,facing=west]",
         BlockAndDataId(137, 13) to "minecraft:command_block[conditional=true,facing=east]",
         BlockAndDataId(138, 0) to "minecraft:beacon",
-        BlockAndDataId(139, 0) to "minecraft:cobblestone_wall", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(139, 1) to "minecraft:mossy_cobblestone_wall", // TODO: [east=false,south=false,north=false,west=false]
+        BlockAndDataId(139, 0) to "minecraft:cobblestone_wall",
+        BlockAndDataId(139, 1) to "minecraft:mossy_cobblestone_wall",
         BlockAndDataId(140, 0) to "minecraft:flower_pot",
         BlockAndDataId(140, 1) to "minecraft:potted_poppy",
         BlockAndDataId(140, 2) to "minecraft:potted_dandelion",
@@ -1126,22 +1126,22 @@ public object BlockIdMapper {
         BlockAndDataId(159, 13) to "minecraft:green_terracotta",
         BlockAndDataId(159, 14) to "minecraft:red_terracotta",
         BlockAndDataId(159, 15) to "minecraft:black_terracotta",
-        BlockAndDataId(160, 0) to "minecraft:white_stained_glass_pane", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(160, 1) to "minecraft:orange_stained_glass_pane", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(160, 2) to "minecraft:magenta_stained_glass_pane", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(160, 3) to "minecraft:light_blue_stained_glass_pane", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(160, 4) to "minecraft:yellow_stained_glass_pane", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(160, 5) to "minecraft:lime_stained_glass_pane", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(160, 6) to "minecraft:pink_stained_glass_pane", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(160, 7) to "minecraft:gray_stained_glass_pane", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(160, 8) to "minecraft:light_gray_stained_glass_pane", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(160, 9) to "minecraft:cyan_stained_glass_pane", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(160, 10) to "minecraft:purple_stained_glass_pane", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(160, 11) to "minecraft:blue_stained_glass_pane", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(160, 12) to "minecraft:brown_stained_glass_pane", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(160, 13) to "minecraft:green_stained_glass_pane", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(160, 14) to "minecraft:red_stained_glass_pane", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(160, 15) to "minecraft:black_stained_glass_pane", // TODO: [east=false,south=false,north=false,west=false]
+        BlockAndDataId(160, 0) to "minecraft:white_stained_glass_pane",
+        BlockAndDataId(160, 1) to "minecraft:orange_stained_glass_pane",
+        BlockAndDataId(160, 2) to "minecraft:magenta_stained_glass_pane",
+        BlockAndDataId(160, 3) to "minecraft:light_blue_stained_glass_pane",
+        BlockAndDataId(160, 4) to "minecraft:yellow_stained_glass_pane",
+        BlockAndDataId(160, 5) to "minecraft:lime_stained_glass_pane",
+        BlockAndDataId(160, 6) to "minecraft:pink_stained_glass_pane",
+        BlockAndDataId(160, 7) to "minecraft:gray_stained_glass_pane",
+        BlockAndDataId(160, 8) to "minecraft:light_gray_stained_glass_pane",
+        BlockAndDataId(160, 9) to "minecraft:cyan_stained_glass_pane",
+        BlockAndDataId(160, 10) to "minecraft:purple_stained_glass_pane",
+        BlockAndDataId(160, 11) to "minecraft:blue_stained_glass_pane",
+        BlockAndDataId(160, 12) to "minecraft:brown_stained_glass_pane",
+        BlockAndDataId(160, 13) to "minecraft:green_stained_glass_pane",
+        BlockAndDataId(160, 14) to "minecraft:red_stained_glass_pane",
+        BlockAndDataId(160, 15) to "minecraft:black_stained_glass_pane",
         BlockAndDataId(161, 0) to "minecraft:acacia_leaves[persistent=false,distance=1]",
         BlockAndDataId(161, 1) to "minecraft:dark_oak_leaves[persistent=false,distance=1]",
         BlockAndDataId(161, 4) to "minecraft:acacia_leaves[persistent=true,distance=1]",
@@ -1361,11 +1361,11 @@ public object BlockIdMapper {
         BlockAndDataId(187, 13) to "minecraft:acacia_fence_gate[in_wall=false,powered=true,facing=west,open=true]",
         BlockAndDataId(187, 14) to "minecraft:acacia_fence_gate[in_wall=false,powered=true,facing=north,open=true]",
         BlockAndDataId(187, 15) to "minecraft:acacia_fence_gate[in_wall=false,powered=true,facing=east,open=true]",
-        BlockAndDataId(188, 0) to "minecraft:spruce_fence", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(189, 0) to "minecraft:birch_fence", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(190, 0) to "minecraft:jungle_fence", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(191, 0) to "minecraft:dark_oak_fence", // TODO: [east=false,south=false,north=false,west=false]
-        BlockAndDataId(192, 0) to "minecraft:acacia_fence", // TODO: [east=false,south=false,north=false,west=false]
+        BlockAndDataId(188, 0) to "minecraft:spruce_fence",
+        BlockAndDataId(189, 0) to "minecraft:birch_fence",
+        BlockAndDataId(190, 0) to "minecraft:jungle_fence",
+        BlockAndDataId(191, 0) to "minecraft:dark_oak_fence",
+        BlockAndDataId(192, 0) to "minecraft:acacia_fence",
         BlockAndDataId(193, 0) to "minecraft:spruce_door[hinge=right,half=lower,powered=false,facing=east,open=false]",
         BlockAndDataId(193, 1) to "minecraft:spruce_door[hinge=right,half=lower,powered=false,facing=south,open=false]",
         BlockAndDataId(193, 2) to "minecraft:spruce_door[hinge=right,half=lower,powered=false,facing=west,open=false]",
@@ -1455,12 +1455,13 @@ public object BlockIdMapper {
         BlockAndDataId(205, 0) to "minecraft:purpur_slab[type=bottom]",
         BlockAndDataId(205, 8) to "minecraft:purpur_slab[type=top]",
         BlockAndDataId(206, 0) to "minecraft:end_stone_bricks",
-        BlockAndDataId(207, 0) to "minecraft:beetroots", //[age=0]",
-        BlockAndDataId(207, 1) to "minecraft:beetroots", //[age=1]",
-        BlockAndDataId(207, 2) to "minecraft:beetroots", //[age=2]",
-        BlockAndDataId(207, 3) to "minecraft:beetroots", //[age=3]",
-        BlockAndDataId(207, 4) to "minecraft:beetroots", //[age=4]",
-        BlockAndDataId(207, 5) to "minecraft:beetroots", //[age=5]",
+        // Legacy beetroot metadata encodes age, which this map discards.
+        BlockAndDataId(207, 0) to "minecraft:beetroots",
+        BlockAndDataId(207, 1) to "minecraft:beetroots",
+        BlockAndDataId(207, 2) to "minecraft:beetroots",
+        BlockAndDataId(207, 3) to "minecraft:beetroots",
+        BlockAndDataId(207, 4) to "minecraft:beetroots",
+        BlockAndDataId(207, 5) to "minecraft:beetroots",
         BlockAndDataId(208, 0) to "minecraft:grass_path",
         BlockAndDataId(209, 0) to "minecraft:end_gateway",
         BlockAndDataId(210, 0) to "minecraft:repeating_command_block[conditional=false,facing=down]",
