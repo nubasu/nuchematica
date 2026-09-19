@@ -14,6 +14,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.Bootstrap
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.phys.Vec3
 import org.junit.jupiter.api.AfterEach
@@ -28,31 +29,43 @@ import org.junit.jupiter.api.Test
 
 public class MissingBlockHolderTest {
     private lateinit var previousRenderingBlocks: SchematicCache
+    private lateinit var previousSchematicCache: SchematicCache
     private lateinit var previousSchematicSize: Vector3
     private lateinit var previousDirection: Direction
     private lateinit var previousPosition: Vec3
+    private var previousExpectedAirRegion: ExpectedAirRegion? = null
 
     @BeforeEach
     public fun setUp(): Unit {
         previousRenderingBlocks = SchematicHolder.renderingBlocks
+        previousSchematicCache = SchematicHolder.schematicCache
         previousSchematicSize = SchematicHolder.schematicSize
         previousDirection = SchematicRenderManager.initialDirection
         previousPosition = SchematicRenderManager.initialPosition
+        previousExpectedAirRegion = SchematicHolder.expectedAirRegion
         MissingBlockHolder.airPos.clear()
         MissingBlockHolder.blockPos.clear()
+        MissingBlockHolder.extraPos.clear()
         SchematicHolder.schematicSize = Vector3.ZERO
+        SchematicHolder.expectedAirRegion = null
         SchematicRenderManager.initialDirection = Direction.EAST
         SchematicRenderManager.initialPosition = Vec3.ZERO
         SchematicRenderManager.setOffset(Vec3.ZERO)
         SchematicRenderManager.setRotation(0f, Vec3.ZERO)
+        // initialize() on empty content also clears unknownChunks and the rescan queue/cursor.
+        SchematicHolder.renderingBlocks = SchematicCache(emptyMap(), emptyMap())
+        MissingBlockHolder.initialize()
     }
 
     @AfterEach
     public fun tearDown(): Unit {
         MissingBlockHolder.airPos.clear()
         MissingBlockHolder.blockPos.clear()
+        MissingBlockHolder.extraPos.clear()
         SchematicHolder.renderingBlocks = previousRenderingBlocks
+        SchematicHolder.schematicCache = previousSchematicCache
         SchematicHolder.schematicSize = previousSchematicSize
+        SchematicHolder.expectedAirRegion = previousExpectedAirRegion
         SchematicRenderManager.initialDirection = previousDirection
         SchematicRenderManager.initialPosition = previousPosition
         SchematicRenderManager.setOffset(Vec3.ZERO)
@@ -311,6 +324,132 @@ public class MissingBlockHolderTest {
     }
 
     @Test
+    public fun placedExtraInRegionNonSchematicPositionTracksExtraWithoutAffectingMissingState(): Unit {
+        val schematicPositions = listOf(BlockPos(0, 0, 0), BlockPos(2, 0, 2))
+        val extraLocalPos = BlockPos(1, 0, 1)
+        val expected = Blocks.STONE.defaultBlockState()
+        SchematicHolder.schematicCache = SchematicCache(schematicPositions.associateWith { expected }, emptyMap())
+        SchematicHolder.renderingBlocks = SchematicCache(schematicPositions.associateWith { expected }, emptyMap())
+        SchematicHolder.expectedAirRegion = ExpectedAirRegion.of(SchematicHolder.schematicCache.blocks.keys)
+        val baseRevision = MissingBlockHolder.missingSnapshot().revision
+
+        val change = MissingBlockHolder.placed(extraLocalPos, Blocks.DIRT.defaultBlockState())
+
+        assertEquals(
+            MissingBlockChange(
+                extraLocalPos,
+                overlayChanged = false,
+                satisfiedChanged = false,
+                satisfied = true,
+                extraChanged = true,
+            ),
+            change,
+        )
+        assertEquals(listOf(extraLocalPos), MissingBlockHolder.extraPos)
+        assertEquals(baseRevision, MissingBlockHolder.missingSnapshot().revision)
+        assertTrue(MissingBlockHolder.missingSnapshot().missingLocal.isEmpty())
+        assertFalse(MissingBlockHolder.hasMissing())
+
+        val repeated = MissingBlockHolder.placed(extraLocalPos, Blocks.COBBLESTONE.defaultBlockState())
+        assertFalse(repeated?.extraChanged == true)
+        assertEquals(listOf(extraLocalPos), MissingBlockHolder.extraPos)
+
+        val removedChange = MissingBlockHolder.removed(extraLocalPos)
+        assertTrue(removedChange?.extraChanged == true)
+        assertTrue(MissingBlockHolder.extraPos.isEmpty())
+    }
+
+    @Test
+    public fun placedOutsideRegionOrAtHiddenSchematicBlockReturnsNullAndLeavesExtraPosUnchanged(): Unit {
+        val schematicPositions = listOf(BlockPos(0, 0, 0), BlockPos(2, 0, 2))
+        val hiddenPos = BlockPos(1, 0, 1)
+        val outsidePos = BlockPos(10, 0, 10)
+        val expected = Blocks.STONE.defaultBlockState()
+        SchematicHolder.schematicCache = SchematicCache(
+            schematicPositions.associateWith { expected } + (hiddenPos to expected),
+            emptyMap(),
+        )
+        // renderingBlocks omits hiddenPos: a filter (e.g. hiddenBlocks) drops it from what is drawn.
+        SchematicHolder.renderingBlocks = SchematicCache(schematicPositions.associateWith { expected }, emptyMap())
+        SchematicHolder.expectedAirRegion = ExpectedAirRegion.of(SchematicHolder.schematicCache.blocks.keys)
+
+        assertNull(MissingBlockHolder.placed(outsidePos, Blocks.DIRT.defaultBlockState()))
+        assertNull(MissingBlockHolder.removed(outsidePos))
+        assertNull(MissingBlockHolder.placed(hiddenPos, Blocks.DIRT.defaultBlockState()))
+        assertNull(MissingBlockHolder.removed(hiddenPos))
+        assertTrue(MissingBlockHolder.extraPos.isEmpty())
+    }
+
+    @Test
+    public fun scanClassifiesExtrasInTheExpectedAirRegionWithoutAffectingAirOrBlockLists(): Unit {
+        val centre = BlockPos(1, 0, 1)
+        val expected = Blocks.STONE.defaultBlockState()
+        SchematicHolder.schematicCache = SchematicCache(mapOf(centre to expected), emptyMap())
+        SchematicHolder.renderingBlocks = SchematicCache(mapOf(centre to expected), emptyMap())
+        SchematicHolder.expectedAirRegion = ExpectedAirRegion(minX = 0, minY = 0, minZ = 0, maxX = 2, maxY = 0, maxZ = 2)
+        val nonSchematicCells = (0..2).flatMap { x -> (0..2).map { z -> BlockPos(x, 0, z) } }.filter { it != centre }
+        assertEquals(8, nonSchematicCells.size)
+
+        var actualState: BlockState = Blocks.STONE.defaultBlockState()
+        val level = mockk<ClientLevel>()
+        every { level.getBlockState(any()) } answers { actualState }
+        val minecraft = mockk<Minecraft>(relaxed = true)
+        val instanceField = Minecraft::class.java.getDeclaredField("instance")
+        val levelField = Minecraft::class.java.getField("level")
+        instanceField.isAccessible = true
+        val previousMinecraft = instanceField.get(null)
+        levelField.set(minecraft, level)
+        instanceField.set(null, minecraft)
+        val initialRevision = MissingBlockHolder.missingSnapshot().revision
+
+        try {
+            MissingBlockHolder.initialize()
+
+            assertEquals(nonSchematicCells.toSet(), MissingBlockHolder.extraPos.toSet())
+            assertTrue(MissingBlockHolder.airPos.isEmpty())
+            assertTrue(MissingBlockHolder.blockPos.isEmpty())
+            assertEquals(initialRevision, MissingBlockHolder.missingSnapshot().revision)
+
+            actualState = Blocks.AIR.defaultBlockState()
+            MissingBlockHolder.initialize()
+            assertTrue(MissingBlockHolder.extraPos.isEmpty())
+        } finally {
+            instanceField.set(null, previousMinecraft)
+        }
+    }
+
+    @Test
+    public fun scanOfARegionLargerThanTheBudgetStaysInvisibleUntilPumpedToCompletion(): Unit {
+        val budget = PrintWorldModel.CAPTURE_CELLS_PER_TICK
+        SchematicHolder.schematicCache = SchematicCache(emptyMap(), emptyMap())
+        SchematicHolder.renderingBlocks = SchematicCache(emptyMap(), emptyMap())
+        SchematicHolder.expectedAirRegion = ExpectedAirRegion(minX = 0, minY = 0, minZ = 0, maxX = budget, maxY = 0, maxZ = 0)
+        val level = mockk<ClientLevel>()
+        every { level.getBlockState(any()) } returns Blocks.STONE.defaultBlockState()
+        val minecraft = mockk<Minecraft>(relaxed = true)
+        val instanceField = Minecraft::class.java.getDeclaredField("instance")
+        val levelField = Minecraft::class.java.getField("level")
+        instanceField.isAccessible = true
+        val previousMinecraft = instanceField.get(null)
+        levelField.set(minecraft, level)
+        instanceField.set(null, minecraft)
+
+        try {
+            MissingBlockHolder.initialize()
+            assertTrue(MissingBlockHolder.isInitializing()) {
+                "a region larger than the per-tick budget must not finish in one call"
+            }
+            assertTrue(MissingBlockHolder.extraPos.isEmpty()) { "in-progress work must stay invisible" }
+
+            assertTrue(MissingBlockHolder.pump())
+            assertFalse(MissingBlockHolder.isInitializing())
+            assertEquals((budget + 1).toLong(), MissingBlockHolder.extraPos.size.toLong())
+        } finally {
+            instanceField.set(null, previousMinecraft)
+        }
+    }
+
+    @Test
     public fun airPosAndBlockPosStayDuplicateFreeAndPlacedRemovedStayFastAtCaptureScale(): Unit {
         MissingBlockHolder.airPos += BlockPos(0, 0, 0)
         MissingBlockHolder.airPos += BlockPos(0, 0, 0)
@@ -428,6 +567,294 @@ public class MissingBlockHolderTest {
         assertEquals(10, MissingBlockHolder.changesSince(baseRevision)?.size)
 
         assertNull(MissingBlockHolder.changesSince(baseRevision - 1_000_000L))
+    }
+
+    @Test
+    public fun unloadedChunkScanTreatsPositionsAsUnknownAndExcludesThemFromSatisfiedPositions(): Unit {
+        val knownLocal = BlockPos(0, 0, 0)
+        val unknownLocal = BlockPos(20, 0, 0)
+        val expected = Blocks.STONE.defaultBlockState()
+        SchematicHolder.renderingBlocks = SchematicCache(
+            mapOf(knownLocal to expected, unknownLocal to expected),
+            emptyMap(),
+        )
+        val level = mockk<ClientLevel>()
+        every { level.getBlockState(any()) } answers {
+            val pos = firstArg<BlockPos>()
+            if (pos.x >= 16) Blocks.VOID_AIR.defaultBlockState() else expected
+        }
+        val minecraft = mockk<Minecraft>(relaxed = true)
+        val instanceField = Minecraft::class.java.getDeclaredField("instance")
+        val levelField = Minecraft::class.java.getField("level")
+        instanceField.isAccessible = true
+        val previousMinecraft = instanceField.get(null)
+        levelField.set(minecraft, level)
+        instanceField.set(null, minecraft)
+
+        try {
+            MissingBlockHolder.initialize()
+
+            assertTrue(MissingBlockHolder.airPos.isEmpty())
+            assertTrue(MissingBlockHolder.blockPos.isEmpty())
+            assertTrue(MissingBlockHolder.extraPos.isEmpty())
+            assertEquals(1, MissingBlockHolder.unknownChunkCount())
+            assertFalse(unknownLocal in MissingBlockHolder.satisfiedPositions())
+            assertTrue(knownLocal in MissingBlockHolder.satisfiedPositions())
+            assertTrue(MissingBlockHolder.missingSnapshot().missingLocal.isEmpty())
+        } finally {
+            instanceField.set(null, previousMinecraft)
+        }
+    }
+
+    @Test
+    public fun pumpUnknownChunksReclassifiesAChunkThatLoadedAsMissing(): Unit {
+        val knownLocal = BlockPos(0, 0, 0)
+        val unknownLocal = BlockPos(20, 0, 0)
+        val expected = Blocks.STONE.defaultBlockState()
+        SchematicHolder.renderingBlocks = SchematicCache(
+            mapOf(knownLocal to expected, unknownLocal to expected),
+            emptyMap(),
+        )
+        var chunkLoaded = false
+        val level = mockk<ClientLevel>()
+        every { level.getBlockState(any()) } answers {
+            val pos = firstArg<BlockPos>()
+            when {
+                pos.x < 16 -> expected
+                chunkLoaded -> Blocks.AIR.defaultBlockState()
+                else -> Blocks.VOID_AIR.defaultBlockState()
+            }
+        }
+        val minecraft = mockk<Minecraft>(relaxed = true)
+        val instanceField = Minecraft::class.java.getDeclaredField("instance")
+        val levelField = Minecraft::class.java.getField("level")
+        instanceField.isAccessible = true
+        val previousMinecraft = instanceField.get(null)
+        levelField.set(minecraft, level)
+        instanceField.set(null, minecraft)
+
+        try {
+            MissingBlockHolder.initialize()
+            assertEquals(1, MissingBlockHolder.unknownChunkCount())
+            val revisionBeforeLoad = MissingBlockHolder.missingSnapshot().revision
+
+            chunkLoaded = true
+            val changes = MissingBlockHolder.pumpUnknownChunks()
+
+            assertEquals(1, changes.size)
+            assertEquals(
+                MissingBlockChange(unknownLocal, overlayChanged = true, satisfiedChanged = false, satisfied = false),
+                changes.single(),
+            )
+            assertTrue(unknownLocal in MissingBlockHolder.airPos)
+            assertEquals(revisionBeforeLoad + 1L, MissingBlockHolder.missingSnapshot().revision)
+            assertEquals(0, MissingBlockHolder.unknownChunkCount())
+
+            val revisionAfterLoad = MissingBlockHolder.missingSnapshot().revision
+            assertTrue(MissingBlockHolder.pumpUnknownChunks().isEmpty())
+            assertEquals(revisionAfterLoad, MissingBlockHolder.missingSnapshot().revision)
+        } finally {
+            instanceField.set(null, previousMinecraft)
+        }
+    }
+
+    @Test
+    public fun pumpUnknownChunksReclassifiesAChunkThatLoadedAlreadySatisfied(): Unit {
+        val knownLocal = BlockPos(0, 0, 0)
+        val unknownLocal = BlockPos(20, 0, 0)
+        val expected = Blocks.STONE.defaultBlockState()
+        SchematicHolder.renderingBlocks = SchematicCache(
+            mapOf(knownLocal to expected, unknownLocal to expected),
+            emptyMap(),
+        )
+        var chunkLoaded = false
+        val level = mockk<ClientLevel>()
+        every { level.getBlockState(any()) } answers {
+            val pos = firstArg<BlockPos>()
+            when {
+                pos.x < 16 -> expected
+                chunkLoaded -> expected
+                else -> Blocks.VOID_AIR.defaultBlockState()
+            }
+        }
+        val minecraft = mockk<Minecraft>(relaxed = true)
+        val instanceField = Minecraft::class.java.getDeclaredField("instance")
+        val levelField = Minecraft::class.java.getField("level")
+        instanceField.isAccessible = true
+        val previousMinecraft = instanceField.get(null)
+        levelField.set(minecraft, level)
+        instanceField.set(null, minecraft)
+
+        try {
+            MissingBlockHolder.initialize()
+            val revisionBeforeLoad = MissingBlockHolder.missingSnapshot().revision
+
+            chunkLoaded = true
+            val changes = MissingBlockHolder.pumpUnknownChunks()
+
+            assertEquals(1, changes.size)
+            assertEquals(
+                MissingBlockChange(unknownLocal, overlayChanged = false, satisfiedChanged = true, satisfied = true),
+                changes.single(),
+            )
+            assertTrue(MissingBlockHolder.airPos.isEmpty())
+            assertTrue(MissingBlockHolder.blockPos.isEmpty())
+            assertEquals(revisionBeforeLoad, MissingBlockHolder.missingSnapshot().revision)
+            assertTrue(unknownLocal in MissingBlockHolder.satisfiedPositions())
+        } finally {
+            instanceField.set(null, previousMinecraft)
+        }
+    }
+
+    @Test
+    public fun pumpUnknownChunksClassifiesANonSchematicCellAsExtraOnceItsChunkLoads(): Unit {
+        val schematicLocal = BlockPos(0, 0, 0)
+        val extraLocal = BlockPos(20, 0, 0)
+        val expected = Blocks.STONE.defaultBlockState()
+        SchematicHolder.schematicCache = SchematicCache(mapOf(schematicLocal to expected), emptyMap())
+        SchematicHolder.renderingBlocks = SchematicCache(mapOf(schematicLocal to expected), emptyMap())
+        SchematicHolder.expectedAirRegion =
+            ExpectedAirRegion(minX = 20, minY = 0, minZ = 0, maxX = 20, maxY = 0, maxZ = 0)
+        var chunkLoaded = false
+        val level = mockk<ClientLevel>()
+        every { level.getBlockState(any()) } answers {
+            val pos = firstArg<BlockPos>()
+            when {
+                pos == schematicLocal -> expected
+                pos.x < 16 -> Blocks.AIR.defaultBlockState()
+                !chunkLoaded -> Blocks.VOID_AIR.defaultBlockState()
+                pos == extraLocal -> expected
+                else -> Blocks.AIR.defaultBlockState()
+            }
+        }
+        val minecraft = mockk<Minecraft>(relaxed = true)
+        val instanceField = Minecraft::class.java.getDeclaredField("instance")
+        val levelField = Minecraft::class.java.getField("level")
+        instanceField.isAccessible = true
+        val previousMinecraft = instanceField.get(null)
+        levelField.set(minecraft, level)
+        instanceField.set(null, minecraft)
+
+        try {
+            MissingBlockHolder.initialize()
+            assertEquals(1, MissingBlockHolder.unknownChunkCount())
+            val revisionBeforeLoad = MissingBlockHolder.missingSnapshot().revision
+
+            chunkLoaded = true
+            val changes = MissingBlockHolder.pumpUnknownChunks()
+
+            assertEquals(1, changes.size)
+            assertEquals(
+                MissingBlockChange(
+                    extraLocal,
+                    overlayChanged = false,
+                    satisfiedChanged = false,
+                    satisfied = true,
+                    extraChanged = true,
+                ),
+                changes.single(),
+            )
+            assertTrue(extraLocal in MissingBlockHolder.extraPos)
+            assertEquals(revisionBeforeLoad, MissingBlockHolder.missingSnapshot().revision)
+        } finally {
+            instanceField.set(null, previousMinecraft)
+        }
+    }
+
+    @Test
+    public fun pumpUnknownChunksLeavesAStillUnloadedChunkUnknown(): Unit {
+        val knownLocal = BlockPos(0, 0, 0)
+        val unknownLocal = BlockPos(20, 0, 0)
+        val expected = Blocks.STONE.defaultBlockState()
+        SchematicHolder.renderingBlocks = SchematicCache(
+            mapOf(knownLocal to expected, unknownLocal to expected),
+            emptyMap(),
+        )
+        val level = mockk<ClientLevel>()
+        every { level.getBlockState(any()) } answers {
+            val pos = firstArg<BlockPos>()
+            if (pos.x >= 16) Blocks.VOID_AIR.defaultBlockState() else expected
+        }
+        val minecraft = mockk<Minecraft>(relaxed = true)
+        val instanceField = Minecraft::class.java.getDeclaredField("instance")
+        val levelField = Minecraft::class.java.getField("level")
+        instanceField.isAccessible = true
+        val previousMinecraft = instanceField.get(null)
+        levelField.set(minecraft, level)
+        instanceField.set(null, minecraft)
+
+        try {
+            MissingBlockHolder.initialize()
+            val revisionBeforeProbe = MissingBlockHolder.missingSnapshot().revision
+
+            val changes = MissingBlockHolder.pumpUnknownChunks()
+
+            assertTrue(changes.isEmpty())
+            assertEquals(1, MissingBlockHolder.unknownChunkCount())
+            assertEquals(revisionBeforeProbe, MissingBlockHolder.missingSnapshot().revision)
+        } finally {
+            instanceField.set(null, previousMinecraft)
+        }
+    }
+
+    @Test
+    public fun pumpUnknownChunksBudgetsACellHeavyChunkAcrossMultipleCalls(): Unit {
+        val chunkAnchorMin = BlockPos(0, 0, 0)
+        val chunkAnchorMax = BlockPos(0, 255, 0)
+        val earlyTarget = BlockPos(20, 0, 0)
+        val lateTarget = BlockPos(20, 250, 0)
+        val expected = Blocks.STONE.defaultBlockState()
+        SchematicHolder.renderingBlocks = SchematicCache(
+            mapOf(
+                chunkAnchorMin to expected,
+                chunkAnchorMax to expected,
+                earlyTarget to expected,
+                lateTarget to expected,
+            ),
+            emptyMap(),
+        )
+        var chunkLoaded = false
+        val targets = setOf(earlyTarget, lateTarget)
+        val level = mockk<ClientLevel>()
+        every { level.getBlockState(any()) } answers {
+            val pos = firstArg<BlockPos>()
+            when {
+                pos.x < 16 -> expected
+                !chunkLoaded -> Blocks.VOID_AIR.defaultBlockState()
+                pos in targets -> Blocks.AIR.defaultBlockState()
+                else -> expected
+            }
+        }
+        val minecraft = mockk<Minecraft>(relaxed = true)
+        val instanceField = Minecraft::class.java.getDeclaredField("instance")
+        val levelField = Minecraft::class.java.getField("level")
+        instanceField.isAccessible = true
+        val previousMinecraft = instanceField.get(null)
+        levelField.set(minecraft, level)
+        instanceField.set(null, minecraft)
+
+        try {
+            MissingBlockHolder.initialize()
+            assertEquals(1, MissingBlockHolder.unknownChunkCount())
+
+            chunkLoaded = true
+            val firstCall = MissingBlockHolder.pumpUnknownChunks()
+            assertEquals(0, MissingBlockHolder.unknownChunkCount()) {
+                "the chunk resolves out of unknownChunks on the first probe, before the rescan budget runs out"
+            }
+            assertEquals(1, firstCall.size) {
+                "a 65536-cell chunk must not classify both targets within one 50000-cell budget"
+            }
+            assertEquals(earlyTarget, firstCall.single().localPos)
+
+            val secondCall = MissingBlockHolder.pumpUnknownChunks()
+            assertEquals(1, secondCall.size)
+            assertEquals(lateTarget, secondCall.single().localPos)
+
+            assertEquals(setOf(earlyTarget, lateTarget), (firstCall + secondCall).map { it.localPos }.toSet())
+        } finally {
+            instanceField.set(null, previousMinecraft)
+        }
     }
 
     public companion object {
