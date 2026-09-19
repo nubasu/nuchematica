@@ -360,6 +360,51 @@ public class SectionMeshStateTest {
     }
 
     @Test
+    public fun evictionPrefersInactiveSectionsEvenWhenTheyWereVisibleMoreRecently(): Unit {
+        val fixture = Fixture(SectionGpuBudget(softBytes = 100L, hardBytes = 200L, hardHandleCount = 10))
+        fixture.state.replaceSections(mapOf(KEY_A to BOX_A, KEY_B to BOX_B, KEY_C to BOX_C))
+        val inactiveButRecentlyVisible = FakeHandle("inactive-recent")
+        val activeButNotVisible = FakeHandle("active-not-visible")
+        fixture.applyReady(KEY_A, solid = inactiveButRecentlyVisible, bytes = 40L)
+        fixture.applyReady(KEY_B, solid = activeButNotVisible, bytes = 40L)
+
+        // KEY_A is visible (and active) at frame 5, then leaves the render-distance radius at frame 6.
+        fixture.state.updateVisibility(visibleKeys = setOf(KEY_A), activeKeys = setOf(KEY_A, KEY_B), frame = 5L)
+        fixture.state.updateVisibility(visibleKeys = emptySet(), activeKeys = setOf(KEY_B), frame = 6L)
+
+        fixture.applyReady(KEY_C, solid = FakeHandle("new"), bytes = 40L)
+
+        assertEquals(1, inactiveButRecentlyVisible.closeCount)
+        assertEquals(0, activeButNotVisible.closeCount)
+        assertEquals(SectionGeometryState.DIRTY, fixture.state.snapshot(KEY_A)!!.geometryState)
+        assertEquals(SectionGeometryState.READY, fixture.state.snapshot(KEY_B)!!.geometryState)
+    }
+
+    @Test
+    public fun nextGeometryCandidateSkipsInactiveDirtySectionsUntilActivated(): Unit {
+        val fixture = Fixture()
+        fixture.state.replaceSections(mapOf(KEY_A to BOX_A))
+        fixture.state.updateVisibility(visibleKeys = emptySet(), activeKeys = emptySet(), frame = 1L)
+
+        assertNull(fixture.state.nextGeometryCandidate(Vec3.ZERO))
+
+        fixture.state.updateVisibility(visibleKeys = emptySet(), activeKeys = setOf(KEY_A), frame = 2L)
+
+        assertEquals(KEY_A, fixture.state.nextGeometryCandidate(Vec3.ZERO))
+    }
+
+    @Test
+    public fun twoArgumentUpdateVisibilityMarksEverySectionActive(): Unit {
+        val fixture = Fixture()
+        fixture.state.replaceSections(mapOf(KEY_A to BOX_A, KEY_B to BOX_B))
+
+        fixture.state.updateVisibility(setOf(KEY_A), frame = 1L)
+
+        assertTrue(fixture.state.snapshot(KEY_A)!!.active)
+        assertTrue(fixture.state.snapshot(KEY_B)!!.active)
+    }
+
+    @Test
     public fun candidatePriorityIsVisibleThenNearest(): Unit {
         val fixture = Fixture()
         fixture.state.replaceSections(mapOf(KEY_A to BOX_A, KEY_B to BOX_B, KEY_C to BOX_C))

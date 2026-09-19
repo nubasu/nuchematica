@@ -81,6 +81,7 @@ internal data class SectionStateSnapshot<H>(
     internal val sortState: SectionSortState,
     internal val geometryFailures: Int,
     internal val allocation: SectionGpuAllocation<H>,
+    internal val active: Boolean,
     internal val visible: Boolean,
     internal val lastVisibleFrame: Long,
 )
@@ -103,6 +104,7 @@ private class MutableSectionState<H, S>(
     internal var sortFailures: Int = 0
     internal var allocation: SectionGpuAllocation<H> = SectionGpuAllocation.empty()
     internal var sortPayload: S? = null
+    internal var active: Boolean = false
     internal var visible: Boolean = false
     internal var lastVisibleFrame: Long = Long.MIN_VALUE
 }
@@ -196,10 +198,16 @@ internal class SectionMeshState<H, S>(
         }
     }
 
+    /** Every section is treated as active; kept for callers that do not gate by distance. */
     internal fun updateVisibility(visibleKeys: Set<SectionKey>, frame: Long): Unit {
+        updateVisibility(visibleKeys, sections.keys, frame)
+    }
+
+    internal fun updateVisibility(visibleKeys: Set<SectionKey>, activeKeys: Set<SectionKey>, frame: Long): Unit {
         if (closed) return
         for ((key, section) in sections) {
-            section.visible = key in visibleKeys
+            section.active = key in activeKeys
+            section.visible = section.active && key in visibleKeys
             if (section.visible) {
                 section.lastVisibleFrame = frame
             }
@@ -225,7 +233,7 @@ internal class SectionMeshState<H, S>(
         if (closed) return null
         return sections.values
             .asSequence()
-            .filter { it.geometryState == SectionGeometryState.DIRTY }
+            .filter { it.geometryState == SectionGeometryState.DIRTY && it.active }
             .minWithOrNull(sectionPriority(camera))
             ?.key
     }
@@ -238,7 +246,8 @@ internal class SectionMeshState<H, S>(
                 it.geometryState == SectionGeometryState.READY &&
                     it.sortState == SectionSortState.DIRTY &&
                     it.allocation.translucent != null &&
-                    it.sortPayload != null
+                    it.sortPayload != null &&
+                    it.active
             }
             .minWithOrNull(sectionPriority(camera))
             ?.key
@@ -404,6 +413,7 @@ internal class SectionMeshState<H, S>(
             sortState = section.sortState,
             geometryFailures = section.geometryFailures,
             allocation = section.allocation,
+            active = section.active,
             visible = section.visible,
             lastVisibleFrame = section.lastVisibleFrame,
         )
@@ -474,6 +484,7 @@ internal class SectionMeshState<H, S>(
             }
             .minWithOrNull(
                 compareBy<MutableSectionState<H, S>>(
+                    { it.active },
                     { it.lastVisibleFrame },
                     { it.key.x },
                     { it.key.y },
