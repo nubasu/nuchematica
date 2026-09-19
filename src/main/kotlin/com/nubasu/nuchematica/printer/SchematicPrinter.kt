@@ -255,12 +255,14 @@ public object SchematicPrinter {
             deferralLedger.clearAll()
             feedSnapshotStore.clear()
             previousPlanFirstMode = PrinterSettingsHolder.printerSettings.planFirstMode
+            SchematicRenderManager.printerActivationChanged(enabled = true)
         } else {
             latestStatus = null
             runtime.cancelAll()
             feedSnapshotStore.clear()
             cleanupScaffolds()
             teardownPlanSession()
+            SchematicRenderManager.printerActivationChanged(enabled = false)
         }
         return event
     }
@@ -284,6 +286,7 @@ public object SchematicPrinter {
             ChatSender.send("[nuchematica] printer disabled (left creative mode)")
             cleanupScaffolds()
             teardownPlanSession()
+            SchematicRenderManager.printerActivationChanged(enabled = false)
         }
         if (!enabled || level == null || player == null || gameMode == null) {
             latestStatus = null

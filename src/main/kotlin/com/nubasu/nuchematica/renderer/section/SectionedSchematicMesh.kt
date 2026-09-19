@@ -7,6 +7,7 @@ import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.logging.LogUtils
 import com.mojang.math.Matrix4f
 import com.mojang.math.Vector3f.YP
+import com.nubasu.nuchematica.renderer.GhostRenderDistance
 import com.nubasu.nuchematica.renderer.NuchematicaRenderTypes
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.RenderType
@@ -132,6 +133,7 @@ internal class SectionedSchematicMesh(
     private val metrics: SectionMeshMetrics = SectionMeshMetrics(),
     private val gpuBackend: SectionGpuBackend = VertexBufferSectionGpuBackend,
     private val bufferPool: SectionMeshBufferPool = SectionMeshBufferPool(),
+    private val renderDistanceBlocks: () -> Int = { GhostRenderDistance.currentBlocks() },
 ) : AutoCloseable {
     private val logger = LogUtils.getLogger()
     private val threadGuard: MainThreadGuard = MainThreadGuard.captureCurrentThread()
@@ -281,8 +283,9 @@ internal class SectionedSchematicMesh(
         val cameraWorld = event.camera.position
         val cameraLocal = currentTransform.worldPointToLocal(cameraWorld)
         updateCameraRevision(cameraLocal)
-        val visibleKeys = visibleSections(event)
-        state.updateVisibility(visibleKeys, frame)
+        val radius = renderDistanceBlocks()
+        val (activeKeys, visibleKeys) = activeAndVisibleSections(event, cameraWorld, radius)
+        state.updateVisibility(visibleKeys, activeKeys, frame)
 
         collectSortCompletion()
         applyPendingCompletions()
@@ -417,15 +420,23 @@ internal class SectionedSchematicMesh(
         }
     }
 
-    private fun visibleSections(event: RenderLevelStageEvent): Set<SectionKey> {
-        val result = LinkedHashSet<SectionKey>()
+    /** The frustum is only consulted for sections already within [radius] of [cameraWorld]. */
+    private fun activeAndVisibleSections(
+        event: RenderLevelStageEvent,
+        cameraWorld: Vec3,
+        radius: Int,
+    ): Pair<Set<SectionKey>, Set<SectionKey>> {
+        val active = LinkedHashSet<SectionKey>()
+        val visible = LinkedHashSet<SectionKey>()
         for (key in state.sectionKeys) {
             val worldAabb = state.worldAabb(key) ?: continue
+            if (!GhostRenderDistance.withinHorizontal(cameraWorld, worldAabb, radius)) continue
+            active += key
             if (event.frustum.isVisible(worldAabb)) {
-                result += key
+                visible += key
             }
         }
-        return result
+        return active to visible
     }
 
     private fun collectSortCompletion(): Unit {

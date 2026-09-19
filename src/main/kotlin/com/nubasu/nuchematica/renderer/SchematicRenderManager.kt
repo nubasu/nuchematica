@@ -8,8 +8,10 @@ import com.nubasu.nuchematica.gui.RenderSettingHolder
 import com.nubasu.nuchematica.gui.RenderSettings
 import com.nubasu.nuchematica.io.SchematicFileLoader
 import com.nubasu.nuchematica.printer.PrintWorldModel
+import com.nubasu.nuchematica.printer.SchematicPrinter
 import com.nubasu.nuchematica.renderer.section.RenderTransform
 import com.nubasu.nuchematica.renderer.section.SchematicContentSnapshot
+import com.nubasu.nuchematica.schematic.ExpectedAirRegion
 import com.nubasu.nuchematica.schematic.MissingBlockChange
 import com.nubasu.nuchematica.schematic.MissingBlockHolder
 import com.nubasu.nuchematica.schematic.SchematicHolder
@@ -229,6 +231,11 @@ public object SchematicRenderManager {
     internal fun tickPendingSettings(): Unit {
         refreshMissingBlocksAfterWorldLoad()
         pumpPrintWorldModelCapture()
+        if (!MissingBlockHolder.isInitializing()) {
+            for (change in MissingBlockHolder.pumpUnknownChunks()) {
+                onMissingBlockChange(change)
+            }
+        }
         if (!settingsApplyPending) return
         if (++ticksSinceSettingsChange >= SETTINGS_APPLY_DELAY_TICKS) {
             flushPendingSettings()
@@ -301,7 +308,7 @@ public object SchematicRenderManager {
             replaceCurrentContent(level)
         }
         schematicRenderer.render(event, RenderSettingHolder.renderSettings.opacity)
-        missingBlockRenderer.render(getRenderBase(), rotate, rotationAxis, event)
+        missingBlockRenderer.render(currentTransform(), event)
     }
 
     public fun updatePlacedBlocks(): Unit {
@@ -309,8 +316,8 @@ public object SchematicRenderManager {
     }
 
     internal fun onMissingBlockChange(change: MissingBlockChange): Unit {
-        if (change.overlayChanged) {
-            updatePlacedBlocks()
+        if (change.overlayChanged || change.extraChanged) {
+            missingBlockRenderer.markChanged(change.localPos)
         }
         if (appliedSettings?.automode == true && change.satisfiedChanged) {
             schematicRenderer.setBlockSuppressed(change.localPos, change.satisfied)
@@ -485,23 +492,43 @@ public object SchematicRenderManager {
         }
     }
 
+    /**
+     * Starts or discards the print-world capture when the printer toggles.
+     *
+     * The capture only serves the printer and mover; the missing-block overlay reads
+     * the live world directly while the printer is off.
+     */
+    internal fun printerActivationChanged(enabled: Boolean): Unit {
+        if (!enabled) {
+            PrintWorldModel.cancel()
+            return
+        }
+        if (Minecraft.getInstance().level == null) return
+        val settings = appliedSettings ?: return
+        if (initMissingBlock(settings)) {
+            syncSatisfiedPositions(settings)
+        }
+    }
+
     private fun initMissingBlock(settings: RenderSettingsSnapshot): Boolean {
         val level = Minecraft.getInstance().level ?: return false
-        val content = SchematicHolder.renderingBlocks
-        var status = PrintWorldModel.ensureCapture(
-            level = level,
-            contentIdentity = content,
-            transformRevision = transformRevision,
-            localPositions = content.blocks.keys,
-            localToWorld = ::localBlockToWorld,
-        )
-        if (status == PrintWorldModel.Status.CAPTURING) {
-            status = PrintWorldModel.pump(level)
-        }
-        if (status == PrintWorldModel.Status.CAPTURING) {
-            missingInitializePending = true
-            pendingMissingInitSettings = settings
-            return false
+        if (SchematicPrinter.enabled) {
+            val content = SchematicHolder.renderingBlocks
+            var status = PrintWorldModel.ensureCapture(
+                level = level,
+                contentIdentity = content,
+                transformRevision = transformRevision,
+                localPositions = content.blocks.keys,
+                localToWorld = ::localBlockToWorld,
+            )
+            if (status == PrintWorldModel.Status.CAPTURING) {
+                status = PrintWorldModel.pump(level)
+            }
+            if (status == PrintWorldModel.Status.CAPTURING) {
+                missingInitializePending = true
+                pendingMissingInitSettings = settings
+                return false
+            }
         }
         MissingBlockHolder.initialize()
         if (MissingBlockHolder.isInitializing()) {
@@ -564,6 +591,16 @@ public object SchematicRenderManager {
             isVisible(pos, entity.blockState.block)
         }
         SchematicHolder.renderingBlocks = SchematicCache(filteredBlocks, filteredEntities)
+        val (expectedAirYMin, expectedAirYMax) = when (settings.displayFlags) {
+            DisplayFlag.ALL -> Int.MIN_VALUE to Int.MAX_VALUE
+            DisplayFlag.UP_TO_HEIGHT -> Int.MIN_VALUE to settings.heightLimit
+            DisplayFlag.ONLY_HEIGHT -> settings.heightLimit to settings.heightLimit
+        }
+        SchematicHolder.expectedAirRegion = ExpectedAirRegion.of(
+            SchematicHolder.schematicCache.blocks.keys,
+            expectedAirYMin,
+            expectedAirYMax,
+        )
     }
 
     private fun routeLifecycleInvalidation(action: () -> Unit): Unit {
