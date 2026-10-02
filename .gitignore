@@ -49,3 +49,6 @@ bin/
 
 # OS files
 .DS_Store
+
+# Personal notes
+/todo.txt
