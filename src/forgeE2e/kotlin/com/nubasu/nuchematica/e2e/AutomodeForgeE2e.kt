@@ -210,6 +210,13 @@ public object AutomodeForgeE2e {
         SchematicRenderManager.initialize()
         SchematicRenderManager.updateInitialPosition(Direction.EAST, Vec3.atLowerCornerOf(SCHEMATIC_BASE))
         sourceWorld = content.blocks.mapKeys { (local, _) -> SchematicRenderManager.localBlockToWorld(local) }
+        // The world-model capture only starts once the printer is enabled, so the printer must be
+        // active before WAIT_MODEL can observe a READY model.
+        val activation = SchematicPrinter.toggleRequested(isCreative = true)
+        if (activation != PrinterActivationEvent.ENABLED) {
+            finish("FAIL", "printer activation returned $activation")
+            return
+        }
         phase = Phase.WAIT_MODEL
         phaseStartedTick = clientTicks
     }
@@ -231,11 +238,6 @@ public object AutomodeForgeE2e {
             expectedWorld.size != FANTASY_EXPECTED_TARGETS
         ) {
             finish("FAIL", "Fantasy planner produced ${expectedWorld.size} targets, expected $FANTASY_EXPECTED_TARGETS")
-            return
-        }
-        val activation = SchematicPrinter.toggleRequested(isCreative = true)
-        if (activation != PrinterActivationEvent.ENABLED) {
-            finish("FAIL", "printer activation returned $activation")
             return
         }
         SchematicMover.toggleRequested()
