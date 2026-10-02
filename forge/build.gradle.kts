@@ -29,6 +29,10 @@ val forgeFantasyE2eResume = providers.gradleProperty("automodeFantasyE2eResume")
 forgeE2eSourceSet.compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
 forgeE2eSourceSet.runtimeClasspath += forgeE2eSourceSet.output + sourceSets.main.get().runtimeClasspath
 
+kotlin.sourceSets.named("forgeE2e") {
+    kotlin.srcDir(rootProject.file("core/src/e2e/kotlin"))
+}
+
 project.group = "com.nubasu.nuchematica"
 project.version = "1.0-SNAPSHOT"
 base.archivesName.set("nuchematica-forge")

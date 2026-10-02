@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "nuchematica_e2e",
+  "version": "1.0.0",
+  "name": "Nuchematica E2E",
+  "description": "Test-only mod that drives the shared automode end-to-end harness.",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.nubasu.nuchematica.e2e.AutomodeFabricE2e"
+    ]
+  },
+  "depends": {
+    "nuchematica": "*"
+  }
+}
