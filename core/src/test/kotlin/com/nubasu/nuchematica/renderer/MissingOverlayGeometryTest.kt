@@ -10,6 +10,7 @@ import net.minecraft.core.Direction
 import net.minecraft.world.phys.Vec3
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import java.nio.ByteOrder
 
 public class MissingOverlayGeometryTest {
 
@@ -74,6 +75,8 @@ public class MissingOverlayGeometryTest {
         val rendered = builder.popNextBuffer()
         val drawState = rendered.first
         val buffer = rendered.second
+        // Not every Minecraft distribution sets the popped slice to the native byte order.
+        buffer.order(ByteOrder.nativeOrder())
         val vertexSize = drawState.format().vertexSize
         return List(drawState.vertexCount()) { index ->
             val offset = index * vertexSize

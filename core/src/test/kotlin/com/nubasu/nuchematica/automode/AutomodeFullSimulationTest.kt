@@ -2,6 +2,7 @@ package com.nubasu.nuchematica.automode
 
 import com.nubasu.nuchematica.mover.MoverAbortReason
 import com.nubasu.nuchematica.mover.MoverState
+import com.nubasu.nuchematica.printer.BoundVanillaTags
 import com.nubasu.nuchematica.printer.PlacementBehaviorSettings
 import com.nubasu.nuchematica.printer.PrinterSettingsCodec
 import com.nubasu.nuchematica.schematic.reader.SchematicFormatDetector
@@ -13,6 +14,7 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.StairBlock
 import net.minecraft.world.level.block.TrapDoorBlock
 import net.minecraft.world.level.block.state.BlockState
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
@@ -459,11 +461,21 @@ internal class AutomodeFullSimulationTest {
         private val FIXED_SEEDS: List<Long> = listOf(11L, 29L, 47L)
         private val LATENCY_MATRIX: List<Int> = listOf(0, 2, 10)
 
+        private var tags: BoundVanillaTags? = null
+
         @JvmStatic
         @BeforeAll
         internal fun bootstrapMinecraft(): Unit {
             SharedConstants.tryDetectVersion()
             Bootstrap.bootStrap()
+            tags = BoundVanillaTags.bind()
+        }
+
+        @JvmStatic
+        @AfterAll
+        internal fun unbindTags(): Unit {
+            tags?.close()
+            tags = null
         }
     }
 }

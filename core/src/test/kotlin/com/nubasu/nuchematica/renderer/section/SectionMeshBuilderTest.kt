@@ -405,7 +405,7 @@ public class SectionMeshBuilderTest {
         assertEquals(expectedVertices, drawState.vertexCount())
         val format = drawState.format()
         val colorIndex = format.elements.indexOf(DefaultVertexFormat.ELEMENT_COLOR)
-        val alphaOffset = format.getOffset(colorIndex) + 3
+        val alphaOffset = format.elements.take(colorIndex).sumOf { element -> element.byteSize } + 3
         for (vertex in 0 until drawState.vertexCount()) {
             val alpha = built.second.get(vertex * format.vertexSize + alphaOffset).toInt() and 0xFF
             assertEquals(255, alpha, "vertex=$vertex")

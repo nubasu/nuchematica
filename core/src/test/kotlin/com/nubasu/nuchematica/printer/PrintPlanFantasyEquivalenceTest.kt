@@ -5,6 +5,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.server.Bootstrap
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
@@ -123,11 +124,21 @@ internal class PrintPlanFantasyEquivalenceTest {
     }
 
     internal companion object {
+        private var tags: BoundVanillaTags? = null
+
         @JvmStatic
         @BeforeAll
         internal fun bootstrap() {
             SharedConstants.tryDetectVersion()
             Bootstrap.bootStrap()
+            tags = BoundVanillaTags.bind()
+        }
+
+        @JvmStatic
+        @AfterAll
+        internal fun unbindTags() {
+            tags?.close()
+            tags = null
         }
     }
 }

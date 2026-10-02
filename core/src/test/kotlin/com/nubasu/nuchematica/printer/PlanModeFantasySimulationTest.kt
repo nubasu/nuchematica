@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.Vec3
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
@@ -215,12 +216,21 @@ internal class PlanModeFantasySimulationTest {
         private const val PLAYER_SPEED_BLOCKS_PER_TICK: Double = 0.5
         private const val TICK_BUDGET: Long = 500_000L
         private const val SURVIVABLE_V3_PLACED_COUNT: Int = 3072
+        private var tags: BoundVanillaTags? = null
 
         @JvmStatic
         @BeforeAll
         internal fun bootstrap() {
             SharedConstants.tryDetectVersion()
             Bootstrap.bootStrap()
+            tags = BoundVanillaTags.bind()
+        }
+
+        @JvmStatic
+        @AfterAll
+        internal fun unbindTags() {
+            tags?.close()
+            tags = null
         }
     }
 }
