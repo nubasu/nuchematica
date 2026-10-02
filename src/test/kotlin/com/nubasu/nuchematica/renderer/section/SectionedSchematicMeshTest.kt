@@ -26,6 +26,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.math.abs
 
 public class SectionedSchematicMeshTest {
 
@@ -387,10 +388,109 @@ public class SectionedSchematicMeshTest {
         }
     }
 
+    /**
+     * H-001: bounds the ghost mesh's working set by a horizontal render distance around the camera.
+     * Prints the raw capture/residency counts so they can be copied into the hypothesis record.
+     */
+    @Test
+    public fun distanceGateBoundsCapturesAndResidencyForALargeSchematic(): Unit {
+        val service = KeyRecordingMeshingService(resourceEpoch = 1L)
+        val backend = KeyTrackingGpuBackend(currentKey = { service.currentKey })
+        val camera = TestCamera(Vec3.ZERO)
+        val frustum = TestFrustum(visible = true)
+        val event = RenderLevelStageEvent(
+            RenderLevelStageEvent.Stage.AFTER_PARTICLES,
+            null,
+            PoseStack(),
+            identityMatrix(),
+            0,
+            0.0f,
+            camera,
+            frustum,
+        )
+        val mesh = SectionedSchematicMesh(
+            gpuBackend = backend,
+            renderDistanceBlocks = { GATED_RENDER_DISTANCE_BLOCKS },
+        )
+        try {
+            mesh.replaceContent(mockk(relaxed = true), manyDistinctSectionsContent(), service, TRANSFORM)
+            repeat(GATED_FRAME_COUNT) {
+                mesh.render(TRANSFORM, event, opacity = 0.0f)
+            }
+
+            val captured = service.capturedKeys
+            val resident = backend.residentKeys
+            val farCaptured = captured.count { abs(it.x) > GATED_RENDER_DISTANCE_CHUNKS || abs(it.z) > GATED_RENDER_DISTANCE_CHUNKS }
+            val farResident = resident.count { abs(it.x) > GATED_RENDER_DISTANCE_CHUNKS || abs(it.z) > GATED_RENDER_DISTANCE_CHUNKS }
+            println(
+                "H-001 captured=${captured.size} resident=${resident.size} " +
+                    "farCaptured=$farCaptured farResident=$farResident " +
+                    "frames=$GATED_FRAME_COUNT radiusBlocks=$GATED_RENDER_DISTANCE_BLOCKS",
+            )
+
+            assertTrue(captured.size <= 169, "captured ${captured.size} sections, expected at most 169")
+            assertEquals(0, farCaptured, "captured a section beyond the render-distance radius")
+            assertEquals(0, farResident, "kept a section beyond the render-distance radius resident")
+        } finally {
+            mesh.close()
+        }
+    }
+
+    /**
+     * H-001 baseline: without a distance gate the same schematic captures far more distinct sections.
+     *
+     * The frustum reports every section invisible here (unlike the gated test above), so a resident
+     * section is always evictable and the GPU hard budget (~127 resident sections) never stalls capture
+     * permanently. The camera also sweeps across the grid instead of staying at the origin: with a
+     * static camera, capture priority (nearest-first) and eviction priority (smallest key first) settle
+     * into a small fixed clique of sections that keeps evicting and recapturing itself, never reaching
+     * the far side of the schematic. A moving camera keeps shifting which sections are nearest, so the
+     * mesh keeps meshing sections it has never touched before, which is what an unbounded working set
+     * looks like in practice.
+     */
+    @Test
+    public fun ungatedDistanceCapturesMoreSectionsThanTheGatedBoundAcrossManyFrames(): Unit {
+        val service = KeyRecordingMeshingService(resourceEpoch = 1L)
+        val backend = KeyTrackingGpuBackend(currentKey = { service.currentKey })
+        val camera = TestCamera(Vec3.ZERO)
+        val frustum = TestFrustum(visible = false)
+        val event = RenderLevelStageEvent(
+            RenderLevelStageEvent.Stage.AFTER_PARTICLES,
+            null,
+            PoseStack(),
+            identityMatrix(),
+            0,
+            0.0f,
+            camera,
+            frustum,
+        )
+        val mesh = SectionedSchematicMesh(
+            gpuBackend = backend,
+            renderDistanceBlocks = { UNGATED_RENDER_DISTANCE_BLOCKS },
+        )
+        try {
+            mesh.replaceContent(mockk(relaxed = true), manyDistinctSectionsContent(), service, TRANSFORM)
+            repeat(UNGATED_FRAME_COUNT) { frame ->
+                val sweep = frame * CAMERA_SWEEP_BLOCKS_PER_FRAME
+                camera.moveTo(Vec3(sweep, 0.0, sweep))
+                mesh.render(TRANSFORM, event, opacity = 0.0f)
+            }
+
+            println("H-001-before captured=${service.capturedKeys.size} frames=$UNGATED_FRAME_COUNT")
+            assertTrue(
+                service.capturedKeys.size > 169,
+                "captured only ${service.capturedKeys.size} sections without a distance gate",
+            )
+        } finally {
+            mesh.close()
+        }
+    }
+
     private class Fixture(
         internal val content: SchematicContentSnapshot,
         internal val service: SectionMeshingService = QuadMeshingService(resourceEpoch = 1L),
         initialSuppressed: Set<BlockPos> = emptySet(),
+        renderDistanceBlocks: () -> Int = { UNGATED_RENDER_DISTANCE_BLOCKS },
     ) {
         internal val level: ClientLevel = mockk(relaxed = true)
         internal val backend: FakeGpuBackend = FakeGpuBackend()
@@ -410,6 +510,7 @@ public class SectionedSchematicMeshTest {
         internal val mesh: SectionedSchematicMesh = SectionedSchematicMesh(
             nanoTime = { counter.addAndGet(1_000L) },
             gpuBackend = backend,
+            renderDistanceBlocks = renderDistanceBlocks,
         )
 
         init {
@@ -432,6 +533,33 @@ public class SectionedSchematicMeshTest {
             view: BlockAndTintGetter,
             target: VertexConsumer,
         ): SectionLayerRenderResult {
+            emitQuad(target, pos)
+            return SectionLayerRenderResult(blockRendered = true, fluidRendered = false)
+        }
+    }
+
+    /** Records the section key of every block it is asked to mesh, for H-001 residency assertions. */
+    private class KeyRecordingMeshingService(
+        override val resourceEpoch: Long,
+    ) : SectionMeshingService {
+        internal val capturedKeys: MutableSet<SectionKey> = LinkedHashSet()
+        internal var currentKey: SectionKey? = null
+            private set
+
+        override fun passesFor(blockState: BlockState): List<SectionLayerPass> {
+            return listOf(SectionLayerPass(SectionSourceLayer.TRANSLUCENT, true, false))
+        }
+
+        override fun renderLayer(
+            pass: SectionLayerPass,
+            pos: BlockPos,
+            blockState: BlockState,
+            view: BlockAndTintGetter,
+            target: VertexConsumer,
+        ): SectionLayerRenderResult {
+            val key = SectionKey.of(pos)
+            capturedKeys += key
+            currentKey = key
             emitQuad(target, pos)
             return SectionLayerRenderResult(blockRendered = true, fluidRendered = false)
         }
@@ -521,6 +649,39 @@ public class SectionedSchematicMeshTest {
         }
     }
 
+    /** Attributes each uploaded handle to the section key most recently captured, for H-001 residency assertions. */
+    private class KeyTrackingGpuBackend(
+        private val currentKey: () -> SectionKey?,
+    ) : SectionGpuBackend {
+        internal val residentKeys: MutableSet<SectionKey> = LinkedHashSet()
+
+        override fun upload(builder: BufferBuilder): SectionGpuHandle {
+            builder.popNextBuffer()
+            val key = checkNotNull(currentKey()) { "upload requested without a captured section key" }
+            residentKeys += key
+            return KeyHandle(key)
+        }
+
+        override fun uploadSort(handle: SectionGpuHandle, builder: BufferBuilder): Unit {
+            builder.popNextBuffer()
+        }
+
+        override fun drawLayer(
+            handles: List<SectionGpuHandle>,
+            renderType: RenderType,
+            poseStack: PoseStack,
+            projection: Matrix4f,
+            opacity: Float,
+        ): Unit {
+        }
+
+        private inner class KeyHandle(private val key: SectionKey) : SectionGpuHandle {
+            override fun close(): Unit {
+                residentKeys -= key
+            }
+        }
+    }
+
     private class TestCamera(position: Vec3) : Camera() {
         init {
             setPosition(position)
@@ -544,6 +705,12 @@ public class SectionedSchematicMeshTest {
 
     public companion object {
         private val TRANSFORM = RenderTransform(Vec3.ZERO, 0.0f, Vec3.ZERO, 1L)
+        private const val UNGATED_RENDER_DISTANCE_BLOCKS: Int = Int.MAX_VALUE / 4
+        private const val GATED_RENDER_DISTANCE_BLOCKS: Int = 96
+        private const val GATED_RENDER_DISTANCE_CHUNKS: Int = 6
+        private const val GATED_FRAME_COUNT: Int = 2_000
+        private const val UNGATED_FRAME_COUNT: Int = 2_000
+        private const val CAMERA_SWEEP_BLOCKS_PER_FRAME: Double = 0.3
 
         @BeforeAll
         @JvmStatic
@@ -567,6 +734,18 @@ public class SectionedSchematicMeshTest {
 
         private fun snapshot(blocks: Map<BlockPos, BlockState>): SchematicContentSnapshot {
             return SchematicContentSnapshot.copyOf(blocks, Blocks.AIR.defaultBlockState())
+        }
+
+        /** One block per section on a 41x41 grid, so each section key is distinct. */
+        private fun manyDistinctSectionsContent(): SchematicContentSnapshot {
+            val blocks = HashMap<BlockPos, BlockState>()
+            for (sectionX in -20..20) {
+                for (sectionZ in -20..20) {
+                    val pos = BlockPos(sectionX * SectionKey.SIZE, 0, sectionZ * SectionKey.SIZE)
+                    blocks[pos] = Blocks.GLASS.defaultBlockState()
+                }
+            }
+            return snapshot(blocks)
         }
 
         private fun identityMatrix(): Matrix4f {
