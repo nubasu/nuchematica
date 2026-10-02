@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.BufferBuilder
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import com.mojang.math.Matrix4f
+import com.nubasu.nuchematica.renderer.LevelRenderContext
 import io.mockk.mockk
 import net.minecraft.SharedConstants
 import net.minecraft.client.Camera
@@ -16,7 +17,6 @@ import net.minecraft.world.level.BlockAndTintGetter
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.client.event.RenderLevelStageEvent
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
@@ -42,27 +42,23 @@ public class PhaseBFinalAcceptanceAuditTest {
             nanoTime = { counter.addAndGet(1_000L) },
             gpuBackend = backend,
         )
-        val event = RenderLevelStageEvent(
-            RenderLevelStageEvent.Stage.AFTER_PARTICLES,
-            null,
+        val context = LevelRenderContext(
             PoseStack(),
             identityMatrix(),
-            0,
-            0.0f,
             AuditCamera(),
             AuditFrustum(),
         )
 
         try {
             mesh.replaceContent(level, content, service, TRANSFORM)
-            renderUntilIdle(mesh, event, backend, expectedTotalHandles = 2)
+            renderUntilIdle(mesh, context, backend, expectedTotalHandles = 2)
             val baselineResident = mesh.residentSnapshot()
             val baselineHandles = backend.handles.size
             assertEquals(2, baselineResident.handleCount)
 
             repeat(20) { cycle ->
                 mesh.replaceContent(level, content, service, TRANSFORM)
-                renderUntilIdle(mesh, event, backend, expectedTotalHandles = baselineHandles + (cycle + 1) * 2)
+                renderUntilIdle(mesh, context, backend, expectedTotalHandles = baselineHandles + (cycle + 1) * 2)
             }
 
             val resident = mesh.residentSnapshot()
@@ -90,12 +86,12 @@ public class PhaseBFinalAcceptanceAuditTest {
 
     private fun renderUntilIdle(
         mesh: SectionedSchematicMesh,
-        event: RenderLevelStageEvent,
+        context: LevelRenderContext,
         backend: FakeGpuBackend,
         expectedTotalHandles: Int,
     ): Unit {
         repeat(MAX_IDLE_FRAMES) {
-            mesh.render(TRANSFORM, event, opacity = 0.5f)
+            mesh.render(TRANSFORM, context, opacity = 0.5f)
             val runtime = mesh.runtimeSnapshot()
             if (
                 runtime.geometryJobs == 0 &&

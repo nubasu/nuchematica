@@ -1,30 +1,25 @@
 package com.nubasu.nuchematica.renderer
 
-import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.nubasu.nuchematica.Nuchematica
 import net.minecraft.client.renderer.ShaderInstance
 import net.minecraft.resources.ResourceLocation
-import net.minecraftforge.client.event.RegisterShadersEvent
 
 internal object NuchematicaShaders {
     private var endPortalOpacity: ShaderInstance? = null
     private var endGatewayOpacity: ShaderInstance? = null
 
-    internal fun registerShaders(event: RegisterShadersEvent) {
-        event.registerShader(
-            ShaderInstance(
-                event.resourceManager,
-                ResourceLocation(Nuchematica.MODID, "rendertype_end_portal_opacity"),
-                DefaultVertexFormat.POSITION,
-            ),
-        ) { shader -> endPortalOpacity = shader }
-        event.registerShader(
-            ShaderInstance(
-                event.resourceManager,
-                ResourceLocation(Nuchematica.MODID, "rendertype_end_gateway_opacity"),
-                DefaultVertexFormat.POSITION,
-            ),
-        ) { shader -> endGatewayOpacity = shader }
+    internal val END_PORTAL_OPACITY: ResourceLocation =
+        ResourceLocation(Nuchematica.MODID, "rendertype_end_portal_opacity")
+
+    internal val END_GATEWAY_OPACITY: ResourceLocation =
+        ResourceLocation(Nuchematica.MODID, "rendertype_end_gateway_opacity")
+
+    internal fun endPortalOpacityLoaded(shader: ShaderInstance) {
+        endPortalOpacity = shader
+    }
+
+    internal fun endGatewayOpacityLoaded(shader: ShaderInstance) {
+        endGatewayOpacity = shader
     }
 
     internal fun endPortalOpacity(): ShaderInstance {

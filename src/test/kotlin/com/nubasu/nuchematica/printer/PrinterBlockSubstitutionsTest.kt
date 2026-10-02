@@ -2,6 +2,7 @@ package com.nubasu.nuchematica.printer
 
 import net.minecraft.SharedConstants
 import net.minecraft.core.Direction.Axis
+import net.minecraft.core.Registry
 import net.minecraft.server.Bootstrap
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.level.block.Block
@@ -10,7 +11,6 @@ import net.minecraft.world.level.block.SlabBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.block.state.properties.SlabType
-import net.minecraftforge.registries.ForgeRegistries
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -83,7 +83,7 @@ public class PrinterBlockSubstitutionsTest {
     }
 
     private fun registryName(block: Block): String {
-        return requireNotNull(ForgeRegistries.BLOCKS.getKey(block)).path
+        return requireNotNull(Registry.BLOCK.getKey(block)).path
     }
 
     public companion object {

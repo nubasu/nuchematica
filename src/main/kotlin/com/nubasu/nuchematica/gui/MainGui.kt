@@ -1,18 +1,15 @@
 package com.nubasu.nuchematica.gui
 
 import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Gui
-import net.minecraftforge.client.event.RenderGameOverlayEvent
-import net.minecraftforge.eventbus.api.SubscribeEvent
 import java.awt.Color
 
 public class MainGui: Gui(Minecraft.getInstance()) {
     private val mc: Minecraft = Minecraft.getInstance()
 
-    @SubscribeEvent
-    public fun onPostRenderGuiOverlayEvent(event: RenderGameOverlayEvent.Post) {
-        if (event.type != RenderGameOverlayEvent.ElementType.ALL) return
+    public fun renderOverlay(poseStack: PoseStack): Unit {
         if (mc.player == null) return
         RenderSystem.setShaderColor(
             1f,
@@ -20,17 +17,16 @@ public class MainGui: Gui(Minecraft.getInstance()) {
             1f,
             1f
         )
-        val stack = event.matrixStack
         val vec3 = mc.player!!.position()
         val pos = String.format("X: %.4f / Y: %.4f / Z: %.4f", vec3.x, vec3.y, vec3.z)
-        stack.pushPose()
+        poseStack.pushPose()
         mc.font.draw(
-            stack,
+            poseStack,
             pos,
             0f,
             0f,
             Color.GREEN.rgb
         )
-        stack.popPose()
+        poseStack.popPose()
     }
 }

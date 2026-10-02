@@ -1,5 +1,6 @@
 package com.nubasu.nuchematica.printer
 
+import com.nubasu.nuchematica.platform.Platform
 import com.nubasu.nuchematica.schematic.BlockStateEquivalence
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -191,7 +192,7 @@ private fun ascendingRailHasUphillSupport(
 ): Boolean {
     val block = placed.block
     if (block !is BaseRailBlock) return true
-    val shape = block.getRailDirection(placed, SurvivalLevelReaderAdapter(view), pos, null)
+    val shape = Platform.hooks.railShape(block, placed, SurvivalLevelReaderAdapter(view), pos)
     val direction = when (shape) {
         RailShape.ASCENDING_NORTH -> Direction.NORTH
         RailShape.ASCENDING_SOUTH -> Direction.SOUTH

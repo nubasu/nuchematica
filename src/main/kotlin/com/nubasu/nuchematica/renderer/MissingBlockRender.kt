@@ -15,7 +15,6 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.client.event.RenderLevelStageEvent
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -71,7 +70,7 @@ public class MissingBlockRender(
         index.apply(localPos, missing = missing, wrongBlock = wrongBlock, extra = extra)
     }
 
-    internal fun render(transform: RenderTransform, event: RenderLevelStageEvent): Unit {
+    internal fun render(transform: RenderTransform, context: LevelRenderContext): Unit {
         if (!isBuilding && index.dirtyCount > 0) {
             submitSectionBuild()
         }
@@ -82,10 +81,10 @@ public class MissingBlockRender(
             sectionAabbRevision = transform.revision
         }
 
-        val camPos = event.camera.position
+        val camPos = context.camera.position
         val radius = renderDistanceBlocks()
-        val poseStack = event.poseStack
-        val projection = event.projectionMatrix
+        val poseStack = context.poseStack
+        val projection = context.projectionMatrix
 
         poseStack.pushPose()
         try {
@@ -103,7 +102,7 @@ public class MissingBlockRender(
                     for ((key, buffer) in sectionBuffers) {
                         val aabb = sectionAabbs.getOrPut(key) { transform.sectionWorldAabb(key) }
                         if (!GhostRenderDistance.withinHorizontal(camPos, aabb, radius)) continue
-                        if (!event.frustum.isVisible(aabb)) continue
+                        if (!context.frustum.isVisible(aabb)) continue
                         buffer.bind()
                         buffer.drawWithShader(pose, projection, RenderSystem.getShader())
                     }

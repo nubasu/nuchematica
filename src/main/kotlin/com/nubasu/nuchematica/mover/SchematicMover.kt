@@ -15,14 +15,13 @@ import com.nubasu.nuchematica.schematic.SchematicHolder
 import com.nubasu.nuchematica.utils.ChatSender
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.client.player.Input
 import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.client.event.ClientPlayerNetworkEvent
-import net.minecraftforge.client.event.MovementInputUpdateEvent
-import net.minecraftforge.eventbus.api.SubscribeEvent
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.cos
@@ -394,28 +393,26 @@ public object SchematicMover {
         deactivateWithoutChat(Minecraft.getInstance().player)
     }
 
-    @SubscribeEvent
-    public fun onMovementInput(event: MovementInputUpdateEvent): Unit {
+    public fun onMovementInput(player: Player, input: Input): Unit {
         val status = latestStatus ?: return
         val command = latestCommand
         if (!status.state.isActive() || command.stopMovement) return
 
-        val player = Minecraft.getInstance().player ?: return
-        if (event.player !== player) return
-        val yaw = Math.toRadians(player.yRot.toDouble())
-        event.input.leftImpulse = (
+        val localPlayer = Minecraft.getInstance().player ?: return
+        if (player !== localPlayer) return
+        val yaw = Math.toRadians(localPlayer.yRot.toDouble())
+        input.leftImpulse = (
             command.horizontalX * cos(yaw) + command.horizontalZ * sin(yaw)
             ).toFloat()
-        event.input.forwardImpulse = (
+        input.forwardImpulse = (
             -command.horizontalX * sin(yaw) + command.horizontalZ * cos(yaw)
             ).toFloat()
-        event.input.jumping = command.jump || command.vertical > 0
-        event.input.shiftKeyDown = command.vertical < 0
+        input.jumping = command.jump || command.vertical > 0
+        input.shiftKeyDown = command.vertical < 0
     }
 
-    @SubscribeEvent
-    public fun onLoggedOut(event: ClientPlayerNetworkEvent.LoggedOutEvent): Unit {
-        deactivateWithoutChat(event.player)
+    public fun onLoggedOut(player: LocalPlayer?): Unit {
+        deactivateWithoutChat(player)
     }
 
     private fun stopForPrinterOff(player: LocalPlayer?): Unit {

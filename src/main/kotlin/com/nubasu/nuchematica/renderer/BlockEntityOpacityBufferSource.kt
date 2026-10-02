@@ -6,9 +6,10 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.BufferBuilder
 import com.mojang.blaze3d.vertex.BufferUploader
 import com.mojang.blaze3d.vertex.VertexConsumer
+import com.mojang.blaze3d.vertex.VertexFormat
+import com.mojang.blaze3d.vertex.VertexFormatElement
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
-import net.minecraftforge.fml.util.ObfuscationReflectionHelper
 import java.util.IdentityHashMap
 
 internal class BlockEntityOpacityBufferSource : MultiBufferSource {
@@ -29,7 +30,7 @@ internal class BlockEntityOpacityBufferSource : MultiBufferSource {
         }
         val consumer = delegate.getBuffer(opacityRenderType)
 
-        return if (renderType.format().hasColor()) {
+        return if (formatHasColor(renderType.format())) {
             OpacityVertexConsumer(consumer, opacity)
         } else {
             consumer
@@ -45,8 +46,8 @@ internal class BlockEntityOpacityBufferSource : MultiBufferSource {
     }
 
     private fun createOpacityRenderType(parent: RenderType): RenderType {
-        val hasVertexColor = parent.format().hasColor()
-        val shouldSortOnUpload = sortOnUpload(parent)
+        val hasVertexColor = formatHasColor(parent.format())
+        val shouldSortOnUpload = parent.sortOnUpload
         return object : RenderType(
             "nuchematica_be_opacity[$parent]",
             parent.format(),
@@ -97,15 +98,9 @@ internal class BlockEntityOpacityBufferSource : MultiBufferSource {
         }
     }
 
-    /** Reads Forge's remapped private sort-on-upload field. */
-    private fun sortOnUpload(parent: RenderType): Boolean =
-        checkNotNull(
-            ObfuscationReflectionHelper.getPrivateValue(RenderType::class.java, parent, SORT_ON_UPLOAD_FIELD)
-        ) { "missing RenderType.sortOnUpload" }
-
-    private companion object {
-        private const val SORT_ON_UPLOAD_FIELD = "f_110393_"
-    }
+    /** True when the format carries a COLOR element (the check VertexFormat.hasColor performs). */
+    private fun formatHasColor(format: VertexFormat): Boolean =
+        format.elements.any { element -> element.usage == VertexFormatElement.Usage.COLOR }
 }
 
 internal inline fun withRenderStateRestored(

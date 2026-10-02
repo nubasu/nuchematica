@@ -5,8 +5,8 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import com.mojang.blaze3d.vertex.VertexFormat
+import com.nubasu.nuchematica.platform.Platform
 import com.nubasu.nuchematica.renderer.VertexConsumerWithPose
-import net.minecraft.client.renderer.ItemBlockRenderTypes
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.client.renderer.block.BlockRenderDispatcher
 import net.minecraft.core.BlockPos
@@ -15,8 +15,6 @@ import net.minecraft.world.level.BlockAndTintGetter
 import net.minecraft.world.level.block.RenderShape
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.client.ForgeHooksClient
-import net.minecraftforge.client.model.data.EmptyModelData
 import java.util.Collections
 import java.util.Random
 
@@ -92,8 +90,7 @@ internal class MainThreadSectionMeshingService private constructor(
             "missing render type for ${pass.sourceLayer}"
         }
 
-        try {
-            ForgeHooksClient.setRenderType(renderType)
+        return Platform.hooks.withRenderLayer(renderType) {
             poseStack.pushPose()
             try {
                 poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
@@ -115,7 +112,8 @@ internal class MainThreadSectionMeshingService private constructor(
                     false
                 }
                 val blockRendered = if (pass.renderBlock) {
-                    blockRenderer.renderBatched(
+                    Platform.hooks.renderBatched(
+                        blockRenderer,
                         blockState,
                         pos,
                         view,
@@ -123,17 +121,14 @@ internal class MainThreadSectionMeshingService private constructor(
                         target,
                         true,
                         randomSource,
-                        EmptyModelData.INSTANCE,
                     )
                 } else {
                     false
                 }
-                return SectionLayerRenderResult(blockRendered, fluidRendered)
+                SectionLayerRenderResult(blockRendered, fluidRendered)
             } finally {
                 poseStack.popPose()
             }
-        } finally {
-            ForgeHooksClient.setRenderType(null)
         }
     }
 
@@ -161,9 +156,9 @@ internal class MainThreadSectionMeshingService private constructor(
                 val passes = ArrayList<SectionLayerPass>()
                 for ((sourceLayer, renderType) in layerTypes) {
                     val renderBlock = blockState.renderShape != RenderShape.INVISIBLE &&
-                        ItemBlockRenderTypes.canRenderInLayer(blockState, renderType)
+                        Platform.hooks.canRenderInLayer(blockState, renderType)
                     val renderFluid = !fluidState.isEmpty &&
-                        ItemBlockRenderTypes.canRenderInLayer(fluidState, renderType)
+                        Platform.hooks.canRenderInLayer(fluidState, renderType)
                     if (renderBlock || renderFluid) {
                         passes += SectionLayerPass(sourceLayer, renderBlock, renderFluid)
                     }

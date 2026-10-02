@@ -23,7 +23,6 @@ import net.minecraft.core.Direction
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.client.event.RenderLevelStageEvent
 import java.util.Collections
 import kotlin.math.floor
 
@@ -301,14 +300,14 @@ public object SchematicRenderManager {
         )
     }
 
-    public fun render(event: RenderLevelStageEvent): Unit {
+    public fun render(context: LevelRenderContext): Unit {
         if (!isRendering) return
         val level = ensureAttachedLevel() ?: return
         if (currentRenderSnapshot == null) {
             replaceCurrentContent(level)
         }
-        schematicRenderer.render(event, RenderSettingHolder.renderSettings.opacity)
-        missingBlockRenderer.render(currentTransform(), event)
+        schematicRenderer.render(context, RenderSettingHolder.renderSettings.opacity)
+        missingBlockRenderer.render(currentTransform(), context)
     }
 
     public fun updatePlacedBlocks(): Unit {

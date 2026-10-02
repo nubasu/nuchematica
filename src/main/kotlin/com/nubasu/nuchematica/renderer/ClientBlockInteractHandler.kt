@@ -2,34 +2,30 @@ package com.nubasu.nuchematica.renderer
 
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.world.InteractionHand
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.BlockItem
-import net.minecraftforge.event.entity.player.PlayerInteractEvent.LeftClickBlock
-import net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock
-import net.minecraftforge.eventbus.api.SubscribeEvent
+import net.minecraft.world.level.Level
 
 public class ClientBlockInteractHandler {
-    @SubscribeEvent
-    public fun onBlockLeftClick(event: LeftClickBlock) {
-        if (!event.world.isClientSide()) return
+    public fun onLeftClickBlock(level: Level, pos: BlockPos): Unit {
+        if (!level.isClientSide()) return
 
-        val targetPos = event.pos
-        pendingBreakPositions.add(targetPos.immutable())
+        pendingBreakPositions.add(pos.immutable())
     }
 
-    @SubscribeEvent
-    public fun onBlockRightClick(event: RightClickBlock) {
-        if (!event.world.isClientSide()) return
-        val player = event.player
+    public fun onRightClickBlock(level: Level, player: Player, hand: InteractionHand, pos: BlockPos, face: Direction?): Unit {
+        if (!level.isClientSide()) return
         val world = Minecraft.getInstance().level
         if (world == null) return
-        val handItem = player.getItemInHand(event.hand)
+        val handItem = player.getItemInHand(hand)
         if (handItem.item is BlockItem) {
-            val targetPos = event.pos
-            val isReplaceable = world.getBlockState(targetPos).material.isReplaceable
+            val isReplaceable = world.getBlockState(pos).material.isReplaceable
             val placePos = if (isReplaceable)
-                targetPos
+                pos
             else
-                targetPos.relative(event.face)
+                pos.relative(face)
             pendingPlacePositions.add(placePos.immutable())
         }
     }

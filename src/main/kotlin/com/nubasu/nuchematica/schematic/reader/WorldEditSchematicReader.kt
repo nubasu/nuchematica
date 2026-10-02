@@ -9,8 +9,8 @@ import com.nubasu.nuchematica.utils.BlockEntityMapper
 import com.nubasu.nuchematica.utils.BlockIdMapper
 import com.nubasu.nuchematica.utils.PropertyMapper
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceLocation
-import net.minecraftforge.registries.ForgeRegistries
 import java.io.IOException
 
 public object WorldEditSchematicReader: SchematicReader {
@@ -72,7 +72,7 @@ public object WorldEditSchematicReader: SchematicReader {
                     }
                     val blockLocation = ResourceLocation(blockId)
 
-                    val block = ForgeRegistries.BLOCKS.getValue(blockLocation)
+                    val block = Registry.BLOCK.get(blockLocation)
                     if (block == null) {
                         LogUtils.getLogger().warn("unknown block id: $blockId")
                         continue
@@ -97,7 +97,7 @@ public object WorldEditSchematicReader: SchematicReader {
                     clipboard.position.add(BlockPos(x, y, z))
 
                     val blockEntityId = BlockEntityMapper.fromBlockId(blockId)
-                    val type = ForgeRegistries.BLOCK_ENTITIES.getValue(ResourceLocation(blockEntityId))
+                    val type = Registry.BLOCK_ENTITY_TYPE.get(ResourceLocation(blockEntityId))
 
                     if (type != null) {
                         val blockEntity = type.create(BlockPos(x, y, z), blockState)

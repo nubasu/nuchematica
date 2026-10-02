@@ -14,7 +14,6 @@ import net.minecraft.core.BlockPos
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.piston.PistonMovingBlockEntity
 import net.minecraft.world.phys.AABB
-import net.minecraftforge.client.event.RenderLevelStageEvent
 
 internal data class SchematicRenderSnapshot(
     internal val level: ClientLevel,
@@ -71,10 +70,10 @@ internal class SectionedSchematicRenderer(
         return mesh.setBlockSuppressed(localPos, suppressed)
     }
 
-    internal fun render(event: RenderLevelStageEvent, opacity: Float): Unit {
+    internal fun render(context: LevelRenderContext, opacity: Float): Unit {
         val current = snapshot ?: return
-        mesh.render(current.transform, event, opacity)
-        blockEntityPass.render(current, event, opacity)
+        mesh.render(current.transform, context, opacity)
+        blockEntityPass.render(current, context, opacity)
     }
 
     internal fun clear(): Unit {
@@ -95,16 +94,16 @@ internal class SchematicBlockEntityPass(
 
     internal fun render(
         snapshot: SchematicRenderSnapshot,
-        event: RenderLevelStageEvent,
+        context: LevelRenderContext,
         opacity: Float,
     ): Unit {
         if (opacity <= 0.0f || snapshot.blockEntities.isEmpty()) return
 
         val mc = minecraft()
         val dispatcher = mc.blockEntityRenderDispatcher
-        val cameraWorld = event.camera.position
+        val cameraWorld = context.camera.position
         val cameraLocal = snapshot.transform.worldPointToLocal(cameraWorld)
-        val poseStack = event.poseStack
+        val poseStack = context.poseStack
         val usesOpacityBuffer = opacity < 1.0f
         val bufferSource: MultiBufferSource = if (usesOpacityBuffer) {
             opacityBufferSource.begin(opacity)
@@ -138,7 +137,7 @@ internal class SchematicBlockEntityPass(
                         if (!renderer.shouldRender(blockEntity, cameraLocal)) continue
                         if (
                             !renderer.shouldRenderOffScreen(blockEntity) &&
-                            !event.frustum.isVisible(AABB(snapshot.transform.localBlockToWorld(pos)))
+                            !context.frustum.isVisible(AABB(snapshot.transform.localBlockToWorld(pos)))
                         ) {
                             continue
                         }

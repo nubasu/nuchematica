@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.BufferBuilder
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import com.mojang.math.Matrix4f
+import com.nubasu.nuchematica.renderer.LevelRenderContext
 import io.mockk.mockk
 import net.minecraft.SharedConstants
 import net.minecraft.client.Camera
@@ -17,7 +18,6 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.client.event.RenderLevelStageEvent
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertSame
@@ -34,7 +34,7 @@ public class SectionedSchematicMeshTest {
     public fun opacityOnlyFramesDrawWithoutGeometryOrSortJobs(): Unit {
         val fixture = Fixture(singleSectionContent())
         try {
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.5f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.5f)
             val afterBuild = fixture.mesh.metricsSnapshot()
             assertEquals(1L, afterBuild.captureAdmissions)
             assertEquals(0L, afterBuild.sortJobs)
@@ -43,7 +43,7 @@ public class SectionedSchematicMeshTest {
             repeat(20) { index ->
                 fixture.mesh.render(
                     TRANSFORM,
-                    fixture.event,
+                    fixture.context,
                     opacity = (index + 1) / 21.0f,
                 )
             }
@@ -65,14 +65,14 @@ public class SectionedSchematicMeshTest {
     public fun cameraThresholdRunsIndexOnlySortAndKeepsGeometryHandle(): Unit {
         val fixture = Fixture(singleSectionContent())
         try {
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.5f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.5f)
             val handle = fixture.backend.handles.single()
             val captures = fixture.mesh.metricsSnapshot().captureAdmissions
 
             fixture.camera.moveTo(Vec3(9.0, 0.0, 0.0))
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.5f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.5f)
             awaitCondition {
-                fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.5f)
+                fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.5f)
                 fixture.backend.sortUploads == 1
             }
 
@@ -93,27 +93,27 @@ public class SectionedSchematicMeshTest {
     public fun rebuildsAndResortsReuseTheMeshOwnedBufferIdentities(): Unit {
         val fixture = Fixture(singleSectionContent())
         try {
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
             val firstGeometryBuilder = fixture.backend.geometryBuilders.single()
 
             fixture.mesh.replaceContent(fixture.level, fixture.content, fixture.service, TRANSFORM)
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
 
             assertEquals(2, fixture.backend.geometryBuilders.size)
             assertSame(firstGeometryBuilder, fixture.backend.geometryBuilders.last())
 
             fixture.camera.moveTo(Vec3(9.0, 0.0, 0.0))
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
             awaitCondition {
-                fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+                fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
                 fixture.backend.sortUploads == 1
             }
             val firstSortBuilder = fixture.backend.sortBuilders.single()
 
             fixture.camera.moveTo(Vec3(18.0, 0.0, 0.0))
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
             awaitCondition {
-                fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+                fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
                 fixture.backend.sortUploads == 2
             }
 
@@ -129,13 +129,13 @@ public class SectionedSchematicMeshTest {
         val fixture = Fixture(singleSectionContent())
         try {
             fixture.frustum.visible = false
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.5f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.5f)
 
             assertEquals(listOf(TRANSFORM.sectionWorldAabb(SectionKey(0, 0, 0))), fixture.frustum.observed)
             assertTrue(fixture.backend.draws.isEmpty())
 
             fixture.frustum.visible = true
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.5f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.5f)
 
             assertTrue(fixture.backend.draws.any { it.handles.isNotEmpty() })
         } finally {
@@ -153,11 +153,11 @@ public class SectionedSchematicMeshTest {
         )
         val fixture = Fixture(content)
         try {
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.5f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.5f)
             assertEquals(1L, fixture.mesh.metricsSnapshot().captureAdmissions)
             assertEquals(1L, fixture.mesh.metricsSnapshot().uploads)
 
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.5f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.5f)
 
             val metrics = fixture.mesh.metricsSnapshot()
             assertEquals(2L, metrics.captureAdmissions)
@@ -187,14 +187,14 @@ public class SectionedSchematicMeshTest {
         )
         val fixture = Fixture(content)
         try {
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
             val ownSectionHandle = fixture.backend.handles[0]
             val adjacentSectionHandle = fixture.backend.handles[1]
             val capturesBefore = fixture.mesh.metricsSnapshot().captureAdmissions
 
             assertTrue(fixture.mesh.setBlockSuppressed(localPos, true))
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
 
             assertEquals(capturesBefore + 1L, fixture.mesh.metricsSnapshot().captureAdmissions)
             assertEquals(listOf(8, 4, 4), fixture.backend.geometryVertexCounts)
@@ -204,7 +204,7 @@ public class SectionedSchematicMeshTest {
             val capturesAfterChange = fixture.mesh.metricsSnapshot().captureAdmissions
 
             assertFalse(fixture.mesh.setBlockSuppressed(localPos, true))
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
 
             assertEquals(uploadsAfterChange, fixture.backend.handles.size)
             assertEquals(capturesAfterChange, fixture.mesh.metricsSnapshot().captureAdmissions)
@@ -221,7 +221,7 @@ public class SectionedSchematicMeshTest {
         )
         try {
             repeat(3) {
-                fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+                fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
             }
 
             assertEquals(listOf(4), fixture.backend.geometryVertexCounts)
@@ -239,14 +239,14 @@ public class SectionedSchematicMeshTest {
             initialSuppressed = setOf(BlockPos.ZERO),
         )
         try {
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
             fixture.mesh.updateTransform(fixture.level, movedTransform)
-            fixture.mesh.render(movedTransform, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(movedTransform, fixture.context, opacity = 0.0f)
 
             assertEquals(listOf(4, 8), fixture.backend.geometryVertexCounts)
 
             assertTrue(fixture.mesh.setBlockSuppressed(BlockPos.ZERO, true))
-            fixture.mesh.render(movedTransform, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(movedTransform, fixture.context, opacity = 0.0f)
             assertEquals(listOf(4, 8, 4), fixture.backend.geometryVertexCounts)
 
             fixture.mesh.clearContent()
@@ -257,7 +257,7 @@ public class SectionedSchematicMeshTest {
                 fixture.service,
                 movedTransform,
             )
-            fixture.mesh.render(movedTransform, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(movedTransform, fixture.context, opacity = 0.0f)
 
             assertEquals(listOf(4, 8, 4, 8), fixture.backend.geometryVertexCounts)
         } finally {
@@ -272,7 +272,7 @@ public class SectionedSchematicMeshTest {
             initialSuppressed = setOf(BlockPos.ZERO),
         )
         try {
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
             fixture.mesh.replaceContent(
                 level = fixture.level,
                 content = fixture.content,
@@ -280,7 +280,7 @@ public class SectionedSchematicMeshTest {
                 transform = TRANSFORM,
                 suppressed = setOf(BlockPos.ZERO),
             )
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
 
             assertEquals(listOf(4, 8), fixture.backend.geometryVertexCounts)
         } finally {
@@ -293,9 +293,9 @@ public class SectionedSchematicMeshTest {
         val service = NeighborCullingMeshingService()
         val fixture = Fixture(twoBlockContent(), service = service)
         try {
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
             assertTrue(fixture.mesh.setBlockSuppressed(BlockPos(1, 0, 0), true))
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
 
             assertEquals(listOf(true, true), service.eastNeighborWasSolid)
             assertEquals(
@@ -311,7 +311,7 @@ public class SectionedSchematicMeshTest {
     @Test
     public fun clearClosesGpuStateButMeshCanBeReusedAndCloseIsTerminal(): Unit {
         val fixture = Fixture(singleSectionContent())
-        fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+        fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
         val first = fixture.backend.handles.single()
 
         fixture.mesh.clearContent()
@@ -322,13 +322,13 @@ public class SectionedSchematicMeshTest {
         assertEquals(0, fixture.mesh.runtimeSnapshot().sortJobs)
         assertEquals(0, fixture.mesh.runtimeSnapshot().liveCpuBuffers)
         fixture.mesh.replaceContent(fixture.level, fixture.content, fixture.service, TRANSFORM)
-        fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+        fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
         val second = fixture.backend.handles.last()
         assertFalse(first === second)
 
         fixture.mesh.close()
         fixture.mesh.replaceContent(fixture.level, fixture.content, fixture.service, TRANSFORM)
-        fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+        fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
 
         assertEquals(1, second.closeCount)
         assertEquals(2, fixture.backend.handles.size)
@@ -339,7 +339,7 @@ public class SectionedSchematicMeshTest {
     public fun resourceEpochChangeClosesOldGpuStateBeforeLazyRebuild(): Unit {
         val fixture = Fixture(singleSectionContent())
         try {
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
             val old = fixture.backend.handles.single()
 
             fixture.mesh.replaceContent(
@@ -354,7 +354,7 @@ public class SectionedSchematicMeshTest {
             assertEquals(0, fixture.mesh.runtimeSnapshot().geometryJobs)
             assertEquals(0, fixture.mesh.runtimeSnapshot().sortJobs)
             assertEquals(0, fixture.mesh.runtimeSnapshot().liveCpuBuffers)
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
             assertEquals(2, fixture.backend.handles.size)
         } finally {
             fixture.mesh.close()
@@ -365,7 +365,7 @@ public class SectionedSchematicMeshTest {
     public fun worldUnloadUsesTheEventLevelIdentityAndMeshRemainsReusable(): Unit {
         val fixture = Fixture(singleSectionContent())
         try {
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
             val old = fixture.backend.handles.single()
             val unrelatedLevel: ClientLevel = mockk(relaxed = true)
 
@@ -381,7 +381,7 @@ public class SectionedSchematicMeshTest {
 
             fixture.mesh.worldLoaded(fixture.level)
             fixture.mesh.replaceContent(fixture.level, fixture.content, fixture.service, TRANSFORM)
-            fixture.mesh.render(TRANSFORM, fixture.event, opacity = 0.0f)
+            fixture.mesh.render(TRANSFORM, fixture.context, opacity = 0.0f)
             assertEquals(2, fixture.backend.handles.size)
         } finally {
             fixture.mesh.close()
@@ -398,13 +398,9 @@ public class SectionedSchematicMeshTest {
         val backend = KeyTrackingGpuBackend(currentKey = { service.currentKey })
         val camera = TestCamera(Vec3.ZERO)
         val frustum = TestFrustum(visible = true)
-        val event = RenderLevelStageEvent(
-            RenderLevelStageEvent.Stage.AFTER_PARTICLES,
-            null,
+        val context = LevelRenderContext(
             PoseStack(),
             identityMatrix(),
-            0,
-            0.0f,
             camera,
             frustum,
         )
@@ -415,7 +411,7 @@ public class SectionedSchematicMeshTest {
         try {
             mesh.replaceContent(mockk(relaxed = true), manyDistinctSectionsContent(), service, TRANSFORM)
             repeat(GATED_FRAME_COUNT) {
-                mesh.render(TRANSFORM, event, opacity = 0.0f)
+                mesh.render(TRANSFORM, context, opacity = 0.0f)
             }
 
             val captured = service.capturedKeys
@@ -454,13 +450,9 @@ public class SectionedSchematicMeshTest {
         val backend = KeyTrackingGpuBackend(currentKey = { service.currentKey })
         val camera = TestCamera(Vec3.ZERO)
         val frustum = TestFrustum(visible = false)
-        val event = RenderLevelStageEvent(
-            RenderLevelStageEvent.Stage.AFTER_PARTICLES,
-            null,
+        val context = LevelRenderContext(
             PoseStack(),
             identityMatrix(),
-            0,
-            0.0f,
             camera,
             frustum,
         )
@@ -473,7 +465,7 @@ public class SectionedSchematicMeshTest {
             repeat(UNGATED_FRAME_COUNT) { frame ->
                 val sweep = frame * CAMERA_SWEEP_BLOCKS_PER_FRAME
                 camera.moveTo(Vec3(sweep, 0.0, sweep))
-                mesh.render(TRANSFORM, event, opacity = 0.0f)
+                mesh.render(TRANSFORM, context, opacity = 0.0f)
             }
 
             println("H-001-before captured=${service.capturedKeys.size} frames=$UNGATED_FRAME_COUNT")
@@ -496,13 +488,9 @@ public class SectionedSchematicMeshTest {
         internal val backend: FakeGpuBackend = FakeGpuBackend()
         internal val camera: TestCamera = TestCamera(Vec3.ZERO)
         internal val frustum: TestFrustum = TestFrustum(visible = true)
-        internal val event: RenderLevelStageEvent = RenderLevelStageEvent(
-            RenderLevelStageEvent.Stage.AFTER_PARTICLES,
-            null,
+        internal val context: LevelRenderContext = LevelRenderContext(
             PoseStack(),
             identityMatrix(),
-            0,
-            0.0f,
             camera,
             frustum,
         )

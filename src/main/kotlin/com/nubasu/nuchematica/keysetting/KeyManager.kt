@@ -1,11 +1,11 @@
 package com.nubasu.nuchematica.keysetting
 
-import com.mojang.blaze3d.platform.InputConstants
 import com.mojang.logging.LogUtils
 import com.nubasu.nuchematica.gui.RenderSettingHolder
 import com.nubasu.nuchematica.gui.screen.SchematicListScreen
 import com.nubasu.nuchematica.gui.screen.SchematicSettingsScreen
 import com.nubasu.nuchematica.mover.SchematicMover
+import com.nubasu.nuchematica.platform.Platform
 import com.nubasu.nuchematica.printer.PrinterActivationEvent
 import com.nubasu.nuchematica.printer.SchematicPrinter
 import com.nubasu.nuchematica.renderer.SchematicRenderManager
@@ -15,91 +15,70 @@ import com.nubasu.nuchematica.schematic.reader.SpongeSchematicV3Reader
 import com.nubasu.nuchematica.utils.ChatSender
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
-import net.minecraftforge.client.ClientRegistry
-import net.minecraftforge.client.event.InputEvent
-import net.minecraftforge.client.settings.KeyConflictContext
-import net.minecraftforge.eventbus.api.SubscribeEvent
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
 import java.io.File
 
 public class KeyManager {
-    private val settingKey: KeyMapping = KeyMapping(
+    private val settingKey: KeyMapping = Platform.hooks.keyMapping(
         "key.nuchematica.setting",
-        KeyConflictContext.IN_GAME,
-        InputConstants.Type.KEYSYM,
         'K'.code,
         "key.nuchematica.category"
     )
 
-    private val pos1Key: KeyMapping = KeyMapping(
+    private val pos1Key: KeyMapping = Platform.hooks.keyMapping(
         "key.nuchematica.pos1",
-        KeyConflictContext.IN_GAME,
-        InputConstants.Type.KEYSYM,
         ','.code,
         "key.nuchematica.category"
     )
 
-    private val pos2Key: KeyMapping = KeyMapping(
+    private val pos2Key: KeyMapping = Platform.hooks.keyMapping(
         "key.nuchematica.pos2",
-        KeyConflictContext.IN_GAME,
-        InputConstants.Type.KEYSYM,
         '.'.code,
         "key.nuchematica.category"
     )
 
-    private val saveKey: KeyMapping = KeyMapping(
+    private val saveKey: KeyMapping = Platform.hooks.keyMapping(
         "key.nuchematica.save",
-        KeyConflictContext.IN_GAME,
-        InputConstants.Type.KEYSYM,
         'N'.code,
         "key.nuchematica.category"
     )
 
-    private val shemaKey: KeyMapping = KeyMapping(
+    private val shemaKey: KeyMapping = Platform.hooks.keyMapping(
         "key.nuchematica.shema",
-        KeyConflictContext.IN_GAME,
-        InputConstants.Type.KEYSYM,
         ';'.code,
         "key.nuchematica.category"
     )
 
-    private val toggleDisplayKey: KeyMapping = KeyMapping(
+    private val toggleDisplayKey: KeyMapping = Platform.hooks.keyMapping(
         "key.nuchematica.display",
-        KeyConflictContext.IN_GAME,
-        InputConstants.Type.KEYSYM,
         'I'.code,
         "key.nuchematica.category"
     )
 
-    private val printerKey: KeyMapping = KeyMapping(
+    private val printerKey: KeyMapping = Platform.hooks.keyMapping(
         "key.nuchematica.printer",
-        KeyConflictContext.IN_GAME,
-        InputConstants.Type.KEYSYM,
         'P'.code,
         "key.nuchematica.category"
     )
 
-    private val moverKey: KeyMapping = KeyMapping(
+    private val moverKey: KeyMapping = Platform.hooks.keyMapping(
         "key.nuchematica.mover",
-        KeyConflictContext.IN_GAME,
-        InputConstants.Type.KEYSYM,
         'O'.code,
         "key.nuchematica.category"
     )
 
-    public fun keyRegister(event: FMLClientSetupEvent) {
-        ClientRegistry.registerKeyBinding(settingKey)
-        ClientRegistry.registerKeyBinding(pos1Key)
-        ClientRegistry.registerKeyBinding(pos2Key)
-        ClientRegistry.registerKeyBinding(saveKey)
-        ClientRegistry.registerKeyBinding(shemaKey)
-        ClientRegistry.registerKeyBinding(toggleDisplayKey)
-        ClientRegistry.registerKeyBinding(printerKey)
-        ClientRegistry.registerKeyBinding(moverKey)
-    }
+    /** Every key this mod owns, in the order the loader registers them. */
+    public val keyMappings: List<KeyMapping> = listOf(
+        settingKey,
+        pos1Key,
+        pos2Key,
+        saveKey,
+        shemaKey,
+        toggleDisplayKey,
+        printerKey,
+        moverKey,
+    )
 
-    @SubscribeEvent
-    public fun keyPressed(event: InputEvent.KeyInputEvent) {
+    public fun handleKeyInputs(): Unit {
         if (settingKey.consumeClick()) {
             Minecraft.getInstance().setScreen(SchematicSettingsScreen(RenderSettingHolder.renderSettings))
         }

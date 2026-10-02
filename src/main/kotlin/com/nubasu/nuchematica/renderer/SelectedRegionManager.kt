@@ -9,8 +9,6 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.client.event.RenderLevelStageEvent
-import net.minecraftforge.server.ServerLifecycleHooks
 
 public object SelectedRegionManager {
     private val mc = Minecraft.getInstance()
@@ -18,9 +16,9 @@ public object SelectedRegionManager {
     public var isRendering: Boolean = false
     public var selectedRegion: SelectedRegion = SelectedRegion(Vector3.ONE, Vector3.ONE)
 
-    public fun renderLine(event: RenderLevelStageEvent) {
+    public fun renderLine(context: LevelRenderContext) {
         if (isRendering) {
-            regionRenderer.renderSelectedRegion(selectedRegion, event.poseStack, event.projectionMatrix)
+            regionRenderer.renderSelectedRegion(selectedRegion, context.poseStack, context.projectionMatrix)
         }
     }
 
@@ -56,7 +54,7 @@ public object SelectedRegionManager {
         for (i in 0 until clipboard.position.size) {
             val block = clipboard.block[i]
             val position = clipboard.position[i]
-            ServerLifecycleHooks.getCurrentServer().getLevel(Level.OVERWORLD)!!.setBlockAndUpdate(position, block)
+            Minecraft.getInstance().singleplayerServer!!.getLevel(Level.OVERWORLD)!!.setBlockAndUpdate(position, block)
         }
     }
 

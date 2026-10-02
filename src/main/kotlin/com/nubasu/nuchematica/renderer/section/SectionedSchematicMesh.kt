@@ -8,13 +8,13 @@ import com.mojang.logging.LogUtils
 import com.mojang.math.Matrix4f
 import com.mojang.math.Vector3f.YP
 import com.nubasu.nuchematica.renderer.GhostRenderDistance
+import com.nubasu.nuchematica.renderer.LevelRenderContext
 import com.nubasu.nuchematica.renderer.NuchematicaRenderTypes
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.client.event.RenderLevelStageEvent
 
 private data class ActiveSectionGeometry(
     internal val token: SectionJobToken,
@@ -266,7 +266,7 @@ internal class SectionedSchematicMesh(
 
     internal fun render(
         transform: RenderTransform,
-        event: RenderLevelStageEvent,
+        context: LevelRenderContext,
         opacity: Float,
     ): Unit {
         threadGuard.checkOwnerThread()
@@ -280,11 +280,11 @@ internal class SectionedSchematicMesh(
         val frameStart = nanoTime()
         frame++
         frameLimits.beginFrame()
-        val cameraWorld = event.camera.position
+        val cameraWorld = context.camera.position
         val cameraLocal = currentTransform.worldPointToLocal(cameraWorld)
         updateCameraRevision(cameraLocal)
         val radius = renderDistanceBlocks()
-        val (activeKeys, visibleKeys) = activeAndVisibleSections(event, cameraWorld, radius)
+        val (activeKeys, visibleKeys) = activeAndVisibleSections(context, cameraWorld, radius)
         state.updateVisibility(visibleKeys, activeKeys, frame)
 
         collectSortCompletion()
@@ -297,8 +297,8 @@ internal class SectionedSchematicMesh(
             drawVisibleSections(
                 visibleKeys = visibleKeys,
                 cameraWorld = cameraWorld,
-                poseStack = event.poseStack,
-                projection = event.projectionMatrix,
+                poseStack = context.poseStack,
+                projection = context.projectionMatrix,
                 transform = currentTransform,
                 opacity = opacity,
             )
@@ -422,7 +422,7 @@ internal class SectionedSchematicMesh(
 
     /** The frustum is only consulted for sections already within [radius] of [cameraWorld]. */
     private fun activeAndVisibleSections(
-        event: RenderLevelStageEvent,
+        context: LevelRenderContext,
         cameraWorld: Vec3,
         radius: Int,
     ): Pair<Set<SectionKey>, Set<SectionKey>> {
@@ -432,7 +432,7 @@ internal class SectionedSchematicMesh(
             val worldAabb = state.worldAabb(key) ?: continue
             if (!GhostRenderDistance.withinHorizontal(cameraWorld, worldAabb, radius)) continue
             active += key
-            if (event.frustum.isVisible(worldAabb)) {
+            if (context.frustum.isVisible(worldAabb)) {
                 visible += key
             }
         }

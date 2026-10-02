@@ -4,11 +4,11 @@ import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.screens.Screen
+import net.minecraft.core.Registry
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.TextComponent
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
-import net.minecraftforge.registries.ForgeRegistries
 
 class BlockPickerGridScreen(
     private val titleText: Component = TextComponent("Select Block"),
@@ -20,7 +20,7 @@ class BlockPickerGridScreen(
     private lateinit var closeButton: Button
 
     override fun init() {
-        val blockList = ForgeRegistries.BLOCKS.values.filter { it != Blocks.AIR }
+        val blockList = Registry.BLOCK.filter { it != Blocks.AIR }
         blockGrid = BlockIconGrid(blockList) { selected ->
             onBlockSelected(selected)
             Minecraft.getInstance().setScreen(parent)

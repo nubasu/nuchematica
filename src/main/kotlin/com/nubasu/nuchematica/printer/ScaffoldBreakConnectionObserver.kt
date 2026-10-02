@@ -61,7 +61,7 @@ internal object ScaffoldBreakConnectionObserver {
     private var installedChannel: Channel? = null
 
     internal fun install(connection: Connection): Unit {
-        val channel = connection.channel()
+        val channel = connection.channel
         val previousDesired = desiredChannel
         val previousInstalled = installedChannel
         if (previousDesired === channel && previousInstalled === channel) return

@@ -7,10 +7,10 @@ import com.nubasu.nuchematica.utils.BlockToString.getBlockId
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.screens.Screen
+import net.minecraft.core.Registry
 import net.minecraft.network.chat.TextComponent
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.Block
-import net.minecraftforge.registries.ForgeRegistries
 
 class FilterSettingScreen(
     private val settings: RenderSettings,
@@ -56,7 +56,7 @@ class FilterSettingScreen(
     }
 
     private val buttons = mutableListOf<Button>()
-    private val BLOCKS = ForgeRegistries.BLOCKS
+    private val BLOCKS = Registry.BLOCK
 
     private fun getToggleAllLabel(): String {
         return if (isVisibleAll) {
@@ -157,7 +157,7 @@ class FilterSettingScreen(
 
         visible.forEach { (block, totalCount) ->
             val stack = ItemStack(block)
-            var name = ForgeRegistries.BLOCKS.getKey(block)?.toString() ?: "unknown"
+            var name = Registry.BLOCK.getKey(block)?.toString() ?: "unknown"
             name = name.split(":").last()
             val placed = placedBlockCounts[block] ?: 0
 
