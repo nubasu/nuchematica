@@ -2,9 +2,6 @@ package com.nubasu.nuchematica.tag
 
 import java.nio.charset.Charset
 
-/**
- * ref: https://minecraft.fandom.com/wiki/NBT_format
- */
 public enum class TagDefinition(public val id: Int, public val tagName: String, public val tagClass: Class<out Tag>) {
     TAG_END(0, "TAG_End", EndTag::class.java),
     TAG_BYTE(1, "TAG_Byte", ByteTag::class.java),

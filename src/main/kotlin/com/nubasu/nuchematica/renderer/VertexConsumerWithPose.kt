@@ -2,12 +2,11 @@ package com.nubasu.nuchematica.renderer
 
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
-import com.mojang.logging.LogUtils
 import net.minecraft.core.BlockPos
 
-
 class VertexConsumerWithPose(
-    val parent: VertexConsumer, val originPos: BlockPos, val pose: PoseStack
+    val parent: VertexConsumer, val originPos: BlockPos, val pose: PoseStack,
+    private val overrideColor: FloatArray? = null,
 ): VertexConsumer {
 
     override fun vertex(
@@ -18,12 +17,13 @@ class VertexConsumerWithPose(
         val dx = originPos.getX() and 15
         val dy = originPos.getY() and 15
         val dz = originPos.getZ() and 15
-        return parent.vertex(
+        parent.vertex(
             pose.last().pose(),
             p_85945_.toFloat() - dx,
             p_85946_.toFloat() - dy,
             p_85947_.toFloat() - dz
         )
+        return this
     }
 
     override fun color(
@@ -32,19 +32,28 @@ class VertexConsumerWithPose(
         p_85975_: Int,
         p_85976_: Int
     ): VertexConsumer {
-        return parent.color(0.1f, 0.1f, 1.0f, 0.8f)
+        val c = overrideColor
+        if (c != null) {
+            parent.color(c[0], c[1], c[2], c[3])
+        } else {
+            parent.color(p_85973_, p_85974_, p_85975_, p_85976_)
+        }
+        return this
     }
 
     override fun uv(p_85948_: Float, p_85949_: Float): VertexConsumer {
-        return parent.uv(p_85948_, p_85949_)
+        parent.uv(p_85948_, p_85949_)
+        return this
     }
 
     override fun overlayCoords(p_85971_: Int, p_85972_: Int): VertexConsumer {
-        return parent.overlayCoords(p_85971_, p_85972_)
+        parent.overlayCoords(p_85971_, p_85972_)
+        return this
     }
 
     override fun uv2(p_86010_: Int, p_86011_: Int): VertexConsumer {
-        return parent.uv2(p_86010_, p_86011_)
+        parent.uv2(p_86010_, p_86011_)
+        return this
     }
 
     override fun normal(
@@ -52,7 +61,8 @@ class VertexConsumerWithPose(
         p_86006_: Float,
         p_86007_: Float
     ): VertexConsumer {
-        return parent.normal(p_86005_, p_86006_, p_86007_)
+        parent.normal(p_86005_, p_86006_, p_86007_)
+        return this
     }
 
     override fun endVertex() {

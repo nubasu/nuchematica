@@ -3,7 +3,6 @@ package com.nubasu.nuchematica.gui.screen
 import com.mojang.blaze3d.vertex.PoseStack
 import com.nubasu.nuchematica.common.PlacedBlockMap
 import com.nubasu.nuchematica.gui.RenderSettings
-import com.nubasu.nuchematica.renderer.SchematicRenderManager
 import com.nubasu.nuchematica.utils.BlockToString.getBlockId
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.components.Button
@@ -105,11 +104,9 @@ class FilterSettingScreen(
         })
 
         addRenderableWidget(Button(REPLACE_BUTTON_X, height - 30, 80, 20, TextComponent("Apply")) {
-            SchematicRenderManager.applyFilterBlock()
-            SchematicRenderManager.rerender()
+            onSettingsChanged()
         })
 
-        // items
         val visible = blockCounts.entries.toList().drop(scrollOffset).take(visibleRows)
         var y = Y_START + 20
 
@@ -150,13 +147,11 @@ class FilterSettingScreen(
     override fun render(poseStack: PoseStack, mouseX: Int, mouseY: Int, partialTicks: Float) {
         renderBackground(poseStack)
 
-        // header
         drawText(poseStack, "Block", BLOCK_HEADER_X, BLOCK_HEADER_Y)
         drawText(poseStack, "Replace To", REPLACE_HEADER_X, REPLACE_HEADER_Y)
         drawText(poseStack, "Placed", PLACED_HEADER_X, PLACED_HEADER_Y)
         drawText(poseStack, "Visibility", VISIBILITY_HEADER_X, VISIBILITY_HEADER_Y)
 
-        // items
         val visible = blockCounts.entries.toList().drop(scrollOffset).take(visibleRows)
         var y = Y_START + 20
 
@@ -182,9 +177,7 @@ class FilterSettingScreen(
             val sliderHeight = (barHeight * visibleRows / totalRows).coerceAtLeast(10)
             val maxScroll = (totalRows - visibleRows).coerceAtLeast(1)
             val sliderY = barY + (scrollOffset * (barHeight - sliderHeight) / maxScroll)
-            // background
             fill(poseStack, barX, barY, barX + 5, barY + barHeight, 0xFFCCCCCC.toInt())
-            // bar
             fill(poseStack, barX, sliderY, barX + 5, sliderY + sliderHeight, 0xFF888888.toInt())
         }
 

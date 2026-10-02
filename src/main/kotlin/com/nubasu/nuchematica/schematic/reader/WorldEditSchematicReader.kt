@@ -32,17 +32,17 @@ public object WorldEditSchematicReader: SchematicReader {
             width = root.getShort("Width"),
             height = root.getShort("Height"),
             length = root.getShort("Length"),
-            weOriginX = root.getInt("WEOriginX"),       // unsupported in this mod
-            weOriginY = root.getInt("WEOriginY"),       // unsupported in this mod
-            weOriginZ = root.getInt("WEOriginZ"),       // unsupported in this mod
-            weOffsetX = root.getInt("WEOffsetX"),       // unsupported in this mod
-            weOffsetY = root.getInt("WEOffsetY"),       // unsupported in this mod
-            weOffsetZ = root.getInt("WEOffsetZ"),       // unsupported in this mod
+            weOriginX = root.getInt("WEOriginX"),
+            weOriginY = root.getInt("WEOriginY"),
+            weOriginZ = root.getInt("WEOriginZ"),
+            weOffsetX = root.getInt("WEOffsetX"),
+            weOffsetY = root.getInt("WEOffsetY"),
+            weOffsetZ = root.getInt("WEOffsetZ"),
             blockIds = root.getByteArray("Blocks"),
             blockData = root.getByteArray("Data"),
-            addBlocks = root.getByteArray("AddBlocks"), // unsupported in this mod
-            tileEntities = (root.value["TileEntities"] as ListTag).value,
-            entities = (root.value["TileEntities"] as ListTag).value
+            addBlocks = root.getByteArray("AddBlocks"),
+            tileEntities = (root.value["TileEntities"] as? ListTag)?.value ?: emptyList(),
+            entities = (root.value["Entities"] as? ListTag)?.value ?: emptyList()
         )
 
         val clipboard = Clipboard()
@@ -72,7 +72,12 @@ public object WorldEditSchematicReader: SchematicReader {
                     }
                     val blockLocation = ResourceLocation(blockId)
 
-                    var blockState = ForgeRegistries.BLOCKS.getValue(blockLocation)!!.defaultBlockState()
+                    val block = ForgeRegistries.BLOCKS.getValue(blockLocation)
+                    if (block == null) {
+                        LogUtils.getLogger().warn("unknown block id: $blockId")
+                        continue
+                    }
+                    var blockState = block.defaultBlockState()
                     if (blockState.isAir) {
                         continue
                     }

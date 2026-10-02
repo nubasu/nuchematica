@@ -21,7 +21,7 @@ public class SchematicListScreen : Screen(TextComponent("Schematics")) {
     override fun init() {
         schematicFiles.clear()
         if (schematicsDir.exists() && schematicsDir.isDirectory) {
-            schematicsDir.listFiles { _, name -> name.endsWith(".schematic") }?.let {
+            schematicsDir.listFiles { _, name -> name.endsWith(".schematic") || name.endsWith(".schem") }?.let {
                 schematicFiles.addAll(it)
             }
         }
@@ -48,7 +48,6 @@ public class SchematicListScreen : Screen(TextComponent("Schematics")) {
             }
         }
 
-        // scroll bar
         val scrollbarX = width - 10
         val scrollbarY = startY
         val scrollbarHeight = visibleRows * rowHeight
@@ -60,7 +59,6 @@ public class SchematicListScreen : Screen(TextComponent("Schematics")) {
             val sliderHeight = (scrollbarHeight * scrollbarHeight.toFloat() / totalHeight).toInt().coerceAtLeast(10)
             val sliderY = scrollbarY + (scrollOffset * (scrollbarHeight - sliderHeight) / (schematicFiles.size - visibleRows).coerceAtLeast(1))
 
-            // slider
             fill(poseStack, scrollbarX, sliderY, scrollbarX + 5, sliderY + sliderHeight, 0xFF666666.toInt())
         }
 
@@ -75,11 +73,12 @@ public class SchematicListScreen : Screen(TextComponent("Schematics")) {
         if (index in 0 until visibleRows && actualIndex in schematicFiles.indices) {
             val file = schematicFiles[actualIndex]
             LogUtils.getLogger().info("clicked: ${file.name}")
-            SchematicRenderManager.loadRenderBlocks(file.name)
-            SchematicRenderManager.isRendering = true
-            RenderSettingHolder.renderSettings = RenderSettings()
-            RenderSettingHolder.renderSettings.lastLoadedSchematicFile = file.name
-            SchematicRenderManager.initialize()
+            if (SchematicRenderManager.loadRenderBlocks(file.name)) {
+                SchematicRenderManager.isRendering = true
+                RenderSettingHolder.renderSettings = RenderSettings()
+                RenderSettingHolder.renderSettings.lastLoadedSchematicFile = file.name
+                SchematicRenderManager.initialize()
+            }
             onClose()
             return true
         }

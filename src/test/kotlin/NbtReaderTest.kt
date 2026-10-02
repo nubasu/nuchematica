@@ -1,19 +1,19 @@
 import com.nubasu.nuchematica.io.NbtReader
-import com.nubasu.nuchematica.tag.CompoundTag
-import net.minecraft.util.FastBufferedInputStream
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import java.io.BufferedInputStream
 import java.io.DataInputStream
-import java.io.FileInputStream
 
 public class NbtReaderTest {
 
     @Test
-    public fun testReadCompoundTag() {
-        val path = javaClass.getResource("test_schematic/_natura_town.schematic").path
-        val inputStream = DataInputStream(FastBufferedInputStream(FileInputStream(path)))
+    public fun readsRootCompoundFromLegacySchematicFile() {
+        val inputStream = DataInputStream(
+            BufferedInputStream(javaClass.getResourceAsStream("test_schematic/0_a.schematic")!!)
+        )
 
-        val reader = NbtReader(inputStream)
-        val tag = reader.readCompoundTag()
+        val tag = inputStream.use { NbtReader(it).readCompoundTag() }
 
+        assertEquals(listOf("Schematic"), tag.value.keys.toList())
     }
 }

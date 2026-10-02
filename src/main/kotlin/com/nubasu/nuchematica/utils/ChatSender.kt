@@ -5,6 +5,7 @@ import net.minecraft.network.chat.TextComponent
 
 public object ChatSender {
     public fun send(text: String) {
-        Minecraft.getInstance().player?.sendMessage(TextComponent(text), Minecraft.getInstance().player!!.uuid)
+        val player = Minecraft.getInstance().player ?: return
+        player.sendMessage(TextComponent(text), player.uuid)
     }
 }

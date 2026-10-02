@@ -36,9 +36,6 @@ public object SelectedRegionManager {
         return selectedRegion
     }
 
-    public fun save() {
-    }
-
     public fun getSelectedRegionBlocks(): List<BlockState> {
         val maximumPoint = selectedRegion.maximumPoint
         val minimumPoint = selectedRegion.minimumPoint

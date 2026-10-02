@@ -2,15 +2,16 @@ package com.nubasu.nuchematica.renderer
 
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.*
-import com.mojang.blaze3d.vertex.VertexBuffer.unbind
 import com.mojang.logging.LogUtils
 import com.mojang.math.Vector3f
 import com.mojang.math.Vector3f.YP
+import com.nubasu.nuchematica.renderer.section.RenderTransform
+import com.nubasu.nuchematica.renderer.section.SectionKey
 import com.nubasu.nuchematica.schematic.MissingBlockHolder
 import com.nubasu.nuchematica.schematic.SchematicHolder
 import com.nubasu.nuchematica.utils.BaseRender
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.GameRenderer
+import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.phys.Vec3
 import net.minecraftforge.client.event.RenderLevelStageEvent
@@ -18,129 +19,229 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 public class MissingBlockRender {
-    private var isBuilt = false
+    @Volatile
     private var isBuilding = false
 
-    private val buildExecutor: ExecutorService = Executors.newSingleThreadExecutor()
-    private var missingBlockBuffer: VertexBuffer? = null
+    private val index: MissingOverlaySectionIndex = MissingOverlaySectionIndex()
+    private val sectionBuffers: HashMap<SectionKey, VertexBuffer> = HashMap()
+    private var indexedContent: Any? = null
 
-    public fun initialize() {
-        isBuilt = false
-        Minecraft.getInstance().execute {
-            missingBlockBuffer?.close()
+    private val buildExecutor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "nuchematica-missing-block-builder").apply { isDaemon = true }
+    }
+
+    /**
+     * Re-indexes every section from the current missing sets.
+     *
+     * Surviving sections keep drawing their old geometry until rebuilt; geometry built for a
+     * different schematic content is dropped at once because its local positions no longer
+     * describe anything.
+     */
+    public fun initialize(): Unit {
+        val content = SchematicHolder.renderingBlocks
+        if (indexedContent !== content) {
+            indexedContent = content
+            for (buffer in sectionBuffers.values) buffer.close()
+            sectionBuffers.clear()
+        }
+        val wrongBlockPositions = MissingBlockHolder.blockPos.toList()
+        val missingPositions = MissingBlockHolder.airPos.toList()
+        val extraPositions = MissingBlockHolder.extraPos.toList()
+        val vanishedSections = index.rebuildAll(missingPositions, wrongBlockPositions, extraPositions)
+        for (key in vanishedSections) {
+            sectionBuffers.remove(key)?.close()
         }
     }
 
-    public fun render(offset: Vec3, rotate: Float, rotateAxis: Vec3, event: RenderLevelStageEvent) {
-        if (!isBuilt) buildMissingBlockVertexBufferAsync(offset)
-        if (!isBuilt) return
+    /** Records one position's current status so only its own section is rebuilt. */
+    internal fun markChanged(localPos: BlockPos): Unit {
+        val missing = MissingBlockHolder.airPos.contains(localPos)
+        val wrongBlock = MissingBlockHolder.blockPos.contains(localPos)
+        val extra = MissingBlockHolder.extraPos.contains(localPos)
+        index.apply(localPos, missing = missing, wrongBlock = wrongBlock, extra = extra)
+    }
+
+    internal fun render(transform: RenderTransform, event: RenderLevelStageEvent): Unit {
+        if (!isBuilding && index.dirtyCount > 0) {
+            submitSectionBuild()
+        }
+        if (sectionBuffers.isEmpty()) return
+
         val camPos = event.camera.position
         val poseStack = event.poseStack
         val projection = event.projectionMatrix
 
-        RenderSystem.enableBlend()
-        RenderSystem.defaultBlendFunc()
-        RenderSystem.enableDepthTest()
-        RenderSystem.disableCull() // ← カリングを無効化
-        RenderSystem.enablePolygonOffset()
-        RenderSystem.polygonOffset(-1f, -10f) // 手前にずらす
-        RenderSystem.setShader { GameRenderer.getPositionColorShader() }
-
         poseStack.pushPose()
-        poseStack.translate(-camPos.x, -camPos.y, -camPos.z)
-        poseStack.translate(offset.x, offset.y, offset.z)
-        poseStack.mulPose(
-            YP.rotationDegrees(rotate),
-        )
-        poseStack.translate(rotateAxis.x, rotateAxis.y, rotateAxis.z)
-        missingBlockBuffer?.let {
-            it.bind()
-            it.drawWithShader(poseStack.last().pose(), projection, GameRenderer.getPositionColorShader())
-            VertexBuffer.unbind()
-        }
-        poseStack.popPose()
+        try {
+            poseStack.translate(-camPos.x, -camPos.y, -camPos.z)
+            poseStack.translate(transform.renderBase.x, transform.renderBase.y, transform.renderBase.z)
+            poseStack.mulPose(
+                YP.rotationDegrees(transform.rotateDeg),
+            )
+            poseStack.translate(transform.rotateAxis.x, transform.rotateAxis.y, transform.rotateAxis.z)
+            val pose = poseStack.last().pose()
 
-        RenderSystem.disablePolygonOffset()
-        RenderSystem.enableCull() // ← カリングを戻す
-        RenderSystem.enableDepthTest()
-        RenderSystem.disableBlend()
+            try {
+                NuchematicaRenderTypes.MISSING_OVERLAY.setupRenderState()
+                try {
+                    for ((key, buffer) in sectionBuffers) {
+                        if (!event.frustum.isVisible(transform.sectionWorldAabb(key))) continue
+                        buffer.bind()
+                        buffer.drawWithShader(pose, projection, RenderSystem.getShader())
+                    }
+                } finally {
+                    VertexBuffer.unbind()
+                }
+            } finally {
+                NuchematicaRenderTypes.MISSING_OVERLAY.clearRenderState()
+            }
+        } finally {
+            poseStack.popPose()
+        }
     }
 
-    private fun buildMissingBlockVertexBufferAsync(offset: Vec3) {
-        if (isBuilt || isBuilding) return
+    private fun submitSectionBuild() {
+        val inputs = index.takeDirty(MAX_SECTIONS_PER_BUILD)
+        if (inputs.isEmpty()) return
         isBuilding = true
-        val dummy = SchematicHolder.renderingBlocks
+
+        // Snapshot main-thread state before the worker reads it.
+        val schematicBlocks = SchematicHolder.renderingBlocks.blocks
+        val mc = Minecraft.getInstance()
+        val red = Vector3f(1.0f, 0.0f, 0.0f)
+        val green = Vector3f(0.0f, 1.0f, 0.0f)
+        val purple = Vector3f(0.6f, 0.0f, 1.0f)
 
         buildExecutor.submit {
-            LogUtils.getLogger().info("buildMissingBlockVertexBufferAsync")
-            val missingBlockBuilder = BufferBuilder(262144)
-            missingBlockBuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR)
-            val poseStack = PoseStack()
-
-            LogUtils.getLogger().info("${MissingBlockHolder.blockPos.size}, ${MissingBlockHolder.airPos.size}")
-            MissingBlockHolder.blockPos.forEach { pos ->
-                val cubeColor = Vector3f(1.0f, 0.0f, 0.0f) // red
-
-                // 各面に隣があるかを調べる
-                val visibleFaces = mutableSetOf<Direction>()
-                for (dir in Direction.values()) {
-                    val neighborPos = pos.relative(dir)
-                    if (!dummy.blocks.containsKey(neighborPos)) {
-                        visibleFaces.add(dir)
+            try {
+                val results = inputs.map { input -> buildSectionGeometry(input, schematicBlocks, red, green, purple) }
+                mc.execute {
+                    try {
+                        for (result in results) {
+                            applySectionBuildResult(result)
+                        }
+                    } finally {
+                        isBuilding = false
                     }
                 }
-                poseStack.pushPose()
-                poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
-                if (visibleFaces.isNotEmpty()) {
-                    BaseRender.drawVisibleFacesCubeWithBuffer(
-                        missingBlockBuilder,
-                        poseStack,
-                        Vec3(0.0, 0.0, 0.0),
-                        cubeColor,
-                        visibleFaces
-                    )
-                }
-                poseStack.popPose()
-            }
-
-            MissingBlockHolder.airPos.forEach { pos ->
-                val cubeColor = Vector3f(0.0f, 1.0f, 0.0f) // red
-
-                // 各面に隣があるかを調べる
-                val visibleFaces = mutableSetOf<Direction>()
-                for (dir in Direction.values()) {
-                    val neighborPos = pos.relative(dir)
-                    if (!dummy.blocks.containsKey(neighborPos)) {
-                        visibleFaces.add(dir)
-                    }
-                }
-                poseStack.pushPose()
-                poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
-                if (visibleFaces.isNotEmpty()) {
-                    BaseRender.drawVisibleFacesCubeWithBuffer(
-                        missingBlockBuilder,
-                        poseStack,
-                        Vec3(0.0, 0.0, 0.0),
-                        cubeColor,
-                        visibleFaces
-                    )
-                }
-                poseStack.popPose()
-            }
-
-            missingBlockBuilder.end()
-
-            Minecraft.getInstance().execute {
-                missingBlockBuffer?.close()
-
-                missingBlockBuffer = VertexBuffer().apply {
-                    bind()
-                    upload(missingBlockBuilder)
-                    unbind()
-                }
-                isBuilt = true
+            } catch (e: Exception) {
+                LogUtils.getLogger().error("failed to build missing-block vertex buffer", e)
                 isBuilding = false
             }
         }
     }
+
+    private fun buildSectionGeometry(
+        input: MissingOverlaySectionBuildInput,
+        schematicBlocks: Map<BlockPos, *>,
+        red: Vector3f,
+        green: Vector3f,
+        purple: Vector3f,
+    ): SectionBuildResult {
+        if (input.wrongBlockPositions.isEmpty() && input.missingPositions.isEmpty() && input.extraPositions.isEmpty()) {
+            return SectionBuildResult(input, null)
+        }
+        val builder = BufferBuilder(262144)
+        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR)
+        val poseStack = PoseStack()
+
+        buildCubes(builder, poseStack, input.wrongBlockPositions, schematicBlocks, red)
+        buildCubes(builder, poseStack, input.missingPositions, schematicBlocks, green)
+        val extrasInThisSection = input.extraPositions.associateWith { Unit }
+        buildCubes(builder, poseStack, input.extraPositions, extrasInThisSection, purple)
+
+        builder.end()
+        return SectionBuildResult(input, builder)
+    }
+
+    private fun applySectionBuildResult(result: SectionBuildResult) {
+        val input = result.input
+        if (!index.isCurrent(input.key, input.generation)) {
+            // A newer change superseded this build; it will be rebuilt from the dirty queue.
+            return
+        }
+        if (result.builder == null) {
+            sectionBuffers.remove(input.key)?.close()
+            return
+        }
+        var newBuffer: VertexBuffer? = null
+        try {
+            newBuffer = uploadVertexBuffer(result.builder)
+            val oldBuffer = sectionBuffers.put(input.key, newBuffer)
+            newBuffer = null
+            oldBuffer?.close()
+        } catch (e: Exception) {
+            LogUtils.getLogger().error("failed to upload missing-block vertex buffer", e)
+        } finally {
+            newBuffer?.close()
+        }
+    }
+
+    private fun buildCubes(
+        builder: BufferBuilder,
+        poseStack: PoseStack,
+        positions: List<BlockPos>,
+        schematicBlocks: Map<BlockPos, *>,
+        color: Vector3f,
+    ) {
+        positions.forEach { pos ->
+            val visibleFaces = selectMissingOverlayFaces(pos, schematicBlocks)
+            if (visibleFaces.isEmpty()) return@forEach
+
+            poseStack.pushPose()
+            try {
+                poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+                BaseRender.drawVisibleFacesCubeWithBuffer(
+                    builder,
+                    poseStack,
+                    Vec3(0.0, 0.0, 0.0),
+                    color,
+                    visibleFaces
+                )
+            } finally {
+                poseStack.popPose()
+            }
+        }
+    }
+
+    private fun uploadVertexBuffer(builder: BufferBuilder): VertexBuffer {
+        val buffer = VertexBuffer()
+        var uploaded = false
+        try {
+            try {
+                buffer.bind()
+                buffer.upload(builder)
+            } finally {
+                VertexBuffer.unbind()
+            }
+            uploaded = true
+            return buffer
+        } finally {
+            if (!uploaded) {
+                buffer.close()
+            }
+        }
+    }
+
+    private class SectionBuildResult(
+        val input: MissingOverlaySectionBuildInput,
+        val builder: BufferBuilder?,
+    )
+
+    private companion object {
+        private const val MAX_SECTIONS_PER_BUILD: Int = 32
+    }
+}
+
+internal fun selectMissingOverlayFaces(
+    pos: BlockPos,
+    schematicBlocks: Map<BlockPos, *>,
+): Set<Direction> {
+    val visibleFaces = mutableSetOf<Direction>()
+    for (direction in Direction.values()) {
+        if (!schematicBlocks.containsKey(pos.relative(direction))) {
+            visibleFaces.add(direction)
+        }
+    }
+    return visibleFaces
 }

@@ -76,7 +76,12 @@ public object SpongeSchematicV2Reader: SchematicReader {
                     }
                     val blockLocation = ResourceLocation(blockId)
 
-                    var blockState = ForgeRegistries.BLOCKS.getValue(blockLocation)!!.defaultBlockState()
+                    val block = ForgeRegistries.BLOCKS.getValue(blockLocation)
+                    if (block == null) {
+                        LogUtils.getLogger().warn("unknown block id: $blockId")
+                        continue
+                    }
+                    var blockState = block.defaultBlockState()
                     if (blockState.isAir) {
                         continue
                     }
@@ -94,7 +99,6 @@ public object SpongeSchematicV2Reader: SchematicReader {
                     }
                     clipboard.block.add(blockState)
                     clipboard.position.add(BlockPos(x, y, z))
-
 
                     val type = ForgeRegistries.BLOCK_ENTITIES.getValue(ResourceLocation(blockId))
                     if (type != null) {
@@ -149,7 +153,6 @@ public object SpongeSchematicV2Reader: SchematicReader {
             )
         }
     }
-
 
     private fun getBlockEntities(tag: List<CompoundTag>?): List<BlockEntityObject>? {
         if (tag == null) {

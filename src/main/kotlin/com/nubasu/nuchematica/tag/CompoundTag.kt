@@ -1,8 +1,5 @@
 package com.nubasu.nuchematica.tag
 
-/**
- * ref: https://minecraft.fandom.com/wiki/NBT_format
- */
 public data class CompoundTag(override var value: Map<String, Tag>) : Tag() {
 
     public fun containsKey(key: String): Boolean {

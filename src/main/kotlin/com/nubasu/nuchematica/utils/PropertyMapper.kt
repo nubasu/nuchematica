@@ -18,7 +18,7 @@ public object PropertyMapper {
             "level" -> {
                 when (id) {
                     Blocks.WATER.name.toString() -> blockState.setValue(BlockStateProperties.LEVEL, value.toInt())
-                    Blocks.CAULDRON.name.toString() -> blockState //blockState.setValue(BlockStateProperties.LEVEL_CAULDRON, value.toInt())
+                    Blocks.CAULDRON.name.toString() -> blockState
                     Blocks.COMPOSTER.name.toString() -> blockState.setValue(BlockStateProperties.LEVEL_COMPOSTER, value.toInt())
                     else -> blockState.setValue(BlockStateProperties.LEVEL, value.toInt())
                 }
@@ -29,7 +29,7 @@ public object PropertyMapper {
                         when (value) {
                             "none" -> blockState.setValue(BlockStateProperties.NORTH_WALL, WallSide.NONE)
                             "low" -> blockState.setValue(BlockStateProperties.NORTH_WALL, WallSide.LOW)
-                            "tail" -> blockState.setValue(BlockStateProperties.NORTH_WALL, WallSide.TALL)
+                            "tall" -> blockState.setValue(BlockStateProperties.NORTH_WALL, WallSide.TALL)
                             else -> blockState
                         }
                     }
@@ -50,7 +50,7 @@ public object PropertyMapper {
                         when (value) {
                             "none" -> blockState.setValue(BlockStateProperties.WEST_WALL, WallSide.NONE)
                             "low" -> blockState.setValue(BlockStateProperties.WEST_WALL, WallSide.LOW)
-                            "tail" -> blockState.setValue(BlockStateProperties.WEST_WALL, WallSide.TALL)
+                            "tall" -> blockState.setValue(BlockStateProperties.WEST_WALL, WallSide.TALL)
                             else -> blockState
                         }
                     }
@@ -70,7 +70,7 @@ public object PropertyMapper {
                         when (value) {
                             "none" -> blockState.setValue(BlockStateProperties.EAST_WALL, WallSide.NONE)
                             "low" -> blockState.setValue(BlockStateProperties.EAST_WALL, WallSide.LOW)
-                            "tail" -> blockState.setValue(BlockStateProperties.EAST_WALL, WallSide.TALL)
+                            "tall" -> blockState.setValue(BlockStateProperties.EAST_WALL, WallSide.TALL)
                             else -> blockState
                         }
                     }
@@ -90,7 +90,7 @@ public object PropertyMapper {
                         when (value) {
                             "none" -> blockState.setValue(BlockStateProperties.SOUTH_WALL, WallSide.NONE)
                             "low" -> blockState.setValue(BlockStateProperties.SOUTH_WALL, WallSide.LOW)
-                            "tail" -> blockState.setValue(BlockStateProperties.SOUTH_WALL, WallSide.TALL)
+                            "tall" -> blockState.setValue(BlockStateProperties.SOUTH_WALL, WallSide.TALL)
                             else -> blockState
                         }
                     }
@@ -201,7 +201,7 @@ public object PropertyMapper {
                 }
             }
             "shape" -> {
-                if (id !in railList) { // TODO: fix here
+                if (id !in railList) {
                     when (value) {
                         "north_south" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.NORTH_SOUTH)
                         "east_west" -> blockState.setValue(BlockStateProperties.RAIL_SHAPE, RailShape.EAST_WEST)
@@ -216,8 +216,8 @@ public object PropertyMapper {
                         "straight" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.STRAIGHT)
                         "outer_right" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.OUTER_RIGHT)
                         "outer_left" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.OUTER_LEFT)
-                        "inner_left" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.INNER_RIGHT)
-                        "inner_right" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.INNER_LEFT)
+                        "inner_left" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.INNER_LEFT)
+                        "inner_right" -> blockState.setValue(BlockStateProperties.STAIRS_SHAPE, StairsShape.INNER_RIGHT)
                         else -> blockState
                     }
                 } else {
@@ -341,7 +341,6 @@ public object PropertyMapper {
         Blocks.GRANITE_WALL.name.toString(),
         Blocks.MOSSY_COBBLESTONE_WALL.name.toString(),
         Blocks.MOSSY_STONE_BRICK_WALL.name.toString(),
-//        Blocks.MUD_BRICK_WALL.name.toString(),
         Blocks.NETHER_BRICK_WALL.name.toString(),
         Blocks.POLISHED_BLACKSTONE_BRICK_WALL.name.toString(),
         Blocks.POLISHED_BLACKSTONE_WALL.name.toString(),
@@ -354,7 +353,6 @@ public object PropertyMapper {
     )
 
     private val railList = listOf(
-//        Blocks.RAIL.name.toString(),
         Blocks.POWERED_RAIL.name.toString(),
         Blocks.ACTIVATOR_RAIL.name.toString(),
         Blocks.DETECTOR_RAIL.name.toString(),

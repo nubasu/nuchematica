@@ -33,7 +33,9 @@ public class SchematicSettingsScreen(
         addSelectSchematicButton()
         addFilterSettingButton()
         addHeightControl()
+        addPrinterSettingsButton()
         addDisplayFlagToggles()
+        addAutomodeToggle()
         addMoveHere()
         addPresetControls()
 
@@ -48,6 +50,12 @@ public class SchematicSettingsScreen(
 
     private fun notifySettingsChanged() {
         listeners.forEach { it() }
+        SchematicRenderManager.scheduleSettingsApply()
+    }
+
+    override fun onClose() {
+        SchematicRenderManager.flushPendingSettings()
+        super.onClose()
     }
 
     private fun addSelectSchematicButton() {
@@ -106,13 +114,11 @@ public class SchematicSettingsScreen(
         val plusX = Button(OFFSET_X_PLUS_X, OFFSET_X_PLUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("+")) {
             settings.offsetX += 1
             inputX.value = settings.offsetX.toString()
-            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }
         val minusX = Button(OFFSET_X_MINUS_X, OFFSET_X_MINUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("-")) {
             settings.offsetX -= 1
             inputX.value = settings.offsetX.toString()
-            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }
         addRenderableWidget(inputX)
@@ -132,13 +138,11 @@ public class SchematicSettingsScreen(
         val plusY = Button(OFFSET_Y_PLUS_X, OFFSET_Y_PLUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("+")) {
             settings.offsetY += 1
             inputY.value = settings.offsetY.toString()
-            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }
         val minusY = Button(OFFSET_Y_MINUS_X, OFFSET_Y_MINUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("-")) {
             settings.offsetY -= 1
             inputY.value = settings.offsetY.toString()
-            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }
         addRenderableWidget(inputY)
@@ -158,13 +162,11 @@ public class SchematicSettingsScreen(
         val plusZ = Button(OFFSET_Z_PLUS_X, OFFSET_Z_PLUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("+")) {
             settings.offsetZ += 1
             inputZ.value = settings.offsetZ.toString()
-            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }
         val minusZ = Button(OFFSET_Z_MINUS_X, OFFSET_Z_MINUS_Y, MINI_BUTTON_SIZE, MINI_BUTTON_SIZE, TextComponent("-")) {
             settings.offsetZ -= 1
             inputZ.value = settings.offsetZ.toString()
-            SchematicEditor.translate(Vector3(settings.offsetX, settings.offsetY, settings.offsetZ))
             notifySettingsChanged()
         }
         addRenderableWidget(inputZ)
@@ -182,7 +184,6 @@ public class SchematicSettingsScreen(
                 DirectionSetting.CLOCKWISE_270 -> DirectionSetting.CLOCKWISE_0
             }
             Minecraft.getInstance().setScreen(this)
-            SchematicEditor.rotate(settings.rotation)
             notifySettingsChanged()
         }
         rotationButton.message = TextComponent(settings.rotation.name)
@@ -225,6 +226,22 @@ public class SchematicSettingsScreen(
         addRenderableWidget(button)
     }
 
+    private fun addAutomodeToggle() {
+        val button = Button(
+            AUTOMODE_BUTTON_X,
+            AUTOMODE_BUTTON_Y,
+            NUMBER_TEXT_WIDTH,
+            NUMBER_TEXT_HEIGHT,
+            TextComponent(if (settings.automode) "ON" else "OFF"),
+        ) {
+            settings.automode = !settings.automode
+            Minecraft.getInstance().setScreen(this)
+            notifySettingsChanged()
+        }
+        button.message = TextComponent(if (settings.automode) "ON" else "OFF")
+        addRenderableWidget(button)
+    }
+
     private fun addMoveHere() {
         val button = Button(MOVE_HERE_BUTTON_X, MOVE_HERE_BUTTON_Y, NUMBER_TEXT_WIDTH, NUMBER_TEXT_HEIGHT, TextComponent( "Move Here")) {
             SchematicRenderManager.updateInitialPosition()
@@ -233,6 +250,18 @@ public class SchematicSettingsScreen(
         addRenderableWidget(button)
     }
 
+    private fun addPrinterSettingsButton() {
+        val button = Button(
+            PRINTER_SETTINGS_BUTTON_X,
+            PRINTER_SETTINGS_BUTTON_Y,
+            BUTTON_WIDTH,
+            BUTTON_HEIGHT,
+            TextComponent("Printer Settings"),
+        ) {
+            Minecraft.getInstance().setScreen(PrinterSettingsScreen(this))
+        }
+        addRenderableWidget(button)
+    }
 
     private fun addPresetControls() {
         val saveButton = Button(SETTING_SAVE_BUTTON_X, SETTING_SAVE_BUTTON_Y, SETTING_BUTTON_WIDTH, NUMBER_TEXT_HEIGHT, TextComponent( "Save")) {
@@ -248,7 +277,6 @@ public class SchematicSettingsScreen(
             RenderSettingsIO.load("nuchematica_render_setting")?.let {
                 settings.applyFrom(it)
                 SchematicEditor.applyJson(settings)
-                notifySettingsChanged()
                 Minecraft.getInstance().setScreen(this)
             }
         }
@@ -267,6 +295,7 @@ public class SchematicSettingsScreen(
         drawText(poseStack, "Rotation: ", ROTATION_HEADER_X, ROTATION_HEADER_Y)
         drawText(poseStack, "Display Height: ", DISPLAY_HEIGHT_HEADER_X, DISPLAY_HEIGHT_HEADER_Y)
         drawText(poseStack, "Display Type: ", DISPLAY_TYPE_HEADER_X, DISPLAY_TYPE_HEADER_Y)
+        drawText(poseStack, "Automode: ", AUTOMODE_HEADER_X, AUTOMODE_HEADER_Y)
         drawText(poseStack, "Save/Load a Setting: ", SETTING_HEADER_X, SETTING_HEADER_Y)
 
         super.render(poseStack, mouseX, mouseY, partialTicks)
@@ -338,17 +367,19 @@ public class SchematicSettingsScreen(
         private const val DISPLAY_HEIGHT_PLUS_X = DISPLAY_HEIGHT_TEXT_X + NUMBER_TEXT_WIDTH + PADDING
         private const val DISPLAY_HEIGHT_PLUS_Y = DISPLAY_HEIGHT_TEXT_Y
 
-        private var SETTING_HEADER_X = FIRST_LINE_BASELINE
-        private var SETTING_HEADER_Y = DISPLAY_HEIGHT_PLUS_Y + NUMBER_TEXT_HEIGHT + PADDING
-        private var SETTING_SAVE_BUTTON_X = FIRST_LINE_BASELINE
-        private var SETTING_SAVE_BUTTON_Y = SETTING_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
-        private var SETTING_LOAD_BUTTON_X = SETTING_SAVE_BUTTON_X + SETTING_BUTTON_WIDTH + PADDING
-        private var SETTING_LOAD_BUTTON_Y = SETTING_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
+        private const val PRINTER_SETTINGS_BUTTON_X = FIRST_LINE_BASELINE
+        private const val PRINTER_SETTINGS_BUTTON_Y = DISPLAY_HEIGHT_PLUS_Y + NUMBER_TEXT_HEIGHT + PADDING
+
+        private const val SETTING_HEADER_X = FIRST_LINE_BASELINE
+        private const val SETTING_HEADER_Y =
+            PRINTER_SETTINGS_BUTTON_Y + NUMBER_TEXT_HEIGHT + PADDING
+        private const val SETTING_SAVE_BUTTON_X = FIRST_LINE_BASELINE
+        private const val SETTING_SAVE_BUTTON_Y = SETTING_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
+        private const val SETTING_LOAD_BUTTON_X = SETTING_SAVE_BUTTON_X + SETTING_BUTTON_WIDTH + PADDING
+        private const val SETTING_LOAD_BUTTON_Y = SETTING_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
 
     }
 
-
-    // based on width
     private var BUTTON_WIDTH = 100
     private var BUTTON_HEIGHT = 20
     private var SECOND_LINE_BASELINE = width - 130
@@ -369,8 +400,13 @@ public class SchematicSettingsScreen(
     private var DISPLAY_TYPE_BUTTON_X = SECOND_LINE_BASELINE
     private var DISPLAY_TYPE_BUTTON_Y = DISPLAY_TYPE_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
 
+    private var AUTOMODE_HEADER_X = SECOND_LINE_BASELINE
+    private var AUTOMODE_HEADER_Y = DISPLAY_TYPE_BUTTON_Y + BUTTON_HEIGHT + PADDING
+    private var AUTOMODE_BUTTON_X = SECOND_LINE_BASELINE
+    private var AUTOMODE_BUTTON_Y = AUTOMODE_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
+
     private var MOVE_HERE_HEADER_X = SECOND_LINE_BASELINE
-    private var MOVE_HERE_HEADER_Y = DISPLAY_TYPE_BUTTON_Y + BUTTON_HEIGHT + PADDING
+    private var MOVE_HERE_HEADER_Y = AUTOMODE_BUTTON_Y + BUTTON_HEIGHT + PADDING
     private var MOVE_HERE_BUTTON_X = SECOND_LINE_BASELINE
     private var MOVE_HERE_BUTTON_Y = MOVE_HERE_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
 
@@ -392,8 +428,13 @@ public class SchematicSettingsScreen(
         DISPLAY_TYPE_BUTTON_X = SECOND_LINE_BASELINE
         DISPLAY_TYPE_BUTTON_Y = DISPLAY_TYPE_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
 
+        AUTOMODE_HEADER_X = SECOND_LINE_BASELINE
+        AUTOMODE_HEADER_Y = DISPLAY_TYPE_BUTTON_Y + BUTTON_HEIGHT + PADDING
+        AUTOMODE_BUTTON_X = SECOND_LINE_BASELINE
+        AUTOMODE_BUTTON_Y = AUTOMODE_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
+
         MOVE_HERE_HEADER_X = SECOND_LINE_BASELINE
-        MOVE_HERE_HEADER_Y = DISPLAY_TYPE_BUTTON_Y + BUTTON_HEIGHT + PADDING
+        MOVE_HERE_HEADER_Y = AUTOMODE_BUTTON_Y + BUTTON_HEIGHT + PADDING
         MOVE_HERE_BUTTON_X = SECOND_LINE_BASELINE
         MOVE_HERE_BUTTON_Y = MOVE_HERE_HEADER_Y + HEADER_TEXT_HEIGHT + PADDING
     }
