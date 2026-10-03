@@ -39,6 +39,8 @@ bin/
 /runs/
 /logs/
 /dev_server/
+/core/logs/
+/forge/logs/
 
 # Agent-local files
 /.agents/
@@ -49,3 +51,6 @@ bin/
 
 # OS files
 .DS_Store
+
+# Personal notes
+/todo.txt

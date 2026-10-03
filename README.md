@@ -1,5 +1,23 @@
 # nuchematica
 
+## Loaders
+
+Nuchematica is a client-side mod for Minecraft 1.18.2 and is built for two mod loaders:
+
+- Forge 40 or later (built against 40.3.0).
+- Fabric Loader 0.14.9 or later, with Fabric API installed.
+
+Kotlin is bundled in both jars, so no Kotlin language mod is needed.
+
+## Building
+
+Run `./gradlew build` (`gradlew.bat build` on Windows) with Java 17. It produces:
+
+- `forge/build/libs/nuchematica-forge-<version>.jar`
+- `fabric/build/libs/nuchematica-fabric-<version>.jar`
+
+Shared code lives in `core/`; `forge/` and `fabric/` contain only the loader-specific glue.
+
 ## Printer
 
 Press `P` in game to toggle the printer. The printer works only in Creative mode and turns itself off if you leave Creative mode.

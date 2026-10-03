@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "nuchematica",
+  "version": "${version}",
+  "name": "Nuchematica",
+  "description": "Building aid that renders schematics as ghost blocks in the world.",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.nubasu.nuchematica.fabric.NuchematicaFabric"
+    ]
+  },
+  "mixins": [
+    "nuchematica.mixins.json"
+  ],
+  "accessWidener": "nuchematica.accesswidener",
+  "depends": {
+    "fabricloader": ">=0.14.9",
+    "fabric-api": "*",
+    "minecraft": "1.18.2",
+    "java": ">=17"
+  }
+}

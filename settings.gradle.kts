@@ -2,6 +2,8 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         maven("https://maven.minecraftforge.net/")
+        maven("https://maven.fabricmc.net/")
+        maven("https://repo.spongepowered.org/repository/maven-public/")
     }
 
     val kotlinVersion: String by settings
@@ -12,3 +14,5 @@ pluginManagement {
 }
 
 rootProject.name = "nuchematica"
+
+include("core", "forge", "fabric")
